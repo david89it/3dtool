@@ -112,6 +112,7 @@ export function FurnishPanel() {
     <section className="panel-section furnish" aria-label="Furniture">
       <h2>Furniture</h2>
       <input
+        data-tour="furnish-search"
         className="text-field"
         type="search"
         placeholder="Search: sofa, wall bed, utility…"

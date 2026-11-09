@@ -37,6 +37,7 @@ export function ModeBar() {
           disabled={!m.ready}
           title={m.ready ? undefined : 'Coming in a later phase'}
           onClick={() => setMode(m.id)}
+          data-tour={`mode-${m.id}`}
         >
           {m.label}
           {m.id === 'advice' && <AdviceBadge />}

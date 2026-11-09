@@ -12,6 +12,7 @@ interface Settings {
   units: UnitSystem;
   showMarkers: boolean;
   showAllClearances?: boolean;
+  tourSeen?: boolean;
 }
 
 export async function loadSavedProject(): Promise<Project | undefined> {
@@ -39,11 +40,15 @@ export function startAutosave(): () => void {
   const unsub = useStore.subscribe((s, prev) => {
     if (!s.ready) return;
     if (s.units !== prev.units || s.showMarkers !== prev.showMarkers || s.showAllClearances !== prev.showAllClearances) {
-      void set(SETTINGS_KEY, {
-        units: s.units,
-        showMarkers: s.showMarkers,
-        showAllClearances: s.showAllClearances,
-      } satisfies Settings);
+      void (async () => {
+        const old = await loadSettings();
+        await set(SETTINGS_KEY, {
+          ...old,
+          units: s.units,
+          showMarkers: s.showMarkers,
+          showAllClearances: s.showAllClearances,
+        } satisfies Settings);
+      })();
     }
     if (s.project === prev.project || s.project === lastSaved || s.gesture) return;
     if (timer) clearTimeout(timer);
@@ -116,4 +121,14 @@ export function downloadDataUrl(dataUrl: string, filename: string): void {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+/** Remember that the first-run tour has been seen (or skipped). */
+export async function markTourSeen(): Promise<void> {
+  try {
+    const old = await loadSettings();
+    await set(SETTINGS_KEY, { ...old, tourSeen: true });
+  } catch {
+    // Private windows may refuse storage; the tour just shows again next time.
+  }
 }

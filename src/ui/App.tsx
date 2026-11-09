@@ -14,6 +14,9 @@ import { ModeBar } from './ModeBar';
 import { LeftPanel } from './LeftPanel';
 import { Inspector } from './Inspector';
 import { Toasts } from './Toasts';
+import { Tour } from './Tour';
+import { Shortcuts } from './Shortcuts';
+import { markTourSeen } from '../model/persistence';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
 const View3D = lazy(() => import('../view3d/View3D').then((m) => ({ default: m.View3D })));
@@ -54,6 +57,20 @@ function useShortcuts() {
         return;
       }
       if (mod) return;
+      if (e.key === '?') {
+        e.preventDefault();
+        s.setShortcutsOpen(!s.shortcutsOpen);
+        return;
+      }
+      if (e.key === 'Escape' && s.shortcutsOpen) {
+        s.setShortcutsOpen(false);
+        return;
+      }
+      if (e.key === 'Escape' && s.tourStep !== null) {
+        s.setTourStep(null);
+        void markTourSeen();
+        return;
+      }
       if (e.key === 'Tab' && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         if (s.mode === '3d') s.setMode(last2DMode);
@@ -64,7 +81,10 @@ function useShortcuts() {
         return;
       }
       if (s.mode === '3d') return;
-      if (e.key === 'Escape') canvasApi.escape();
+      if (e.key === 'Escape') {
+        canvasApi.escape();
+        s.setHighlight(null);
+      }
       else if (e.key === 'Enter' && s.tool === 'draw') canvasApi.finishTrace();
       else if (e.key === 'v' || e.key === 'V') s.setTool('select');
       else if ((e.key === 'w' || e.key === 'W') && s.mode === 'trace') s.setTool('draw');
@@ -130,6 +150,8 @@ export function App() {
         </main>
       )}
       <Toasts />
+      <Tour />
+      <Shortcuts />
     </div>
   );
 }

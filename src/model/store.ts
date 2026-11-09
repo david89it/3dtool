@@ -5,6 +5,7 @@ import type { UnitSystem } from './units';
 import { pushEntry, type HistoryEntry } from './history';
 import { syncRooms } from '../geometry/rooms';
 import { clampOpenings } from '../geometry/wallGraph';
+import { activeLevels, withActive } from './schemes';
 
 enablePatches();
 
@@ -71,6 +72,9 @@ export interface AppState {
   showAllClearances: boolean;
   highlight: Highlight | null;
   settingsOpen: boolean;
+  /** First-run tour: the step showing, or null when closed. */
+  tourStep: number | null;
+  shortcutsOpen: boolean;
   /** "Ask Claude for advice" switched on in Settings (kept in this browser). */
   adviceEnabled: boolean;
   /** An API key is saved in this browser (the key itself is never kept in the store). */
@@ -104,6 +108,8 @@ export interface AppState {
   setShowAllClearances: (v: boolean) => void;
   setHighlight: (h: Highlight | null) => void;
   setSettingsOpen: (v: boolean) => void;
+  setTourStep: (n: number | null) => void;
+  setShortcutsOpen: (v: boolean) => void;
   setAdviceState: (v: { enabled?: boolean; keySaved?: boolean }) => void;
   toast: (text: string, tone?: Toast['tone']) => void;
   dismissToast: (id: number) => void;
@@ -154,6 +160,8 @@ export const useStore = create<AppState>()((set, get) => ({
   showAllClearances: false,
   highlight: null,
   settingsOpen: false,
+  tourStep: null,
+  shortcutsOpen: false,
   adviceEnabled: false,
   adviceKeySaved: false,
   past: [],
@@ -164,9 +172,10 @@ export const useStore = create<AppState>()((set, get) => ({
   loadProject: (p, opts) => {
     const keep = opts?.keepLevel && p.levels.some((l) => l.id === get().levelId);
     // Open on the main living floor if there is one, otherwise the busiest floor.
+    const shown = activeLevels(p);
     const first =
-      p.levels.find((l) => /first floor/i.test(l.name)) ??
-      [...p.levels].sort((a, b) => b.rooms.length - a.rooms.length || b.walls.length - a.walls.length)[0];
+      shown.find((l) => /first floor/i.test(l.name)) ??
+      [...shown].sort((a, b) => b.rooms.length - a.rooms.length || b.walls.length - a.walls.length)[0];
     set({
       ready: true,
       project: p,
@@ -252,7 +261,7 @@ export const useStore = create<AppState>()((set, get) => ({
     const next = applyPatches(project, entry.inverse);
     const levelId = next.levels.some((l) => l.id === entry.levelId) ? entry.levelId : get().levelId;
     set({
-      project: next,
+      project: withActive(next, levelId),
       levelId,
       past: past.slice(0, -1),
       future: [...future, entry],
@@ -267,7 +276,7 @@ export const useStore = create<AppState>()((set, get) => ({
     const next = applyPatches(project, entry.patches);
     const levelId = next.levels.some((l) => l.id === entry.levelId) ? entry.levelId : get().levelId;
     set({
-      project: next,
+      project: withActive(next, levelId),
       levelId,
       past: [...past, entry],
       future: future.slice(0, -1),
@@ -275,10 +284,10 @@ export const useStore = create<AppState>()((set, get) => ({
     });
   },
 
-  setLevel: (id) => set({ levelId: id, selection: null, highlight: null }),
+  setLevel: (id) => set({ levelId: id, selection: null, highlight: null, project: withActive(get().project, id) }),
   setMode: (m) => set({ mode: m, tool: 'select', selection: null, ghost: null, itemGhost: null, highlight: null }),
   setTool: (t) => set({ tool: t, ghost: null, itemGhost: null }),
-  select: (s) => set({ selection: s }),
+  select: (s) => set(s ? { selection: s } : { selection: null, highlight: null }),
   setUnits: (u) => set({ units: u }),
   setShowMarkers: (v) => set({ showMarkers: v }),
   setDrawKind: (k) => set({ drawKind: k }),
@@ -289,6 +298,8 @@ export const useStore = create<AppState>()((set, get) => ({
   setShowAllClearances: (v) => set({ showAllClearances: v }),
   setHighlight: (h) => set({ highlight: h }),
   setSettingsOpen: (v) => set({ settingsOpen: v }),
+  setTourStep: (n) => set({ tourStep: n }),
+  setShortcutsOpen: (v) => set({ shortcutsOpen: v }),
   setAdviceState: (v) =>
     set({
       ...(v.enabled !== undefined ? { adviceEnabled: v.enabled } : {}),

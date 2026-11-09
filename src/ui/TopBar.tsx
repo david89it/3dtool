@@ -4,6 +4,8 @@ import { useStore } from '../model/store';
 import { exportProjectFile, readProjectFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
 import { createSeedProject } from '../model/seedAssets';
 import { canvasApi } from '../editor2d/canvasApi';
+import { activeLevels, groupOf } from '../model/schemes';
+import { OptionSwitcher } from './OptionSwitcher';
 
 export function TopBar() {
   const project = useStore((s) => s.project);
@@ -19,6 +21,8 @@ export function TopBar() {
   const [confirmReset, setConfirmReset] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const current = project.levels.find((l) => l.id === levelId);
+  const currentGroup = current ? groupOf(current) : '';
   const lastUndo = past[past.length - 1];
   const lastRedo = future[future.length - 1];
 
@@ -32,17 +36,22 @@ export function TopBar() {
       </div>
 
       <nav className="levels" aria-label="Floors">
-        {project.levels.map((l) => (
-          <button
-            key={l.id}
-            className={l.id === levelId ? 'level-tab on' : 'level-tab'}
-            aria-pressed={l.id === levelId}
-            onClick={() => setLevel(l.id)}
-          >
-            {l.name}
-          </button>
-        ))}
+        {activeLevels(project).map((l) => {
+          const on = groupOf(l) === currentGroup;
+          return (
+            <button
+              key={groupOf(l)}
+              className={on ? 'level-tab on' : 'level-tab'}
+              aria-pressed={on}
+              onClick={() => setLevel(l.id)}
+            >
+              {l.name}
+              {l.scheme && <span className="tab-option"> · {l.scheme.name}</span>}
+            </button>
+          );
+        })}
       </nav>
+      <OptionSwitcher />
 
       <div className="topbar-right">
         <div className="undo-group">
@@ -73,6 +82,14 @@ export function TopBar() {
             ft
           </button>
         </div>
+        <button
+          className="icon-btn"
+          aria-label="Keyboard shortcuts"
+          title="Keyboard shortcuts (?)"
+          onClick={() => useStore.getState().setShortcutsOpen(true)}
+        >
+          ?
+        </button>
         <button className="btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
           Settings
         </button>
@@ -118,6 +135,15 @@ export function TopBar() {
                 }}
               >
                 Export this floor as a picture (PNG)
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  useStore.getState().setTourStep(0);
+                }}
+              >
+                Show the tour again
               </button>
               <hr />
               <button

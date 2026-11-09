@@ -39,6 +39,9 @@ const TOOLS: Record<string, ToolHandler> = {
   placeItem: placeItemTool,
 };
 
+/** Tools where a click places something: on touch, a drag pans instead. */
+const TAP_TOOLS = new Set<Tool>(['draw', 'calibrate', 'placeOpening', 'placeItem']);
+
 const ALL_TOOLS = [...Object.values(TOOLS), openingSelectTool, furnishSelectTool];
 
 /** Each mode has its own "select" behaviour; other tools are shared. */
@@ -248,6 +251,8 @@ export function PlanCanvas() {
   const pinch = useRef<{ d: number; mid: Vec2 } | null>(null);
   const pan = useRef<{ last: Vec2 } | null>(null);
   const spaceDown = useRef(false);
+  const fingerTap = useRef<{ start: Vec2; last: Vec2; panning: boolean } | null>(null);
+  const afterPinch = useRef(false);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -285,12 +290,19 @@ export function PlanCanvas() {
     if (pointers.current.size === 2) {
       // Two fingers: pinch to zoom and pan; abandon whatever the tool started.
       toolFor(mode, tool).escape?.(ctx);
+      fingerTap.current = null;
+      afterPinch.current = true;
       const [a, b] = [...pointers.current.values()];
       pinch.current = { d: dist(a, b), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
       return;
     }
     if (e.button === 1 || spaceDown.current) {
       pan.current = { last: p.screen };
+      return;
+    }
+    // A finger on a click-to-place tool: a tap places, a drag moves the plan.
+    if (e.pointerType === 'touch' && TAP_TOOLS.has(tool)) {
+      fingerTap.current = { start: p.screen, last: p.screen, panning: false };
       return;
     }
     toolFor(mode, tool).down(ctx, p);
@@ -318,6 +330,17 @@ export function PlanCanvas() {
       pan.current = { last: p.screen };
       return;
     }
+    if (afterPinch.current) return;
+    const ft = fingerTap.current;
+    if (ft) {
+      if (!ft.panning && dist(ft.start, p.screen) > 10) ft.panning = true;
+      if (ft.panning) {
+        const last = ft.last;
+        setView((v) => ({ ...v, x: v.x + p.screen.x - last.x, y: v.y + p.screen.y - last.y }));
+      }
+      ft.last = p.screen;
+      return;
+    }
     toolFor(mode, tool).move(ctx, p);
   };
 
@@ -328,11 +351,26 @@ export function PlanCanvas() {
       if (pointers.current.size < 2) pinch.current = null;
       return;
     }
+    if (afterPinch.current) {
+      // Ignore the last finger lifting after a pinch.
+      if (pointers.current.size === 0) afterPinch.current = false;
+      return;
+    }
     if (pan.current) {
       pan.current = null;
       return;
     }
     if (labelEdit || calib) return;
+    const ft = fingerTap.current;
+    fingerTap.current = null;
+    if (ft) {
+      if (ft.panning) return;
+      // A tap: no hover on a finger, so show where it lands, then place.
+      const p = info(e);
+      toolFor(mode, tool).move(ctx, p);
+      toolFor(mode, tool).up(ctx, { ...p, button: 0 });
+      return;
+    }
     toolFor(mode, tool).up(ctx, info(e));
   };
 

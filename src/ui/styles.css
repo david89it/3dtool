@@ -996,3 +996,140 @@ body.dragging-opening * {
   width: 70px;
   border-width: 1px;
 }
+
+/* ---- phase 6: tour, shortcuts, options, touch ----------------------- */
+.app,
+.canvas-wrap,
+.palette-item,
+.tool-btn {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+.tour-ring {
+  position: fixed;
+  border: 3px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.18);
+  transition: all 0.2s ease;
+}
+.tour-card {
+  position: fixed;
+  pointer-events: auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+}
+.tour-card h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.tour-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.tour-progress {
+  display: flex;
+  gap: 6px;
+}
+.tour-progress .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.tour-progress .dot.on {
+  background: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-ring {
+    transition: none;
+  }
+}
+.modal-backdrop.fixed {
+  position: fixed;
+  z-index: 50;
+}
+.modal.shortcuts {
+  width: min(760px, 94vw);
+  max-height: 86vh;
+  overflow-y: auto;
+}
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 6px 24px;
+}
+.shortcut-grid h3 {
+  font-size: 13px;
+  margin: 8px 0 4px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.shortcut-grid dl {
+  margin: 0;
+}
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shortcut-row dt {
+  flex: none;
+}
+.shortcut-row dd {
+  margin: 0;
+  text-align: right;
+  color: var(--muted);
+  font-size: 13px;
+}
+kbd {
+  font: 12px ui-monospace, monospace;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 2px 6px;
+  background: #fafaf8;
+}
+.option-switcher {
+  position: relative;
+  flex: none;
+}
+.option-btn {
+  white-space: nowrap;
+}
+.option-menu {
+  left: 0;
+  right: auto;
+  min-width: 260px;
+}
+.option-menu button.on {
+  font-weight: 600;
+}
+.menu-note {
+  padding: 4px 12px 8px;
+}
+.tab-option {
+  opacity: 0.75;
+  font-size: 12px;
+}

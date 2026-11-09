@@ -14,6 +14,9 @@ export interface Project {
   // plain factor where the rule says so). Saved with the project so undo
   // and file export include them. Missing = UK default from the registry.
   ruleOverrides?: Record<string, Partial<Record<string, number>>>;
+  // EXTENSION (phase 6, compare mode): which option of each floor is shown,
+  // keyed by Level.scheme.group. Missing means the first option.
+  activeSchemes?: Record<Id, Id>;
 }
 
 export interface Level {
@@ -35,6 +38,9 @@ export interface Level {
   // EXTENSION: true while elevation/ceilingHeight are seed guesses (§6).
   // Cleared as soon as she types a value.
   estimated?: boolean;
+  // EXTENSION (phase 6, compare mode): set when this floor has several
+  // options. `group` is the id of the original floor; `name` is "Option A"...
+  scheme?: { group: Id; name: string };
 }
 
 // EXTENSION: see Level.markers.

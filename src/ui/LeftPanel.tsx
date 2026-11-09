@@ -18,6 +18,7 @@ function ToolButton({ tool, label, keyHint, desc }: { tool: Tool; label: string;
       aria-pressed={current === tool}
       onClick={() => setTool(tool)}
       title={`${label} (${keyHint})`}
+      data-tour={tool === 'draw' ? 'draw-walls' : undefined}
     >
       <span className="tool-label">{label}</span>
       <span className="tool-desc">{desc}</span>

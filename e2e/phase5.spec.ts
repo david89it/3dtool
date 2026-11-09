@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
 // room's floor and undo it.
 
 async function freshStart(page: Page) {
-  await page.goto('/');
+  await page.goto('/?notour');
   await page.evaluate(async () => {
     await new Promise<void>((resolve) => {
       const req = indexedDB.deleteDatabase('keyval-store');

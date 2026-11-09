@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
 type Vec2 = { x: number; y: number };
 
 async function freshStart(page: Page) {
-  await page.goto('/');
+  await page.goto('/?notour');
   await page.evaluate(async () => {
     await new Promise<void>((resolve) => {
       const req = indexedDB.deleteDatabase('keyval-store');

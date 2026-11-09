@@ -8,7 +8,8 @@ import { useStore } from '../model/store';
 import { rotate } from '../geometry/vec';
 import { LevelMesh } from './LevelMesh';
 import { WalkRig, touchInput, walkState } from './WalkRig';
-import { levelBoundsMm, MM } from './sceneBuild';
+import { CUTAWAY_HEIGHT, levelBoundsMm, MM } from './sceneBuild';
+import { activeLevelsResolved } from '../model/schemes';
 import { FinishPanel } from './FinishPanel';
 import './view3d.css';
 
@@ -78,8 +79,18 @@ function OrbitRig({ level }: { level: Level }) {
   const controls = useRef<OrbitControlsImpl>(null);
   const camera = useThree((s) => s.camera);
   useEffect(() => {
+    // A steep three-quarter view from the front (street) side, framing the floor.
     const c = levelCentre(level);
-    camera.position.set(c.x + 5, c.y + 10, c.z + 9);
+    const b = levelBoundsMm(level);
+    const span = b ? Math.max(b.max.x - b.min.x, b.max.y - b.min.y) * MM : 8;
+    const dist = Math.max(8, span * 1.55);
+    const pitch = (58 * Math.PI) / 180;
+    const yaw = (20 * Math.PI) / 180; // a little from the right so walls read in depth
+    camera.position.set(
+      c.x + Math.sin(yaw) * Math.cos(pitch) * dist,
+      c.y + Math.sin(pitch) * dist,
+      c.z + Math.cos(yaw) * Math.cos(pitch) * dist,
+    );
     camera.lookAt(c);
     if (controls.current) {
       controls.current.target.copy(c);
@@ -185,6 +196,7 @@ export function View3D() {
   const [lightsOn, setLightsOn] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
+  const [cutaway, setCutaway] = useState(true);
   const touch = useMemo(() => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches, []);
 
   useEffect(() => {
@@ -196,10 +208,14 @@ export function View3D() {
   useEffect(() => () => void (window.__flatplan3d = undefined), []);
 
   // In the overview, hide floors above the one she is looking at so she can see in.
+  // Only the active option of each floor is built (compare mode).
+  const shown = useMemo(() => activeLevelsResolved(project), [project]);
   const visible = useMemo(
-    () => (view === 'walk' ? project.levels : project.levels.filter((l) => l.elevation <= level.elevation + 1)),
-    [view, project.levels, level.elevation],
+    () => (view === 'walk' ? shown : shown.filter((l) => l.elevation <= level.elevation + 1)),
+    [view, shown, level.elevation],
   );
+  // Cut-away: in the overview, walls stop at 1.2 m so rooms and furniture read clearly.
+  const cut = view === 'orbit' && cutaway ? CUTAWAY_HEIGHT : undefined;
   const centre = useMemo(() => levelCentre(level), [level]);
 
   if (!level) return null;
@@ -228,6 +244,7 @@ export function View3D() {
               level={L}
               project={project}
               lightsOn={lightsOn}
+              cutHeight={L.id === level.id || L.elevation >= level.elevation - 1 ? cut : undefined}
               onPickRoom={(lid, rid) => {
                 if (lid !== useStore.getState().levelId) useStore.getState().setLevel(lid);
                 setRoomId(rid);
@@ -243,7 +260,7 @@ export function View3D() {
             <OrbitRig level={level} />
           ) : (
             <WalkRig
-              levels={project.levels}
+              levels={shown}
               project={project}
               startLevel={level}
               touch={!!touch}
@@ -296,6 +313,12 @@ export function View3D() {
               ? 'You walk at about 1.4 m/s with your eyes 1.6 m above the floor. Stairs take you between floors.'
               : 'Floors above this one are hidden so you can see in. Tab goes back to the plan.'}
           </p>
+          {view === 'orbit' && (
+            <label className="toggle">
+              <input type="checkbox" checked={cutaway} onChange={(e) => setCutaway(e.target.checked)} data-testid="cutaway" />
+              Cut-away walls (1.2 m high)
+            </label>
+          )}
         </section>
 
         <section className="panel-section">

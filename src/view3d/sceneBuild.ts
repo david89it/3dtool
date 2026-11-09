@@ -12,11 +12,19 @@ import { computeJoints } from '../geometry/joints';
 import { detectRooms, type DetectedRoom } from '../geometry/rooms';
 import { add, mul, perpL, perpR, signedArea } from '../geometry/vec';
 import { findCatalogueItem, itemParts, localToPlan } from '../catalogue/catalogue';
-import { wallDir, wallEndExtensions, wallProfile } from './wallProfile';
+import { wallDir, wallEndExtensions, wallProfile, type WallProfile } from './wallProfile';
 import { ceilingMaterial, finishMaterial, tokenMaterial } from './materials';
 import { defaultFloorId, defaultWallId } from './finishes';
 
 export const MM = 0.001;
+
+/** Wall height in the overview's cut-away view (mm). */
+export const CUTAWAY_HEIGHT = 1200;
+
+export interface BuildOptions {
+  /** Cut walls (and what is in them) at this height above the floor. */
+  cutHeight?: number;
+}
 
 export interface MeshSpec {
   key: string;
@@ -97,6 +105,45 @@ function flatPolygon(poly: Vec2[], heightMm: number, up: boolean): THREE.BufferG
   return g;
 }
 
+/**
+ * Wall profile as three.js shapes (metres). In the cut-away view, an opening
+ * that reaches the cut splits the wall into separate pieces, so no thin strip
+ * is left across the top of it.
+ */
+function profileShapes(profile: WallProfile, cut: boolean): { shapes: THREE.Shape[]; sills: { u0: number; u1: number; v1: number }[] } {
+  const { u0, u1, v0, v1 } = profile.outer;
+  const through = cut ? profile.holes.filter((h) => h.v1 >= v1 - 25).sort((p, q) => p.u0 - q.u0) : [];
+  const spans: [number, number][] = [];
+  let cursor = u0;
+  for (const h of through) {
+    if (h.u0 > cursor + 1) spans.push([cursor, h.u0]);
+    cursor = Math.max(cursor, h.u1);
+  }
+  if (u1 > cursor + 1) spans.push([cursor, u1]);
+  // Windows that reach the cut still have wall below the sill.
+  const sills = through.filter((h) => h.v0 > 1).map((h) => ({ u0: h.u0, u1: h.u1, v1: h.v0 }));
+  const shapes = spans.map(([a, b]) => {
+    const shape = new THREE.Shape();
+    shape.moveTo(a * MM, v0 * MM);
+    shape.lineTo(b * MM, v0 * MM);
+    shape.lineTo(b * MM, v1 * MM);
+    shape.lineTo(a * MM, v1 * MM);
+    shape.closePath();
+    for (const h of profile.holes) {
+      if (through.includes(h) || h.u0 < a + 1 || h.u1 > b - 1) continue;
+      const path = new THREE.Path();
+      path.moveTo(h.u0 * MM, h.v0 * MM);
+      path.lineTo(h.u0 * MM, h.v1 * MM);
+      path.lineTo(h.u1 * MM, h.v1 * MM);
+      path.lineTo(h.u1 * MM, h.v0 * MM);
+      path.closePath();
+      shape.holes.push(path);
+    }
+    return shape;
+  });
+  return { shapes, sills };
+}
+
 /** The door leaf, placed exactly as the 2D plan draws its swing. */
 function doorLeaf(o: Opening, a: Vec2, d: Vec2, half: number, elevation: number): THREE.BufferGeometry {
   const sw = o.swing ?? { hinge: 'start', side: 'left', angle: 90 };
@@ -123,41 +170,32 @@ function doorLeaf(o: Opening, a: Vec2, d: Vec2, half: number, elevation: number)
   return g;
 }
 
-function wallMeshes(level: Level, wall: Wall, height: number, sideRooms: { L?: Room; R?: Room }, out: Map<string, THREE.BufferGeometry[]>) {
+function wallMeshes(level: Level, wall: Wall, height: number, sideRooms: { L?: Room; R?: Room }, out: Map<string, THREE.BufferGeometry[]>, cut = false) {
   const { a, d, length } = wallDir(level, wall);
   if (length < 1) return;
   const { extA, extB } = wallEndExtensions(level, wall);
   const profile = wallProfile(length, height, wall.openings, extA, extB);
   const basis = wallBasis(a, d, level.elevation);
-  const shape = new THREE.Shape();
-  const { u0, u1, v0, v1 } = profile.outer;
-  shape.moveTo(u0 * MM, v0 * MM);
-  shape.lineTo(u1 * MM, v0 * MM);
-  shape.lineTo(u1 * MM, v1 * MM);
-  shape.lineTo(u0 * MM, v1 * MM);
-  shape.closePath();
-  for (const h of profile.holes) {
-    const p = new THREE.Path();
-    p.moveTo(h.u0 * MM, h.v0 * MM);
-    p.lineTo(h.u0 * MM, h.v1 * MM);
-    p.lineTo(h.u1 * MM, h.v1 * MM);
-    p.lineTo(h.u1 * MM, h.v0 * MM);
-    p.closePath();
-    shape.holes.push(p);
-  }
+  const { shapes, sills } = profileShapes(profile, cut);
   const half = wall.thickness / 2;
   // Two half-thickness slabs, so each side wears its own room's finish.
   for (const side of ['L', 'R'] as const) {
-    const g = new THREE.ExtrudeGeometry(shape, { depth: half * MM, bevelEnabled: false, curveSegments: 1 });
+    const g = new THREE.ExtrudeGeometry(shapes, { depth: half * MM, bevelEnabled: false, curveSegments: 1 });
     if (side === 'R') g.translate(0, 0, -half * MM);
     g.applyMatrix4(basis);
     const key = `wall:${wallFinishId(sideRooms[side])}`;
     push(out, key, g);
+    for (const sl of sills) push(out, key, side === 'L' ? wallBox(basis, sl.u0, sl.u1, 0, sl.v1, 0, half) : wallBox(basis, sl.u0, sl.u1, 0, sl.v1, -half, 0));
   }
   // Openings
   for (const o of wall.openings) {
     const hole = profile.holes.find((h) => h.openingId === o.id);
     if (!hole) continue;
+    if (cut) {
+      // Cut-away: glass only where the window is below the cut; no leaves or frames.
+      if ((o.type === 'window' || o.type === 'bayWindow') && hole.v1 > hole.v0) push(out, 'token:glass', wallBox(basis, hole.u0, hole.u1, hole.v0, hole.v1, -6, 6));
+      continue;
+    }
     if (o.type === 'window' || o.type === 'bayWindow') {
       push(out, 'token:glass', wallBox(basis, hole.u0, hole.u1, hole.v0, hole.v1, -6, 6));
       const f = 45;
@@ -203,7 +241,8 @@ function stairGeometry(level: Level, s: Level['stairs'][number], to: number): TH
   return out;
 }
 
-export function buildLevel(level: Level, project: Project): LevelScene {
+export function buildLevel(level: Level, project: Project, opts: BuildOptions = {}): LevelScene {
+  const cut = opts.cutHeight;
   const joints = computeJoints(level);
   const detected = detectRooms(level, joints);
   const groups = new Map<string, THREE.BufferGeometry[]>();
@@ -226,7 +265,8 @@ export function buildLevel(level: Level, project: Project): LevelScene {
   }
 
   for (const w of level.walls) {
-    wallMeshes(level, w, w.height ?? level.ceilingHeight, sides.get(w.id) ?? {}, groups);
+    const full = w.height ?? level.ceilingHeight;
+    wallMeshes(level, w, cut ? Math.min(full, cut) : full, sides.get(w.id) ?? {}, groups, !!cut);
   }
 
   for (const r of detected) {
@@ -234,7 +274,7 @@ export function buildLevel(level: Level, project: Project): LevelScene {
       // Chimney breast voids and the like: solid masonry to ceiling height.
       const pts = r.centre;
       const shape = new THREE.Shape(pts.map((p) => new THREE.Vector2(p.x * MM, -p.y * MM)));
-      const g = new THREE.ExtrudeGeometry(shape, { depth: level.ceilingHeight * MM, bevelEnabled: false });
+      const g = new THREE.ExtrudeGeometry(shape, { depth: (cut ? Math.min(cut, level.ceilingHeight) : level.ceilingHeight) * MM, bevelEnabled: false });
       // shape (x, -y) -> world (x, z = y); extrusion -> up.
       g.applyMatrix4(new THREE.Matrix4().set(1, 0, 0, 0, 0, 0, 1, level.elevation * MM, 0, -1, 0, 0, 0, 0, 0, 1));
       push(groups, 'token:masonry', g);
@@ -254,7 +294,7 @@ export function buildLevel(level: Level, project: Project): LevelScene {
       });
     }
     const ch = room?.ceilingHeight ?? level.ceilingHeight;
-    const ceil = flatPolygon(r.inner, level.elevation + ch, false);
+    const ceil = cut ? null : flatPolygon(r.inner, level.elevation + ch, false);
     if (ceil) meshes.push({ key: `ceiling:${r.key}`, geometry: ceil, material: ceilingMaterial, castShadow: false, receiveShadow: false });
     lights.push(new THREE.Vector3(r.label.x * MM, (level.elevation + ch - 300) * MM, r.label.y * MM));
   }

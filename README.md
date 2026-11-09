@@ -5,8 +5,7 @@ trace the floorplan, edit walls, furnish, get layout advice, and walk
 through in 3D. No backend: everything runs in the browser and is saved in
 the browser's own storage (IndexedDB).
 
-Status: **Phases 1–3** (plan import, wall editing, doors, windows and openings, furniture). See `DECISIONS.md` for
-assumptions and `assets/` for the agent's plan and photos.
+Status: **all six phases are built**: plan import and wall editing, doors and windows, furniture, layout advice, 3D with walk-through, and polish (tour, shortcuts, compare options, iPad). See `DECISIONS.md` for assumptions and `assets/` for the agent's plan and photos.
 
 ## Run it
 
@@ -83,6 +82,26 @@ Leasehold: needs landlord's licence.*
 
 Numbers marked **≈** come from the agent's not-to-scale plan. Amber **?** pins
 mark things to measure on site; the right panel lists them per floor.
+
+## Using it (Phase 6: tour, shortcuts, options, iPad)
+
+| Do this | How |
+| --- | --- |
+| Quick tour | Shows on the first visit (5 short steps). File → *Show the tour again* repeats it |
+| Keyboard shortcuts | Press **?** or the **?** button in the top bar. Esc closes |
+| Compare layouts | *Options ▾* next to the floor tabs → *Duplicate as a new option*. Switch between Option A and Option B from the same menu; rename or delete an option there |
+| 3D overview | Walls are cut away at 1.2 m so you can see in. Untick *Cut-away walls* for full height. Walk always uses full height |
+
+Each floor shows one tab; when it has options, the tab says which one is on.
+The 3D view, stairs and walking use the option that is on.
+
+**On an iPad** (Safari): one finger drags the plan, two fingers pinch to zoom,
+a tap selects. In *Draw walls*, *Set scale* and when placing things, a tap places
+and a drag moves the plan instead. The Apple Pencil works like a mouse: tap to
+place corners, press and drag to move walls and furniture. Long-press doesn't
+pop up the copy menu. Add the page to the Home Screen for full-screen use.
+
+`?notour` in the address skips the tour (used by the tests).
 
 ## Code layout
 

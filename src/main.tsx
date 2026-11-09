@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
 import { useStore } from './model/store';
-import { flushSave, loadSavedProject, loadSettings, startAutosave } from './model/persistence';
+import { flushSave, loadSavedProject, loadSettings, markTourSeen, startAutosave } from './model/persistence';
 import { createSeedProject } from './model/seedAssets';
 import { loadAdviceEnabled, loadApiKey } from './advice/keyStore';
 import { canvasApi } from './editor2d/canvasApi';
@@ -20,12 +20,22 @@ async function boot() {
   useStore.getState().loadProject(project);
   if (!saved) await flushSave();
   startAutosave();
+  // First run: a short tour. `?notour` in the address skips it (tests, demos).
+  if (!settings.tourSeen && !/[?&]notour\b/.test(window.location.search)) useStore.getState().setTourStep(0);
   window.addEventListener('pagehide', () => void flushSave());
 }
 
 if (import.meta.env.DEV) {
   // Test and debugging hooks.
-  (window as unknown as Record<string, unknown>).__flatplan = { store: useStore, canvas: canvasApi, flushSave };
+  (window as unknown as Record<string, unknown>).__flatplan = {
+    store: useStore,
+    canvas: canvasApi,
+    flushSave,
+    skipTour: () => {
+      useStore.getState().setTourStep(null);
+      return markTourSeen();
+    },
+  };
 }
 
 createRoot(document.getElementById('root')!).render(

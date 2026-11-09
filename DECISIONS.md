@@ -318,3 +318,45 @@ challenged.
   It measured about 7–11 fps in the overview there, which says nothing
   about a real laptop GPU. The 60 fps target on a 2022 MacBook Air has not
   been measured yet.
+
+## Phase 6: polish
+
+- **Tour.** It has five cards, each pointing at the real control and switching
+  to that mode. It shows on the first visit and is remembered in this
+  browser's settings (`tourSeen`). Skip, Esc or finishing all count as seen.
+  The last step opens 3D, and "Start planning" returns to Trace. The tour
+  never blocks the plan: only the card takes clicks. `?notour` in the
+  address skips it, and every browser test uses it.
+- **Shortcuts overlay** (`?` key or the top-bar button) lists the keys that
+  exist in the code: global, plan, Trace, Furnish and 3D walk.
+- **Compare options.** These extensions are commented in `types.ts`:
+  `Level.scheme = { group, name }`, where group is the original floor's
+  id, and `Project.activeSchemes[group]`. Duplicating deep-copies the floor
+  with fresh ids everywhere: nodes, walls, openings, rooms (boundaries
+  remapped, so names survive), items (`mountedTo` remapped), stairs and
+  pins. The original becomes "Option A".
+  - Only the active option of each floor appears in the tabs and in 3D.
+    Stairs whose destination is a floor with options lead to the option
+    that is on (`activeLevelsResolved`).
+  - Choosing an option isn't an undo step. Undoing an edit made on Option
+    B switches back to Option B, so you always see what changed.
+  - Deleting down to one option makes it a plain floor again.
+  - Rules, advice and the Ask Claude call work on the option you are
+    looking at.
+- **Touch.** In the click-to-place tools (draw walls, set scale, place
+  opening, place furniture), a finger tap places and a finger drag pans.
+  In the select tools, dragging empty floor already pans. After a pinch,
+  the finger left on the screen is ignored, so lifting it doesn't place
+  anything. The plan and panels turn off text selection and the iOS
+  long-press callout; inputs keep text selection. A pen (Apple Pencil)
+  goes through the mouse path, so it is precise and needs no hover.
+- **3D overview camera** looks down at about 58° from the street side,
+  framing the floor. **Cut-away walls** are on by default in the overview
+  and cut at 1.2 m:
+  - an opening that reaches the cut splits the wall, so there is no thin
+    strip above it, and windows keep the wall below the sill;
+  - glass shows below the cut; door leaves, frames and ceilings are hidden;
+  - furniture is shown full height.
+  Walk always builds full-height walls.
+- **Advice highlight** clears when you click empty canvas (deselect) or
+  press Esc.

@@ -7,17 +7,19 @@ interface Props {
   level: Level;
   project: Project;
   lightsOn: boolean;
+  /** Overview cut-away: walls stop at this height (mm). */
+  cutHeight?: number;
   onPickRoom?: (levelId: string, roomId: string) => void;
 }
 
 /** One floor of the flat. Geometry is rebuilt only when this level (or a stair target height) changes. */
-export function LevelMesh({ level, project, lightsOn, onPickRoom }: Props) {
+export function LevelMesh({ level, project, lightsOn, cutHeight, onPickRoom }: Props) {
   const elevations = project.levels.map((l) => `${l.id}:${l.elevation}`).join('|');
   const overrides = project.catalogueOverrides;
   const scene = useMemo(
-    () => buildLevel(level, { ...project, catalogueOverrides: overrides }),
+    () => buildLevel(level, { ...project, catalogueOverrides: overrides }, { cutHeight }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [level, overrides, elevations],
+    [level, overrides, elevations, cutHeight],
   );
   useEffect(() => () => scene.dispose(), [scene]);
 

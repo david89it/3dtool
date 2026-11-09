@@ -7,7 +7,7 @@ import { test, expect, type Page } from '@playwright/test';
 // advice" works against a mocked Claude API.
 
 async function freshStart(page: Page) {
-  await page.goto('/');
+  await page.goto('/?notour');
   await page.evaluate(async () => {
     await new Promise<void>((resolve) => {
       const req = indexedDB.deleteDatabase('keyval-store');
