@@ -88,3 +88,26 @@ describe('opening placement', () => {
     expect(hitOpening(L, J, { x: 2500, y: 20 }, 10)).toBeUndefined();
   });
 });
+
+describe('placing on a busy wall', () => {
+  it('fits a narrower opening into the space left, or says why not', async () => {
+    const { placeOnWall, OPENING_MIN_WIDTH } = await import('./openings');
+    const { w, range } = setup('unknown'); // usable 50..3950, piers 100
+    // Opened up fully: nothing left.
+    w.openings.push({ ...makeOpening('opening', 150, 3700) });
+    const full = placeOnWall(w, range, 2000, 800, OPENING_MIN_WIDTH.door);
+    expect(full).toMatchObject({ ok: false, why: 'full' });
+    // Leave 700 mm at the right end (650 usable after the 2 piers... 3950-100 - (150+2900+100) = 700).
+    w.openings[0].width = 2900;
+    const narrow = placeOnWall(w, range, 3700, 800, OPENING_MIN_WIDTH.door);
+    expect(narrow.ok).toBe(true);
+    if (narrow.ok) {
+      expect(narrow.width).toBe(700);
+      expect(narrow.offset).toBe(3150);
+    }
+    // A window still fits; a door does not once the gap is under 60 cm.
+    w.openings[0].width = 3200;
+    expect(placeOnWall(w, range, 3700, 800, OPENING_MIN_WIDTH.door)).toMatchObject({ ok: false, why: 'tooNarrow', free: 400 });
+    expect(placeOnWall(w, range, 3700, 1000, OPENING_MIN_WIDTH.window)).toMatchObject({ ok: true, width: 400 });
+  });
+});

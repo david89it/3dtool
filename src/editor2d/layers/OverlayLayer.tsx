@@ -185,7 +185,7 @@ export function OverlayLayer(props: Props) {
       {props.ghost && !props.ghost.ok && (
         <Label x={toScreen(view, props.ghost.at).x + 14} y={toScreen(view, props.ghost.at).y + 14}>
           <Tag fill="#1f2328" cornerRadius={5} opacity={0.9} />
-          <Text text={props.ghost.reason} fontSize={12} fontFamily={FONT} fill="#fff" padding={6} />
+          <Text text={props.ghost.reason} fontSize={12} fontFamily={FONT} fill="#fff" padding={7} lineHeight={1.35} {...(props.ghost.reason.length > 40 ? { width: 280, wrap: 'word' } : {})} />
         </Label>
       )}
 

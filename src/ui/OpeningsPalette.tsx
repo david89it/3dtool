@@ -76,7 +76,7 @@ export function OpeningsPalette() {
       if (!canvasApi.dropGhost()) {
         useStore.getState().setGhost(null);
         if (g && !g.ok && canvasApi.clientToWorld({ x: ev.clientX, y: ev.clientY })) {
-          useStore.getState().toast(`${g.reason}.`);
+          useStore.getState().toast(g.reason.endsWith(".") ? g.reason : `${g.reason}.`);
         }
       }
     };

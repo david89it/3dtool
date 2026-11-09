@@ -7,7 +7,8 @@
 import type { Level, Vec2 } from '../../model/types';
 import { useStore } from '../../model/store';
 import { computeJoints } from '../../geometry/joints';
-import { findOpening, fitOpening, hitOpening, isStructural, nearestWall, usableRange } from '../../geometry/openings';
+import { findOpening, hitOpening, isStructural, MIN_NIB, nearestWall, OPENING_LABEL, OPENING_MIN_WIDTH, placeOnWall, usableRange } from '../../geometry/openings';
+import { formatLength } from '../../model/units';
 import { addOpening, moveOpening } from '../../geometry/openingEdits';
 import { dist } from '../../geometry/vec';
 import { hitRoom, hitWall } from '../hitTest';
@@ -25,10 +26,20 @@ export function computeGhost(level: Level, world: Vec2, scale: number) {
   const near = nearestWall(level, J, world, PLACE_TOL_PX / scale);
   if (!near) return { ok: false as const, type, at: world, reason: 'Move onto a wall' };
   const range = usableRange(J, near.wall.id);
-  const width = OPENING_DEFAULTS[type].width;
-  const off = range ? fitOpening(near.wall, range, near.along, width) : null;
-  if (off === null) return { ok: false as const, type, at: world, reason: 'No room on this wall' };
-  return { ok: true as const, type, wallId: near.wall.id, offset: off, width };
+  if (!range) return { ok: false as const, type, at: world, reason: 'Move onto a wall' };
+  const min = OPENING_MIN_WIDTH[type];
+  const r = placeOnWall(near.wall, range, near.along, OPENING_DEFAULTS[type].width, min);
+  if (r.ok) return { ok: true as const, type, wallId: near.wall.id, offset: r.offset, width: r.width };
+  const fmt = (mm: number) => formatLength(mm, s.units);
+  const what = OPENING_LABEL[type].toLowerCase();
+  const pier = isStructural(near.wall) ? ` (${fmt(MIN_NIB)} of wall is kept beside each opening in a wall that may be load-bearing)` : '';
+  const reason =
+    r.why === 'full'
+      ? 'This wall is already opened up. Click the dashed opening to change its size.'
+      : r.why === 'tooNarrow'
+        ? `Only ${fmt(r.free)} of this wall is free${pier}. A ${what} needs at least ${fmt(min)}.`
+        : `This wall is too short for a ${what}${pier}.`;
+  return { ok: false as const, type, at: world, reason };
 }
 
 /** Place the armed opening where the ghost is. Returns true if placed. */
@@ -64,7 +75,7 @@ export const placeOpeningTool: ToolHandler = {
     useStore.getState().setGhost(computeGhost(ctx.level, p.world, ctx.view.scale));
     if (!placeFromGhost()) {
       const g = useStore.getState().ghost;
-      if (g && !g.ok) useStore.getState().toast(`${g.reason}.`);
+      if (g && !g.ok) useStore.getState().toast(g.reason.endsWith('.') ? g.reason : `${g.reason}.`);
     }
   },
   escape() {

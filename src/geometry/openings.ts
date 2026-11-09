@@ -116,22 +116,58 @@ export function fitOpening(
   return snapOffset(allowedOffsets(w, range, width, opts), centre - width / 2);
 }
 
-/** Largest gap available for a new opening (for "open up this wall"). */
-export function largestGap(w: Wall, range: Range): { offset: number; width: number } | null {
+/** Narrowest useful size for each kind of opening. */
+export const OPENING_MIN_WIDTH: Record<OpeningType, number> = {
+  door: 600,
+  window: 400,
+  bayWindow: 400,
+  opening: 400,
+};
+
+/** Free stretches of wall (keeping piers in a structural wall), as [start, end] offsets. */
+export function freeGaps(w: Wall, range: Range): [number, number][] {
   const nib = nibFor(w);
-  const edges: [number, number][] = [];
+  const gaps: [number, number][] = [];
   let cursor = range.start + nib;
   const sorted = [...w.openings].sort((a, b) => a.offset - b.offset);
   for (const o of sorted) {
-    edges.push([cursor, o.offset - nib]);
+    if (o.offset - nib > cursor) gaps.push([cursor, o.offset - nib]);
     cursor = Math.max(cursor, o.offset + o.width + nib);
   }
-  edges.push([cursor, range.end - nib]);
+  if (range.end - nib > cursor) gaps.push([cursor, range.end - nib]);
+  return gaps;
+}
+
+/** Largest gap available for a new opening (for "open up this wall"). */
+export function largestGap(w: Wall, range: Range): { offset: number; width: number } | null {
   let best: { offset: number; width: number } | null = null;
-  for (const [a, b] of edges) {
+  for (const [a, b] of freeGaps(w, range)) {
     if (b - a > 100 && (!best || b - a > best.width)) best = { offset: Math.round(a), width: Math.floor(b - a) };
   }
   return best;
+}
+
+export type PlaceResult =
+  | { ok: true; offset: number; width: number }
+  | { ok: false; why: 'full' | 'tooNarrow' | 'tooShort'; free: number };
+
+/**
+ * Where a new opening goes for a pointer `centre` mm along the wall: its
+ * usual width if that fits, otherwise as wide as the nearest free stretch
+ * allows (down to the type's minimum). Explains why when nothing fits.
+ */
+export function placeOnWall(w: Wall, range: Range, centre: number, preferred: number, min: number): PlaceResult {
+  const gaps = freeGaps(w, range).filter(([a, b]) => b - a >= min - 0.5);
+  if (gaps.length === 0) {
+    const free = Math.max(0, ...freeGaps(w, range).map(([a, b]) => b - a));
+    if (w.openings.length > 0) return { ok: false, why: free > 0 ? 'tooNarrow' : 'full', free };
+    return { ok: false, why: 'tooShort', free };
+  }
+  const dist = ([a, b]: [number, number]) => (centre < a ? a - centre : centre > b ? centre - b : 0);
+  const [a, b] = gaps.reduce((best, g) => (dist(g) < dist(best) ? g : best));
+  const width = Math.floor(Math.min(preferred, b - a));
+  const offset = Math.round(Math.min(Math.max(centre - width / 2, a), b - width));
+  return { ok: true, offset, width };
 }
 
 export interface EndDistances {
