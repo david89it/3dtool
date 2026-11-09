@@ -36,6 +36,7 @@ function UnderlayPanel() {
   const tool = useStore((s) => s.tool);
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   if (!level) return null;
   const u = level.underlay;
 
@@ -150,14 +151,18 @@ function UnderlayPanel() {
           </div>
           <button
             className="btn small danger-text"
+            onBlur={() => setConfirmRemove(false)}
             onClick={() => {
-              if (window.confirm('Remove the plan image from this floor? Your walls stay.')) {
-                editLevel('Remove plan image', (L) => void delete L.underlay);
-                if (tool === 'calibrate' || tool === 'moveImage') setTool('select');
+              if (!confirmRemove) {
+                setConfirmRemove(true);
+                return;
               }
+              setConfirmRemove(false);
+              editLevel('Remove plan image', (L) => void delete L.underlay);
+              if (tool === 'calibrate' || tool === 'moveImage') setTool('select');
             }}
           >
-            Remove image
+            {confirmRemove ? 'Click again to remove (walls stay)' : 'Remove image'}
           </button>
         </>
       )}

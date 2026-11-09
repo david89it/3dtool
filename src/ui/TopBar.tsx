@@ -15,6 +15,7 @@ export function TopBar() {
   const units = useStore((s) => s.units);
   const setUnits = useStore((s) => s.setUnits);
   const [menu, setMenu] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const lastUndo = past[past.length - 1];
@@ -76,7 +77,14 @@ export function TopBar() {
             File ▾
           </button>
           {menu && (
-            <div className="menu" role="menu" onMouseLeave={() => setMenu(false)}>
+            <div
+              className="menu"
+              role="menu"
+              onMouseLeave={() => {
+                setMenu(false);
+                setConfirmReset(false);
+              }}
+            >
               <button
                 role="menuitem"
                 onClick={() => {
@@ -111,14 +119,18 @@ export function TopBar() {
                 role="menuitem"
                 className="danger"
                 onClick={async () => {
+                  if (!confirmReset) {
+                    setConfirmReset(true);
+                    return;
+                  }
+                  setConfirmReset(false);
                   setMenu(false);
-                  if (!window.confirm('Start again from the original Balmore Street plan? Your changes will be lost unless you saved a copy.')) return;
                   const seed = await createSeedProject();
                   useStore.getState().loadProject(seed);
                   await flushSave();
                 }}
               >
-                Start again from the agent's plan
+                {confirmReset ? 'Click again: your changes will be lost' : "Start again from the agent's plan"}
               </button>
             </div>
           )}
