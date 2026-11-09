@@ -20,6 +20,8 @@ describe('units', () => {
     expect(parseLength('3320', 'metric')).toBe(3320);
     expect(parseLength('332cm', 'metric')).toBe(3320);
     expect(parseLength('23', 'metric', 'small')).toBe(230);
+    expect(parseLength('2.4', 'metric', 'small')).toBe(2400);
+    expect(parseLength('22.5', 'metric', 'small')).toBe(225);
     expect(parseLength(`10' 11"`, 'metric')).toBeCloseTo(3327.4, 1);
     expect(parseLength('11', 'imperial')).toBeCloseTo(3352.8, 1);
     expect(parseLength('banana', 'metric')).toBeNull();

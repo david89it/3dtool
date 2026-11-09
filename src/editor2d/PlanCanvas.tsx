@@ -21,6 +21,8 @@ import { traceTool, finishTrace } from './tools/traceTool';
 import { calibrateTool } from './tools/calibrateTool';
 import { moveImageTool } from './tools/moveImageTool';
 import { openingSelectTool, placeOpeningTool, computeGhost, placeFromGhost } from './tools/openingTools';
+import { furnishSelectTool, placeItemTool, computeItemGhost, placeItemFromGhost } from './tools/itemTools';
+import { ItemOverlay, ItemShapes } from './layers/ItemLayer';
 import type { Overlay, PointerInfo, ToolCtx, ToolHandler } from './tools/types';
 import { openingLabels, type OpeningLabel } from './openingLabels';
 import { editOpening } from '../geometry/openingEdits';
@@ -33,13 +35,15 @@ const TOOLS: Record<string, ToolHandler> = {
   calibrate: calibrateTool,
   moveImage: moveImageTool,
   placeOpening: placeOpeningTool,
+  placeItem: placeItemTool,
 };
 
-const ALL_TOOLS = [...Object.values(TOOLS), openingSelectTool];
+const ALL_TOOLS = [...Object.values(TOOLS), openingSelectTool, furnishSelectTool];
 
 /** Each mode has its own "select" behaviour; other tools are shared. */
 function toolFor(mode: Mode, tool: Tool): ToolHandler {
   if (mode === 'openings' && tool === 'select') return openingSelectTool;
+  if (mode === 'furnish' && tool === 'select') return furnishSelectTool;
   return TOOLS[tool] ?? selectTool;
 }
 function currentTool(): ToolHandler {
@@ -65,6 +69,8 @@ export function PlanCanvas() {
   const tool = useStore((s) => s.tool);
   const mode = useStore((s) => s.mode);
   const ghost = useStore((s) => s.ghost);
+  const itemGhost = useStore((s) => s.itemGhost);
+  const showAllClearances = useStore((s) => s.showAllClearances);
   const selection = useStore((s) => s.selection);
   const units = useStore((s) => s.units);
   const showMarkers = useStore((s) => s.showMarkers);
@@ -194,6 +200,13 @@ export function PlanCanvas() {
       s.setGhost(w && L ? computeGhost(L as Level, w, viewRef.current.scale) : null);
     };
     canvasApi.dropGhost = () => placeFromGhost();
+    canvasApi.itemGhostAt = (client, catalogueId, alt) => {
+      const w = canvasApi.clientToWorld(client);
+      const s = useStore.getState();
+      const L = s.project.levels.find((l) => l.id === s.levelId);
+      s.setItemGhost(w && L ? computeItemGhost(L as Level, catalogueId, w, viewRef.current.scale, !!alt) : null);
+    };
+    canvasApi.dropItemGhost = () => placeItemFromGhost();
   }, []);
   useEffect(() => {
     canvasApi.dimLabelPos = (wallId) => {
@@ -395,13 +408,17 @@ export function PlanCanvas() {
   const cursor =
     tool === 'draw' || tool === 'calibrate'
       ? 'crosshair'
+      : tool === 'placeItem'
+        ? itemGhost && !itemGhost.ok
+          ? 'not-allowed'
+          : 'copy'
       : tool === 'placeOpening'
         ? ghost?.ok
           ? 'copy'
           : 'not-allowed'
         : tool === 'moveImage'
           ? 'move'
-          : overlay.hoverNode || overlay.hoverOpening
+          : overlay.hoverNode || overlay.hoverOpening || overlay.hoverItem
             ? 'grab'
             : overlay.hoverWall
               ? 'pointer'
@@ -424,8 +441,9 @@ export function PlanCanvas() {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onPointerLeave={() => {
-        setOverlay((o) => ({ ...o, hoverWall: undefined, hoverNode: undefined, hoverMarker: undefined, hoverOpening: undefined }));
+        setOverlay((o) => ({ ...o, hoverWall: undefined, hoverNode: undefined, hoverMarker: undefined, hoverOpening: undefined, hoverItem: undefined }));
         if (useStore.getState().tool === 'placeOpening') useStore.getState().setGhost(null);
+        if (useStore.getState().tool === 'placeItem') useStore.getState().setItemGhost(null);
       }}
       onDoubleClick={onDoubleClick}
       onContextMenu={(e) => e.preventDefault()}
@@ -437,6 +455,15 @@ export function PlanCanvas() {
             <Group x={view.x} y={view.y} scaleX={view.scale} scaleY={view.scale}>
               {level.underlay && <UnderlayImage underlay={level.underlay} />}
               <RoomFills level={level} rooms={derived.rooms} selectedRoomId={selectedRoomId} translucent={!!level.underlay} />
+              <ItemShapes
+                level={level}
+                project={project}
+                selectedId={selection?.kind === 'item' ? selection.id : undefined}
+                hoverId={mode === 'furnish' ? overlay.hoverItem : undefined}
+                showClearances={mode === 'furnish'}
+                showAllClearances={showAllClearances}
+                ghost={itemGhost}
+              />
               <WallShapes
                 level={level}
                 joints={derived.joints}
@@ -463,6 +490,14 @@ export function PlanCanvas() {
               showDims={mode !== 'openings' || !selectedOpeningId}
               openingLabels={openingLabelList}
               ghost={ghost}
+            />
+            <ItemOverlay
+              level={level}
+              project={project}
+              view={view}
+              selectedId={selection?.kind === 'item' ? selection.id : undefined}
+              hoverId={mode === 'furnish' ? overlay.hoverItem : undefined}
+              ghost={itemGhost}
             />
           </Layer>
         </Stage>
@@ -564,7 +599,11 @@ function ToolHint() {
   const tool = useStore((s) => s.tool);
   const mode = useStore((s) => s.mode);
   const text =
-    tool === 'placeOpening'
+    tool === 'placeItem'
+      ? 'Click to place it. Near a wall it turns to back onto the wall. Alt: no snapping. Esc to cancel.'
+      : mode === 'furnish'
+        ? 'Click an item to edit it. Drag to move, drag the dots to resize, the round handle to turn (Alt: any angle). R turns 90°, Ctrl/⌘ D duplicates.'
+        : tool === 'placeOpening'
       ? 'Move over a wall and click to place it. Esc to cancel.'
       : mode === 'openings'
         ? 'Drag a door, window or opening from the left onto a wall. Click one to edit it, drag it to move it, click its measurements to type them.'

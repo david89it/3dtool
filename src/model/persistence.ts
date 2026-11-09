@@ -11,6 +11,7 @@ const SETTINGS_KEY = 'flatplan:settings:v1';
 interface Settings {
   units: UnitSystem;
   showMarkers: boolean;
+  showAllClearances?: boolean;
 }
 
 export async function loadSavedProject(): Promise<Project | undefined> {
@@ -37,8 +38,12 @@ let lastSaved: Project | undefined;
 export function startAutosave(): () => void {
   const unsub = useStore.subscribe((s, prev) => {
     if (!s.ready) return;
-    if (s.units !== prev.units || s.showMarkers !== prev.showMarkers) {
-      void set(SETTINGS_KEY, { units: s.units, showMarkers: s.showMarkers } satisfies Settings);
+    if (s.units !== prev.units || s.showMarkers !== prev.showMarkers || s.showAllClearances !== prev.showAllClearances) {
+      void set(SETTINGS_KEY, {
+        units: s.units,
+        showMarkers: s.showMarkers,
+        showAllClearances: s.showAllClearances,
+      } satisfies Settings);
     }
     if (s.project === prev.project || s.project === lastSaved || s.gesture) return;
     if (timer) clearTimeout(timer);

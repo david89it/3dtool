@@ -25,6 +25,7 @@ export interface Overlay {
   hoverNode?: Id;
   hoverMarker?: Id;
   hoverOpening?: Id;
+  hoverItem?: Id;
   snap?: SnapResult;
   draw?: { from: Vec2; to: Vec2 };
   calib?: { p1?: Vec2; cursor?: Vec2 };

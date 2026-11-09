@@ -5,7 +5,7 @@ trace the floorplan, edit walls, furnish, get layout advice, and walk
 through in 3D. No backend: everything runs in the browser and is saved in
 the browser's own storage (IndexedDB).
 
-Status: **Phases 1–2** (plan import, wall editing, doors, windows and openings). See `DECISIONS.md` for
+Status: **Phases 1–3** (plan import, wall editing, doors, windows and openings, furniture). See `DECISIONS.md` for
 assumptions and `assets/` for the agent's plan and photos.
 
 ## Run it
@@ -89,11 +89,72 @@ e2e/               Playwright smoke tests
 
 ## How to add a catalogue item
 
-Arrives in Phase 3. Items will be plain data in `src/catalogue/`, one object
-per item following `CatalogueItem` in `src/model/types.ts`: name, search
-aliases, category, default size, resize ranges, primitive boxes and
-cylinders for the 3D shape, optional states (e.g. Murphy bed folded and
-deployed) and clearances. This section will get a worked example then.
+Items are plain data in `src/catalogue/items.ts` (the `CATALOGUE` array),
+built from boxes and cylinders with the helpers in `src/catalogue/parts.ts`.
+
+**Item frame** (millimetres): x runs across the width (−w/2…w/2), y is up
+from the floor, z runs through the depth with the **back at −d/2** (against
+the wall) and the **front at +d/2** (where you stand to use it). A part's
+`pos` is its centre and `size` is `[x, y, z]`. A cylinder's size is
+`[diameter, height, diameter]`. `slab(x, bottom, z, sx, sy, sz, colour)`
+places a box by its bottom height. Clearance sides: `front` is +z, `back`
+is −z, `left` is −x, `right` is +x.
+
+Worked example, a 120 cm hall bench with a cushion:
+
+```ts
+{
+  id: 'bench-hall',                        // unique, never change once used
+  name: 'Hall bench',
+  aliases: ['shoe bench', 'entryway bench', 'boot bench'],  // search words
+  category: 'sit',                         // which tab it appears under
+  defaultDims: { w: 1200, d: 350, h: 480 },
+  resizable: { w: [800, 1600] },           // leave out an axis to fix it
+  mount: 'floor',                          // 'floor' | 'wall' | 'ceiling'
+  geometry: [
+    slab(0, 0, 0, 1200, 430, 350, 'wood'),   // the box, sitting on the floor
+    slab(0, 430, 0, 1200, 50, 350, 'fabric'), // cushion on top
+  ],
+  clearance: [
+    { side: 'front', min: 450, ideal: 600, reason: 'Room to sit and take shoes off' },
+  ],
+  rules: ['door-swing', 'walkway'],        // which layout rules check it
+}
+```
+
+- Sizes in `geometry` are for `defaultDims`. When she resizes an item the
+  parts scale with it (`itemParts` in `src/catalogue/catalogue.ts`).
+- **States** (folded or deployed, closed or extended...) go in `states`.
+  Each state has its own `dims` and `geometry`. The first state is the
+  default. Other states keep the **back** edge where it is, so a Murphy bed
+  folds down away from the wall. Add a friendly name for a new state in
+  `STATE_LABEL`.
+- Dynamic clearances: `dynamic: 'doorSwing'` draws door arcs on the front:
+  one leaf up to 70 cm wide, two up to 130 cm, then three. `'drawerPull'`
+  draws a dashed pull-out zone of depth `min`. `'deploy'` outlines the item's
+  other state.
+- **Colours** are tokens (`wood`, `fabric`, `white`, `metal`, `cabinet`,
+  `worktop`, `ceramic`, `glass`...). The plan colours are in
+  `src/catalogue/colors.ts`.
+- Run `npm test`. `src/catalogue/catalogue.test.ts` checks that ids are
+  unique and every item has parts.
+
+People can also add their own items in the app (*Furnish → Add custom
+item…*). These are saved in the project's `catalogueOverrides`.
+
+## Using it (Phase 3: Furnish mode)
+
+| Do this | How |
+| --- | --- |
+| Find something | Type in the search box (it understands other words: "wall bed" finds the Murphy bed), or pick a category |
+| Place it | Click it, then click the plan. Or drag it onto the plan. Near a wall it turns to back onto the wall. Alt: no snapping |
+| Move | Drag it. It slides along a wall it is backed onto |
+| Resize | Drag the dots on its edges (the other edge stays put), or type sizes in the right panel |
+| Turn | Drag the round handle (90° steps; Alt for any angle), press R, or use *Turn 90°* |
+| Fold down, extend, open | *Position* in the right panel (Murphy bed, sofa bed, extendable table, fold-down desk, pull-out drawer) |
+| Duplicate, lock, remove | Ctrl/⌘ D, *Lock*, Delete |
+| See the space things need | Select an item, or tick *Show space needed around everything* |
+| Your own item | *Add custom item…* |
 
 ## How to add a rule
 

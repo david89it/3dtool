@@ -3,7 +3,8 @@ import { useStore } from '../model/store';
 import { PlanCanvas } from '../editor2d/PlanCanvas';
 import { canvasApi } from '../editor2d/canvasApi';
 import { deleteWall } from '../geometry/wallGraph';
-import type { Level } from '../model/types';
+import type { Level, PlacedItem } from '../model/types';
+import { duplicateItem, rotateBy } from '../editor2d/itemOps';
 import { deleteOpening } from '../geometry/openingEdits';
 import { isStructural } from '../geometry/openings';
 import { currentLevel } from '../model/store';
@@ -31,6 +32,16 @@ function useShortcuts() {
         else s.undo();
         return;
       }
+      if (mod && e.key.toLowerCase() === 'd' && s.selection?.kind === 'item') {
+        e.preventDefault();
+        const it = currentLevel()?.items.find((i) => i.id === s.selection!.id);
+        if (it) {
+          const copy = duplicateItem(it);
+          s.editLevel('Duplicate item', (L) => void L.items.push(copy));
+          s.select({ kind: 'item', id: copy.id });
+        }
+        return;
+      }
       if (mod && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         s.redo();
@@ -42,6 +53,16 @@ function useShortcuts() {
       else if (e.key === 'v' || e.key === 'V') s.setTool('select');
       else if ((e.key === 'w' || e.key === 'W') && s.mode === 'trace') s.setTool('draw');
       else if (e.key === 'f' || e.key === 'F') canvasApi.fit();
+      else if ((e.key === 'r' || e.key === 'R') && s.selection?.kind === 'item') {
+        const id = s.selection.id;
+        const it = currentLevel()?.items.find((i) => i.id === id);
+        if (it && !it.locked) {
+          s.editLevel('Turn item', (L) => {
+            const idx = L.items.findIndex((x) => x.id === id);
+            if (idx >= 0) L.items[idx] = rotateBy(L.items[idx] as PlacedItem, e.shiftKey ? -90 : 90);
+          });
+        }
+      }
       else if ((e.key === 'Delete' || e.key === 'Backspace') && s.selection) {
         const sel = s.selection;
         if (sel.kind === 'wall') {
@@ -50,6 +71,10 @@ function useShortcuts() {
           s.editLevel('Delete wall', (L) => deleteWall(L as Level, sel.id));
           s.select(null);
           if (w && isStructural(w)) s.toast(STRUCTURAL_DELETE_WARNING, 'warn');
+        } else if (sel.kind === 'item') {
+          e.preventDefault();
+          s.editLevel('Remove item', (L) => void (L.items = L.items.filter((i) => i.id !== sel.id)));
+          s.select(null);
         } else if (sel.kind === 'opening') {
           e.preventDefault();
           s.editLevel('Remove opening', (L) => deleteOpening(L as Level, sel.id));

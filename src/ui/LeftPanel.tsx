@@ -6,6 +6,7 @@ import { formatScale } from '../model/units';
 import { canvasApi } from '../editor2d/canvasApi';
 import { toWorld } from '../editor2d/view';
 import { OpeningsPalette } from './OpeningsPalette';
+import { FurnishPanel } from './FurnishPanel';
 
 function ToolButton({ tool, label, keyHint, desc }: { tool: Tool; label: string; keyHint: string; desc: string }) {
   const current = useStore((s) => s.tool);
@@ -173,6 +174,13 @@ function UnderlayPanel() {
 
 export function LeftPanel() {
   const mode = useStore((s) => s.mode);
+  if (mode === 'furnish') {
+    return (
+      <aside className="leftpanel" aria-label="Tools">
+        <FurnishPanel />
+      </aside>
+    );
+  }
   if (mode === 'openings') {
     return (
       <aside className="leftpanel" aria-label="Tools">

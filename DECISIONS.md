@@ -155,3 +155,46 @@ challenged.
 - **Measurements of the selected opening** (width, and the wall left at each
   side) are drawn on the plan and can be clicked to type. While one is
   selected, the other wall labels are hidden to keep it readable.
+
+## Phase 3: furniture
+
+- **Catalogue:** 82 items with typical UK sizes, built only from boxes and
+  cylinders. A TV is part of "TV unit with TV". The sofa-to-TV distance is
+  a rule (Phase 4), not a clearance strip, because a 2.5 m strip
+  swamped the plan.
+- **Item frame and states:** `PlacedItem.pos` is the centre of the item in
+  its default state, and `dims` is her size in that state. Other states
+  scale their catalogue size by the same ratios and keep the back edge
+  fixed. All of this lives in `src/catalogue/catalogue.ts`, shared by the
+  plan, 3D and rules.
+- **Placing:** a new item backs onto the nearest wall face within 60 cm
+  (more when zoomed out), turning to face away from it. Things meant to
+  stand free (anything with an "all round" clearance: tables, island) are
+  not pulled to walls. Wall items (shelves, radiator, towel rail, wall
+  cupboards, mirror cabinet) must go on a wall and record `mountedTo`.
+  Items don't yet follow a wall when the wall is moved.
+- **Moving** keeps an item's turn. If its back is parallel to a wall within
+  15 cm (or 20 px) it slides flush along the wall. Alt turns all snapping
+  off. Positions round to 10 mm.
+- **Resizing:** edge dots appear only for dimensions the catalogue allows,
+  within its range. The opposite edge stays put, including when the item
+  is folded down. In the panel, width grows from the centre and depth
+  grows from the back. Fixed-size items show their sizes as plain text.
+- **Turning:** the handle snaps to 90° (Alt: 1°). R turns 90° clockwise,
+  Shift+R anticlockwise. Items turn about their centre.
+- **Lock:** a locked item can't be dragged, resized or turned. A drag on it
+  shows a short note. It can still be selected, duplicated and removed.
+- **Clearance colours:** orange strips (darker = minimum, lighter = ideal),
+  blue dashed arcs for hinged doors, purple dashed outlines for drawers and
+  for folding down or extending. They show for the selected item, or for
+  everything when the toggle is on. The toggle is saved with her settings.
+- **Custom items:** a single box (wall items sit high on the wall), resizable
+  from half to double the given size. Front and side clearances share one
+  reason. Removing a custom item from the list also removes it from the
+  plan; undo brings both back.
+- **Typing sizes:** in size fields, a decimal under 10 means metres ("2.4"),
+  a whole number under 100 means centimetres ("45"), anything larger means
+  millimetres.
+- **Tests on another port:** `PW_PORT=5174 npm run e2e` runs the Playwright
+  tests against a dev server on another port, so two checkouts can test
+  side by side.

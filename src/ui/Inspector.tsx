@@ -9,6 +9,7 @@ import { lerp } from '../geometry/vec';
 import { formatArea } from '../model/units';
 import { EditableLength } from './EditableLength';
 import { OpeningPanel } from './OpeningPanel';
+import { ItemPanel } from './ItemPanel';
 import { isStructural, needsStructuralBadge, OPENING_LABEL, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
 import { openUpWall } from '../geometry/openingEdits';
 import { formatLength } from '../model/units';
@@ -426,6 +427,7 @@ export function Inspector() {
   } else if (selection?.kind === 'room') body = <RoomPanel level={level} roomId={selection.id} />;
   else if (selection?.kind === 'marker') body = <MarkerPanel level={level} markerId={selection.id} />;
   else if (selection?.kind === 'opening') body = <OpeningPanel level={level} openingId={selection.id} />;
+  else if (selection?.kind === 'item') body = <ItemPanel level={level} itemId={selection.id} />;
   return (
     <aside className="inspector" aria-label="Details">
       {body ?? <LevelPanel level={level} />}

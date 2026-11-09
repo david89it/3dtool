@@ -503,7 +503,7 @@ export const CATALOGUE: CatalogueItem[] = [
     resizable: { w: [1000, 2200] },
     mount: 'floor',
     geometry: [...cabinet(1600, 400, 450, 'wood', 60), slab(0, 450, -100, 1230, 720, 60, 'screen'), slab(0, 450, -100, 300, 30, 220, 'dark')],
-    clearance: [front(1500, 2500, 'Viewing distance to the sofa')],
+    clearance: [],
     rules: ['door-swing'],
   },
   {

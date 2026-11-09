@@ -11,6 +11,7 @@ async function boot() {
   const settings = await loadSettings();
   if (settings.units) useStore.getState().setUnits(settings.units);
   if (settings.showMarkers !== undefined) useStore.getState().setShowMarkers(settings.showMarkers);
+  if (settings.showAllClearances !== undefined) useStore.getState().setShowAllClearances(settings.showAllClearances);
   const saved = await loadSavedProject();
   const project = saved ?? (await createSeedProject());
   useStore.getState().loadProject(project);

@@ -61,5 +61,7 @@ export function parseLength(text: string, sys: UnitSystem, ctx: LengthContext = 
     if (val <= 1000) return val * 10;
     return val;
   }
+  // Small sizes: "2.4" (a decimal under 10) means metres, "45" means cm, "450" mm.
+  if (/\./.test(m[1]) && val < 10) return val * 1000;
   return val < 100 ? val * 10 : val;
 }

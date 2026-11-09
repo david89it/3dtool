@@ -22,4 +22,8 @@ export const canvasApi = {
   ghostAt: (_client: Vec2) => {},
   /** Place the opening being dragged from the palette. */
   dropGhost: (): boolean => false,
+  /** Update the furniture placement preview for a catalogue drag at a page point. */
+  itemGhostAt: (_client: Vec2, _catalogueId: string, _alt?: boolean) => {},
+  /** Place the furniture item being dragged from the catalogue. */
+  dropItemGhost: (): boolean => false,
 };
