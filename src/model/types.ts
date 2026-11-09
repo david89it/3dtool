@@ -108,6 +108,9 @@ export interface PlacedItem {
   dims: { w: number; d: number; h: number }; // copied from catalogue, editable
   state?: string; // e.g. Murphy bed 'folded' | 'deployed'
   mountedTo?: { wallId: Id; offset: number }; // wall-hung items
+  // EXTENSION: "lock" (brief phase 3): a locked item can't be moved, resized
+  // or rotated by drag or by a rule fix until unlocked.
+  locked?: boolean;
 }
 
 // Convention (not specified in the brief, recorded in DECISIONS.md):
