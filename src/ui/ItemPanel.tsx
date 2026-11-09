@@ -1,3 +1,5 @@
+import { useLevelIssues } from './useIssues';
+import { IssueCard } from './AdvicePanel';
 import type { Level, PlacedItem } from '../model/types';
 import { useStore } from '../model/store';
 import { currentState, effectiveDims, findCatalogueItem, STATE_LABEL, stateNames } from '../catalogue/catalogue';
@@ -116,6 +118,8 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
         </div>
       )}
 
+      <ItemIssues itemId={itemId} />
+
       <div className="actions">
         <button
           className="btn"
@@ -143,6 +147,25 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
         </button>
       </div>
       {!canResize(cat, 'w') && !canResize(cat, 'd') && <p className="note">This item comes in one size.</p>}
+    </div>
+  );
+}
+
+/** Layout problems that involve this item (from the same checks as Advice mode). */
+function ItemIssues({ itemId }: { itemId: string }) {
+  const issues = useLevelIssues().filter((i) => i.itemIds.includes(itemId));
+  return (
+    <div className="field column" data-testid="item-issues">
+      <span className="field-label">Layout check</span>
+      {issues.length === 0 ? (
+        <p className="note">No problems with this one.</p>
+      ) : (
+        <ul className="issue-list">
+          {issues.map((i) => (
+            <IssueCard key={i.id} issue={i} compact />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

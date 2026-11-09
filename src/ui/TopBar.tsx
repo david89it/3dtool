@@ -1,3 +1,4 @@
+import { SettingsDialog } from './SettingsDialog';
 import { useRef, useState } from 'react';
 import { useStore } from '../model/store';
 import { exportProjectFile, readProjectFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
@@ -72,6 +73,10 @@ export function TopBar() {
             ft
           </button>
         </div>
+        <button className="btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
+          Settings
+        </button>
+        <SettingsDialog />
         <div className="menu-wrap">
           <button className="btn" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
             File ▾

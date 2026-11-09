@@ -198,3 +198,51 @@ challenged.
 - **Tests on another port:** `PW_PORT=5174 npm run e2e` runs the Playwright
   tests against a dev server on another port, so two checkouts can test
   side by side.
+
+## Phase 4: layout advice
+
+- **Where it shows.** Advice mode lists every problem on the current floor,
+  grouped by room, with the worst rooms first. The Advice button shows a
+  count coloured by the worst severity. A selected item lists its own
+  problems in Furnish mode. Rules re-run on every change, memoised per
+  level object, with stable formatter and settings objects.
+- **Highlight.** Clicking a problem stores `highlight` (item and wall ids) in
+  the store, outlines those in red on the plan in every mode, and zooms to
+  them with 1.2 m of context. Changing mode or floor clears it.
+- **Fix** runs `fixIssue` (nearest valid position or quarter turn for the
+  named items only, never locked ones). It applies the result as one undo
+  step. When there is no mechanical fix, a toast says "No simple fix: move
+  things by hand".
+- **Rule settings** are stored per project in `Project.ruleOverrides`
+  (EXTENSION, commented in types.ts), so they travel with saved files and
+  are undoable. Lengths are edited like every other length. The two TV
+  factors are plain numbers (× screen size).
+- **Claude advice** is optional and off by default. The switch and the key
+  live in this browser's IndexedDB only (`src/advice/keyStore.ts`); the key
+  is never put in the store, the project or any file. The Anthropic SDK
+  (`@anthropic-ai/sdk`, the official client; added beyond §1, flagged to
+  you) is loaded only when she presses *Ask for advice*. Requests use
+  `claude-opus-5-5` with the server-side refusal fallback (`fallbacks:
+  "default"`) and medium effort. The answer is rendered from a tiny,
+  HTML-escaped Markdown subset (headings, lists, bold, italics); nothing in
+  it can inject markup.
+- **Engine simplifications** (rules engine, built alongside):
+  - Clearance rays stop at windows; only doors and cased openings let them
+    through. Otherwise a desk facing a window wall would measure metres of
+    clear floor.
+  - `loft-headroom` warns when an item's top is within 50 mm of the
+    ceiling, because there is no roof-slope model yet.
+  - `walkway` checks pairs where one item has the walkway rule, with gaps
+    from 300 mm up to the comfortable width. Items under 500 mm tall
+    (coffee tables, footstools) are ignored.
+  - `bed-side-access` applies to beds at least 1.3 m wide. A side with
+    under 150 mm counts as against the wall.
+  - `dining-chair-pullback` ignores chairs and stools, skips wall-side
+    edges, and reports the tightest side.
+  - `sofa-tv-distance` measures centre to centre, for a sofa and a TV
+    facing each other. Screen diagonal = screen width ÷ 0.87.
+  - Kitchen runs are worktop-height units in line, with gaps of 20 mm or
+    less.
+  - There is no mechanical fix for `structural-opening`, `loft-headroom`,
+    or the kitchen worktop, sink-hob and triangle rules: those need units
+    added or reordered, not a nudge.

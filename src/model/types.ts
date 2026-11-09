@@ -9,6 +9,11 @@ export interface Project {
   name: string;
   levels: Level[];
   catalogueOverrides: CatalogueItem[]; // user-created items
+  // EXTENSION: her own values for the layout rules (brief §5: "every value is
+  // editable in settings"), keyed by rule id then param name, in mm (or a
+  // plain factor where the rule says so). Saved with the project so undo
+  // and file export include them. Missing = UK default from the registry.
+  ruleOverrides?: Record<string, Partial<Record<string, number>>>;
 }
 
 export interface Level {

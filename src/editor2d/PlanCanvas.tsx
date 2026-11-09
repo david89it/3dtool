@@ -9,7 +9,7 @@ import { measureWallFace, setInternalLength, wallDimensions, type WallDimension 
 import { calibrate } from '../geometry/calibration';
 import { dist } from '../geometry/vec';
 import { formatLength, formatScale, parseLength } from '../model/units';
-import { fitView, toScreen, toWorld, zoomAt, type View } from './view';
+import { fitView, MAX_SCALE, MIN_SCALE, toScreen, toWorld, zoomAt, type View } from './view';
 import { dimLabelScreenPos } from './hitTest';
 import { UnderlayImage } from './layers/UnderlayLayer';
 import { RoomFills } from './layers/RoomLayer';
@@ -23,6 +23,7 @@ import { moveImageTool } from './tools/moveImageTool';
 import { openingSelectTool, placeOpeningTool, computeGhost, placeFromGhost } from './tools/openingTools';
 import { furnishSelectTool, placeItemTool, computeItemGhost, placeItemFromGhost } from './tools/itemTools';
 import { ItemOverlay, ItemShapes } from './layers/ItemLayer';
+import { HighlightShapes } from './layers/HighlightLayer';
 import type { Overlay, PointerInfo, ToolCtx, ToolHandler } from './tools/types';
 import { openingLabels, type OpeningLabel } from './openingLabels';
 import { editOpening } from '../geometry/openingEdits';
@@ -69,6 +70,7 @@ export function PlanCanvas() {
   const tool = useStore((s) => s.tool);
   const mode = useStore((s) => s.mode);
   const ghost = useStore((s) => s.ghost);
+  const highlight = useStore((s) => s.highlight);
   const itemGhost = useStore((s) => s.itemGhost);
   const showAllClearances = useStore((s) => s.showAllClearances);
   const selection = useStore((s) => s.selection);
@@ -174,6 +176,21 @@ export function PlanCanvas() {
     canvasApi.fit = () => {
       const L = useStore.getState().project.levels.find((l) => l.id === useStore.getState().levelId);
       setView(fitView(L, wrapRef.current?.clientWidth ?? 800, wrapRef.current?.clientHeight ?? 600));
+    };
+    canvasApi.fitPoints = (pts) => {
+      const el = wrapRef.current;
+      if (!el || pts.length === 0) return;
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
+      const pad = 1200; // mm of context around the problem
+      const min = { x: Math.min(...xs) - pad, y: Math.min(...ys) - pad };
+      const max = { x: Math.max(...xs) + pad, y: Math.max(...ys) + pad };
+      const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.min(el.clientWidth / (max.x - min.x), el.clientHeight / (max.y - min.y))));
+      setView({
+        scale,
+        x: el.clientWidth / 2 - ((min.x + max.x) / 2) * scale,
+        y: el.clientHeight / 2 - ((min.y + max.y) / 2) * scale,
+      });
     };
     canvasApi.zoom = (factor) => {
       const el = wrapRef.current;
@@ -474,6 +491,7 @@ export function PlanCanvas() {
                 ghost={ghost}
               />
               <StairShapes stairs={level.stairs} project={project} />
+              <HighlightShapes level={level} project={project} joints={derived.joints} highlight={highlight} />
             </Group>
           </Layer>
           <Layer listening={false}>

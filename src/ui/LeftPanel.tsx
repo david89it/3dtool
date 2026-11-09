@@ -1,3 +1,4 @@
+import { AdviceLeftPanel } from './AdvicePanel';
 import { useRef, useState } from 'react';
 import type { WallKind } from '../model/types';
 import { useLevel, useStore, type Tool } from '../model/store';
@@ -174,6 +175,7 @@ function UnderlayPanel() {
 
 export function LeftPanel() {
   const mode = useStore((s) => s.mode);
+  if (mode === 'advice') return <AdviceLeftPanel />;
   if (mode === 'furnish') {
     return (
       <aside className="leftpanel" aria-label="Tools">

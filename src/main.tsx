@@ -4,6 +4,7 @@ import { App } from './ui/App';
 import { useStore } from './model/store';
 import { flushSave, loadSavedProject, loadSettings, startAutosave } from './model/persistence';
 import { createSeedProject } from './model/seedAssets';
+import { loadAdviceEnabled, loadApiKey } from './advice/keyStore';
 import { canvasApi } from './editor2d/canvasApi';
 import './ui/styles.css';
 
@@ -12,6 +13,8 @@ async function boot() {
   if (settings.units) useStore.getState().setUnits(settings.units);
   if (settings.showMarkers !== undefined) useStore.getState().setShowMarkers(settings.showMarkers);
   if (settings.showAllClearances !== undefined) useStore.getState().setShowAllClearances(settings.showAllClearances);
+  const [adviceOn, key] = await Promise.all([loadAdviceEnabled(), loadApiKey()]);
+  useStore.getState().setAdviceState({ enabled: adviceOn, keySaved: !!key });
   const saved = await loadSavedProject();
   const project = saved ?? (await createSeedProject());
   useStore.getState().loadProject(project);

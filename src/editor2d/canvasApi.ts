@@ -26,4 +26,6 @@ export const canvasApi = {
   itemGhostAt: (_client: Vec2, _catalogueId: string, _alt?: boolean) => {},
   /** Place the furniture item being dragged from the catalogue. */
   dropItemGhost: (): boolean => false,
+  /** Zoom and pan so these plan points fill the view, with room around them. */
+  fitPoints: (_pts: Vec2[]) => {},
 };

@@ -8,6 +8,7 @@ import { DEFAULT_THICKNESS, deleteWall, splitWall, wallEnds } from '../geometry/
 import { lerp } from '../geometry/vec';
 import { formatArea } from '../model/units';
 import { EditableLength } from './EditableLength';
+import { AdvicePanel } from './AdvicePanel';
 import { OpeningPanel } from './OpeningPanel';
 import { ItemPanel } from './ItemPanel';
 import { isStructural, needsStructuralBadge, OPENING_LABEL, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
@@ -419,7 +420,9 @@ function LevelPanel({ level }: { level: Level }) {
 export function Inspector() {
   const level = useLevel();
   const selection = useStore((s) => s.selection);
+  const mode = useStore((s) => s.mode);
   if (!level) return null;
+  if (mode === 'advice') return <AdvicePanel />;
   let body;
   if (selection?.kind === 'wall') {
     const w = level.walls.find((x) => x.id === selection.id);

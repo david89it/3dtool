@@ -34,6 +34,13 @@ export type OpeningGhost =
   | { ok: true; type: OpeningType; wallId: Id; offset: number; width: number }
   | { ok: false; type: OpeningType; at: Vec2; reason: string };
 
+/** Items and walls an advice issue is about, outlined on the plan. */
+export interface Highlight {
+  itemIds: Id[];
+  wallIds: Id[];
+  issueId?: string;
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -62,6 +69,12 @@ export interface AppState {
   placeItemId: string;
   itemGhost: ItemGhost | null;
   showAllClearances: boolean;
+  highlight: Highlight | null;
+  settingsOpen: boolean;
+  /** "Ask Claude for advice" switched on in Settings (kept in this browser). */
+  adviceEnabled: boolean;
+  /** An API key is saved in this browser (the key itself is never kept in the store). */
+  adviceKeySaved: boolean;
   past: HistoryEntry[];
   future: HistoryEntry[];
   gesture: Gesture | null;
@@ -89,6 +102,9 @@ export interface AppState {
   armItem: (catalogueId: string) => void;
   setItemGhost: (g: ItemGhost | null) => void;
   setShowAllClearances: (v: boolean) => void;
+  setHighlight: (h: Highlight | null) => void;
+  setSettingsOpen: (v: boolean) => void;
+  setAdviceState: (v: { enabled?: boolean; keySaved?: boolean }) => void;
   toast: (text: string, tone?: Toast['tone']) => void;
   dismissToast: (id: number) => void;
 }
@@ -136,6 +152,10 @@ export const useStore = create<AppState>()((set, get) => ({
   placeItemId: '',
   itemGhost: null,
   showAllClearances: false,
+  highlight: null,
+  settingsOpen: false,
+  adviceEnabled: false,
+  adviceKeySaved: false,
   past: [],
   future: [],
   gesture: null,
@@ -255,8 +275,8 @@ export const useStore = create<AppState>()((set, get) => ({
     });
   },
 
-  setLevel: (id) => set({ levelId: id, selection: null }),
-  setMode: (m) => set({ mode: m, tool: 'select', selection: null, ghost: null, itemGhost: null }),
+  setLevel: (id) => set({ levelId: id, selection: null, highlight: null }),
+  setMode: (m) => set({ mode: m, tool: 'select', selection: null, ghost: null, itemGhost: null, highlight: null }),
   setTool: (t) => set({ tool: t, ghost: null, itemGhost: null }),
   select: (s) => set({ selection: s }),
   setUnits: (u) => set({ units: u }),
@@ -267,6 +287,13 @@ export const useStore = create<AppState>()((set, get) => ({
   armItem: (id) => set({ placeItemId: id, tool: 'placeItem', selection: null, itemGhost: null }),
   setItemGhost: (g) => set({ itemGhost: g }),
   setShowAllClearances: (v) => set({ showAllClearances: v }),
+  setHighlight: (h) => set({ highlight: h }),
+  setSettingsOpen: (v) => set({ settingsOpen: v }),
+  setAdviceState: (v) =>
+    set({
+      ...(v.enabled !== undefined ? { adviceEnabled: v.enabled } : {}),
+      ...(v.keySaved !== undefined ? { adviceKeySaved: v.keySaved } : {}),
+    }),
   toast: (text, tone = 'info') => {
     const id = ++toastSeq;
     set({ toasts: [...get().toasts, { id, text, tone }] });

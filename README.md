@@ -156,10 +156,61 @@ item…*). These are saved in the project's `catalogueOverrides`.
 | See the space things need | Select an item, or tick *Show space needed around everything* |
 | Your own item | *Add custom item…* |
 
+## Using it (Phase 4: Advice mode)
+
+| Do this | How |
+| --- | --- |
+| See problems | **Advice** in the mode bar. The number on it counts the problems on this floor (red: something blocks use, amber: uncomfortable, blue: tips) |
+| See one on the plan | Click it: the plan zooms to it and outlines the furniture and walls involved |
+| Fix it | **Fix** nudges (and if needed turns) only the things named, to the nearest spot that works. Undo puts them back |
+| Check one item | Select it in Furnish mode: its problems are listed in its panel |
+| Change the numbers | **Settings → Layout rules**. Every value is editable, saved with the plan, undoable; *Reset to UK defaults* |
+| Ask Claude (optional) | **Settings → Ask Claude for advice**: switch it on and save your own Anthropic API key (kept only in this browser, sent only to Anthropic). Then **Ask for advice** in Advice mode |
+
+Problems are worded as measured against needed, for example *"Wardrobe to
+chest of drawers: 40 cm. Needs 50 cm to open the doors."* Claude gets these
+measurements as facts and is told not to contradict them.
+
 ## How to add a rule
 
-Arrives in Phase 4. Rules will live in a single registry file in
-`src/rules/`: each has an `id`, `applies(item, context)`, `measure()`, a
-severity and a plain-English message, with the numbers editable in
-settings. Each rule ships with a passing and a failing test fixture. This
-section will get a worked example then.
+Rules live in one file, `src/rules/registry.ts`, as entries in the `RULES`
+array. A rule applies to an item when the catalogue item lists the rule's id
+in its `rules` array (in `src/catalogue/items.ts`), so turning a rule on for
+more furniture is a data change.
+
+Each rule has an `id`, a plain-English `title`, a `severity` (`error` blocks
+use, `warning` is uncomfortable, `tip`), editable `params` with `paramLabels`
+for the settings screen, and `fixable`. Item rules have `applies(item, ctx)`
+and `measure(item, ctx, params)`. Whole-floor rules use `scope: 'level'` and
+`measureLevel(ctx, params)`.
+
+A measurement (`measured`, `required`, optional `ideal`, plus `subject` and
+`need`) is reported below `required`, and as a tip between `required` and
+`ideal`; a flag (`severity` and `message`) is always reported.
+`ctx.clearDepth(item, side)`, `ctx.roomOf(item)`, `ctx.geo.doors` / `windows`
+and `ctx.fmt` are available.
+
+Worked example: keep 1 m clear in front of a piano.
+
+```ts
+{
+  id: 'piano-stool',
+  title: 'Room for the piano stool',
+  scope: 'item',
+  severity: 'warning',
+  fixable: true,
+  params: { min: 900, ideal: 1000 },
+  paramLabels: { min: 'Minimum', ideal: 'Comfortable' },
+  applies: (p) => (p.cat.rules ?? []).includes('piano-stool'),
+  measure: (p, ctx, { min, ideal }) => {
+    const h = ctx.clearDepth(p, 'front');
+    return [{ itemIds: [p.item.id], measured: h.dist, required: min, ideal,
+              subject: `${p.cat.name} to ${ctx.hitName(h)}`, need: 'for the stool and the player', roomItem: p }];
+  },
+},
+```
+
+Then add `'piano-stool'` to the upright piano's `rules` in `items.ts`, and add
+a passing and a failing fixture to `src/rules/rules.test.ts` (build a room
+with `room()` and place items with `put()` or `againstTop()`). The new number
+appears in Settings automatically.

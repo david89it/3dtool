@@ -4,42 +4,14 @@
 // to api.anthropic.com. Rules work fully offline without any of this.
 
 import Anthropic from '@anthropic-ai/sdk';
-import { del, get, set } from 'idb-keyval';
 import type { Level, Project } from '../model/types';
+import { ADVICE_MODEL } from './keyStore';
+export { ADVICE_MODEL };
 import { detectRooms } from '../geometry/rooms';
 import { computeJoints } from '../geometry/joints';
 import { findCatalogueItem, effectiveDims } from '../catalogue/catalogue';
 import { OPENING_LABEL } from '../geometry/openings';
 import { wallLength } from '../geometry/wallGraph';
-
-const KEY_STORE = 'flatplan:anthropic-key';
-const ENABLED_STORE = 'flatplan:advice-enabled';
-
-export const ADVICE_MODEL = 'claude-opus-5-5';
-
-export async function loadApiKey(): Promise<string | undefined> {
-  try {
-    return await get<string>(KEY_STORE);
-  } catch {
-    return undefined;
-  }
-}
-export async function saveApiKey(key: string): Promise<void> {
-  await set(KEY_STORE, key.trim());
-}
-export async function forgetApiKey(): Promise<void> {
-  await del(KEY_STORE);
-}
-export async function loadAdviceEnabled(): Promise<boolean> {
-  try {
-    return (await get<boolean>(ENABLED_STORE)) ?? false;
-  } catch {
-    return false;
-  }
-}
-export async function saveAdviceEnabled(v: boolean): Promise<void> {
-  await set(ENABLED_STORE, v);
-}
 
 /** Facts the rules engine measured; the model must not contradict them. */
 export interface RuleFact {
