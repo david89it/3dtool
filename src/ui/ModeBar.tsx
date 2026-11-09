@@ -21,7 +21,7 @@ const MODES: { id: Mode; label: string; ready: boolean }[] = [
   { id: 'openings', label: 'Openings', ready: true },
   { id: 'furnish', label: 'Furnish', ready: true },
   { id: 'advice', label: 'Advice', ready: true },
-  { id: '3d', label: '3D', ready: false },
+  { id: '3d', label: '3D', ready: true },
 ];
 
 export function ModeBar() {

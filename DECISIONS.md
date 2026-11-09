@@ -246,3 +246,75 @@ challenged.
   - There is no mechanical fix for `structural-opening`, `loft-headroom`,
     or the kitchen worktop, sink-hob and triangle rules: those need units
     added or reordered, not a nudge.
+
+## Phase 5: 3D and walkthrough
+
+- **Axes.** Plan millimetres become metres. Plan (x, y) maps to world
+  (x, z), and up is world y, so a top-down 3D view reads like the plan.
+  All floors share the plan's coordinates and sit at their `elevation`.
+- **Which floors show.** The overview shows the floor selected in the tabs
+  and everything below it; floors above are hidden so she can see in. Walk
+  shows every floor.
+- **Walls** are side profiles with rectangular holes, extruded (no CSG).
+  Each wall is two half-thickness slabs, so each face wears the finish of
+  the room on that side. Ends are extended by half the thickest wall
+  meeting at an angle, so corners close. Walls running straight through a
+  T-junction are not extended. A hole always keeps 20 mm of wall at the
+  ends and top (a hole may not touch the outline). Doors and openings keep
+  1 mm below them, hidden under the floor.
+- **Chimney breast voids** (closed loops under 0.4 m²) are solid masonry to
+  ceiling height.
+- **Windows** get a glass pane, a frame and a meeting rail. **Doors** get a
+  leaf at the same hinge, side and angle as the 2D swing arc. Cased
+  openings get nothing.
+- **Ceilings** face down, so they are invisible from above (overview) and
+  visible from inside (walk).
+- **Stairs** are drawn as steps along their footprint, rising linearly from
+  their level's floor to the target level's floor. The seed's stairs are
+  rough, so some flights overlap where the agent's plan is vague.
+- **Merging.** Each floor's geometry is merged into one mesh per material: a
+  whole floor is a few dozen draw calls. Materials are shared and created
+  once. A floor rebuilds only when that level, the custom catalogue or a
+  floor height changes. three.js loads only when she first opens 3D, so
+  the plan editor starts fast.
+- **Lighting.**
+  - One sun with a shadow map (2048², PCF), plus soft sky light. The sky
+    light's ground colour is a pale floor tone, not brown, so ceilings stay
+    white.
+  - Neutral tone mapping keeps the swatch colours true.
+  - Ceiling lights: one warm point light per room, at its label point,
+    30 cm below the ceiling. Off by default.
+- **Sun direction.** Plan "up" (towards the garden) is taken as bearing 330°
+  (NNW), from the agent's north arrow. The bay then faces 150° (SSE), as
+  the brief says. The sun slider is a compass bearing, defaulting to 200°
+  at 35° high.
+- **Finishes.**
+  - `Room.floorFinish` holds a swatch id. `Room.wallFinish` is a new
+    extension.
+  - Defaults match the listing photos: pale oak floors, a grey tile
+    bathroom floor, white walls, white tile in the bathroom.
+  - Swatches are drawn procedurally on canvas, so no image files ship.
+  - The lease hint appears when a hard floor is chosen outside the
+    kitchen and bathroom, or anything but carpet or cork in them. It is a
+    hint, never a block.
+  - Rubber isn't in the palette yet.
+- **Walk.**
+  - Eye height 1.6 m, speed 1.4 m/s, player radius 250 mm. Collisions
+    are worked out in 2D on the plan.
+  - Doors and cased openings at least 1.8 m tall with no sill let you
+    through. Windows don't.
+  - Furniture blocks you if it is a floor obstacle (rugs, ceiling lights
+    and wall cupboards don't).
+  - On a stair footprint you follow its ramp when it is within reach of
+    your feet. Otherwise you stand on the highest floor at or below your
+    feet + 400 mm. The floor tabs follow you.
+- **Controls.**
+  - Desktop: click the view to look with the mouse (pointer lock); Esc
+    frees it; W A S D or arrow keys walk.
+  - Touch (coarse pointer): left thumb joystick, drag on the right to look.
+  - Tab toggles plan and 3D. It returns to the 2D mode she came from.
+  - All 2D shortcuts are off in 3D, so W walks instead of drawing.
+- **Frame rate.** Headless Chromium uses software rendering (SwiftShader).
+  It measured about 7–11 fps in the overview there, which says nothing
+  about a real laptop GPU. The 60 fps target on a 2022 MacBook Air has not
+  been measured yet.

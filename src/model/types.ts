@@ -102,7 +102,10 @@ export interface Room {
   name: string;
   boundary: Id[];
   ceilingHeight?: number;
-  floorFinish?: string;
+  floorFinish?: string; // swatch id from src/view3d/finishes.ts
+  // EXTENSION: brief phase 5 asks for a finish per room for floor AND walls;
+  // the model only had floorFinish. Swatch id from src/view3d/finishes.ts.
+  wallFinish?: string;
 }
 
 export interface PlacedItem {

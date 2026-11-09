@@ -69,6 +69,18 @@ side of an opening; tick *Allow less than 10 cm* on one opening to override
 note: *Structural opening: needs engineer, steel and Building Control.
 Leasehold: needs landlord's licence.*
 
+## Using it (Phase 5: 3D)
+
+| Do this | How |
+| --- | --- |
+| Switch between plan and 3D | **Tab**, or the 3D button in the mode bar |
+| Look around the floor | Drag to turn, scroll or pinch to zoom. Floors above the current one are hidden |
+| Walk through | *Walk* in the right panel. Click the view to look with the mouse, then W A S D or arrow keys. Esc frees the mouse. On a tablet: left thumb to walk, drag on the right to look |
+| Go up or down | Walk onto a stair; the floor tabs follow you |
+| Change a floor or wall finish | Pick a room (or click its floor in the overview), then a swatch. Undo works |
+| See the daylight | Move the sun's direction and height. The bay faces south-south-east |
+| Evening light | Tick *Ceiling lights on* |
+
 Numbers marked **≈** come from the agent's not-to-scale plan. Amber **?** pins
 mark things to measure on site; the right panel lists them per floor.
 
@@ -80,7 +92,7 @@ src/model          types, zustand store, undo history, units, seed, autosave
 src/geometry       wall graph, joints, room detection, dimensions, snapping, calibration
 src/editor2d       Konva canvas, layers and tools
 src/ui             panels, mode bar, inspector
-src/view3d         (phase 5)
+src/view3d         3D scene (walls, floors, furniture), walkthrough, finishes
 src/catalogue      (phase 3)
 src/rules          (phase 4)
 src/advice         (phase 4, optional)

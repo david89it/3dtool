@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useStore } from '../model/store';
+import { lazy, Suspense, useEffect } from 'react';
+import { useStore, type Mode } from '../model/store';
 import { PlanCanvas } from '../editor2d/PlanCanvas';
 import { canvasApi } from '../editor2d/canvasApi';
 import { deleteWall } from '../geometry/wallGraph';
@@ -14,6 +14,12 @@ import { ModeBar } from './ModeBar';
 import { LeftPanel } from './LeftPanel';
 import { Inspector } from './Inspector';
 import { Toasts } from './Toasts';
+
+// three.js only loads when she first opens 3D, so the plan editor starts fast.
+const View3D = lazy(() => import('../view3d/View3D').then((m) => ({ default: m.View3D })));
+
+/** The 2D mode to return to when Tab leaves 3D. */
+let last2DMode: Mode = 'trace';
 
 function isTyping(e: KeyboardEvent): boolean {
   const t = e.target as HTMLElement | null;
@@ -48,6 +54,16 @@ function useShortcuts() {
         return;
       }
       if (mod) return;
+      if (e.key === 'Tab' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        if (s.mode === '3d') s.setMode(last2DMode);
+        else {
+          last2DMode = s.mode;
+          s.setMode('3d');
+        }
+        return;
+      }
+      if (s.mode === '3d') return;
       if (e.key === 'Escape') canvasApi.escape();
       else if (e.key === 'Enter' && s.tool === 'draw') canvasApi.finishTrace();
       else if (e.key === 'v' || e.key === 'V') s.setTool('select');
@@ -93,17 +109,26 @@ function useShortcuts() {
 
 export function App() {
   const ready = useStore((s) => s.ready);
+  const mode = useStore((s) => s.mode);
   useShortcuts();
   if (!ready) return <div className="loading">Opening your plan…</div>;
   return (
     <div className="app">
       <TopBar />
       <ModeBar />
-      <main className="workspace">
-        <LeftPanel />
-        <PlanCanvas />
-        <Inspector />
-      </main>
+      {mode === '3d' ? (
+        <main className="workspace three">
+          <Suspense fallback={<div className="loading">Building the 3D view…</div>}>
+            <View3D />
+          </Suspense>
+        </main>
+      ) : (
+        <main className="workspace">
+          <LeftPanel />
+          <PlanCanvas />
+          <Inspector />
+        </main>
+      )}
       <Toasts />
     </div>
   );
