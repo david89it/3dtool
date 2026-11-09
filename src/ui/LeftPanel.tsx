@@ -5,6 +5,7 @@ import { importPlanFile } from '../editor2d/importUnderlay';
 import { formatScale } from '../model/units';
 import { canvasApi } from '../editor2d/canvasApi';
 import { toWorld } from '../editor2d/view';
+import { OpeningsPalette } from './OpeningsPalette';
 
 function ToolButton({ tool, label, keyHint, desc }: { tool: Tool; label: string; keyHint: string; desc: string }) {
   const current = useStore((s) => s.tool);
@@ -171,6 +172,18 @@ function UnderlayPanel() {
 }
 
 export function LeftPanel() {
+  const mode = useStore((s) => s.mode);
+  if (mode === 'openings') {
+    return (
+      <aside className="leftpanel" aria-label="Tools">
+        <OpeningsPalette />
+      </aside>
+    );
+  }
+  return <TracePanel />;
+}
+
+function TracePanel() {
   const tool = useStore((s) => s.tool);
   const drawKind = useStore((s) => s.drawKind);
   const setDrawKind = useStore((s) => s.setDrawKind);

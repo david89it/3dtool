@@ -11,7 +11,7 @@ import {
   splitWall,
   wallsAt,
 } from './wallGraph';
-import { blankLevel } from './rooms.test';
+import { blankLevel } from './testUtils';
 import { detectRooms } from './rooms';
 import { measureWallFace, setInternalLength, wallDimensions } from './dimensions';
 import { computeJoints } from './joints';

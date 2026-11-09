@@ -83,6 +83,13 @@ export interface Opening {
   swing?: { hinge: 'start' | 'end'; side: 'left' | 'right'; angle: number }; // doors only
   // EXTENSION: same meaning as Wall.estimated.
   estimated?: boolean;
+  // EXTENSION: true for openings already in the flat (from the seed). The
+  // structural badge (brief §3 phase 2) is about openings she cuts, so it
+  // needs to tell new from existing. Moving or enlarging one clears it.
+  existing?: boolean;
+  // EXTENSION: she chose to allow piers under 100 mm in a structural wall
+  // (brief: "with an override and a warning").
+  nibOverride?: boolean;
 }
 
 export interface Room {

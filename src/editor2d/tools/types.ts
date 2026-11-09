@@ -4,6 +4,7 @@ import type { DetectedRoom } from '../../geometry/rooms';
 import type { WallDimension } from '../../geometry/dimensions';
 import type { SnapResult } from '../../geometry/snapping';
 import type { View } from '../view';
+import type { OpeningLabel } from '../openingLabels';
 
 export interface PointerInfo {
   screen: Vec2;
@@ -23,6 +24,7 @@ export interface Overlay {
   hoverWall?: Id;
   hoverNode?: Id;
   hoverMarker?: Id;
+  hoverOpening?: Id;
   snap?: SnapResult;
   draw?: { from: Vec2; to: Vec2 };
   calib?: { p1?: Vec2; cursor?: Vec2 };
@@ -37,6 +39,7 @@ export interface ToolCtx {
   panBy: (dx: number, dy: number) => void;
   openLabelEditor: (d: WallDimension) => void;
   openCalibration: (p1: Vec2, p2: Vec2) => void;
+  openOpeningEditor: (openingId: Id, label: OpeningLabel) => void;
 }
 
 export interface ToolHandler {

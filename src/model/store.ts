@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { applyPatches, enablePatches, produceWithPatches, type Draft, type Patch } from 'immer';
-import type { Id, Level, Project, WallKind } from './types';
+import type { Id, Level, OpeningType, Project, Vec2, WallKind } from './types';
 import type { UnitSystem } from './units';
 import { pushEntry, type HistoryEntry } from './history';
 import { syncRooms } from '../geometry/rooms';
@@ -9,13 +9,19 @@ import { clampOpenings } from '../geometry/wallGraph';
 enablePatches();
 
 export type Mode = 'trace' | 'openings' | 'furnish' | 'advice' | '3d';
-export type Tool = 'select' | 'draw' | 'calibrate' | 'moveImage';
+export type Tool = 'select' | 'draw' | 'calibrate' | 'moveImage' | 'placeOpening';
 export type Selection =
   | { kind: 'wall'; id: Id }
   | { kind: 'room'; id: Id }
   | { kind: 'marker'; id: Id }
   | { kind: 'node'; id: Id }
+  | { kind: 'opening'; id: Id }
   | null;
+
+/** Preview of an opening being placed: where it would land, or why it can't. */
+export type OpeningGhost =
+  | { ok: true; type: OpeningType; wallId: Id; offset: number; width: number }
+  | { ok: false; type: OpeningType; at: Vec2; reason: string };
 
 export interface Toast {
   id: number;
@@ -40,6 +46,8 @@ export interface AppState {
   units: UnitSystem;
   showMarkers: boolean;
   drawKind: WallKind;
+  placeType: OpeningType;
+  ghost: OpeningGhost | null;
   past: HistoryEntry[];
   future: HistoryEntry[];
   gesture: Gesture | null;
@@ -62,6 +70,8 @@ export interface AppState {
   setUnits: (u: UnitSystem) => void;
   setShowMarkers: (v: boolean) => void;
   setDrawKind: (k: WallKind) => void;
+  armPlacement: (t: OpeningType) => void;
+  setGhost: (g: OpeningGhost | null) => void;
   toast: (text: string, tone?: Toast['tone']) => void;
   dismissToast: (id: number) => void;
 }
@@ -86,7 +96,8 @@ function selectionStillValid(p: Project, levelId: Id, s: Selection): Selection {
     (s.kind === 'wall' && L.walls.some((w) => w.id === s.id)) ||
     (s.kind === 'room' && L.rooms.some((r) => r.id === s.id)) ||
     (s.kind === 'marker' && (L.markers ?? []).some((m) => m.id === s.id)) ||
-    (s.kind === 'node' && L.nodes.some((n) => n.id === s.id));
+    (s.kind === 'node' && L.nodes.some((n) => n.id === s.id)) ||
+    (s.kind === 'opening' && L.walls.some((w) => w.openings.some((o) => o.id === s.id)));
   return ok ? s : null;
 }
 
@@ -102,6 +113,8 @@ export const useStore = create<AppState>()((set, get) => ({
   units: 'metric',
   showMarkers: true,
   drawKind: 'internal',
+  placeType: 'door',
+  ghost: null,
   past: [],
   future: [],
   gesture: null,
@@ -222,12 +235,14 @@ export const useStore = create<AppState>()((set, get) => ({
   },
 
   setLevel: (id) => set({ levelId: id, selection: null }),
-  setMode: (m) => set({ mode: m }),
-  setTool: (t) => set({ tool: t }),
+  setMode: (m) => set({ mode: m, tool: 'select', selection: null, ghost: null }),
+  setTool: (t) => set({ tool: t, ghost: null }),
   select: (s) => set({ selection: s }),
   setUnits: (u) => set({ units: u }),
   setShowMarkers: (v) => set({ showMarkers: v }),
   setDrawKind: (k) => set({ drawKind: k }),
+  armPlacement: (t) => set({ placeType: t, tool: 'placeOpening', selection: null }),
+  setGhost: (g) => set({ ghost: g }),
   toast: (text, tone = 'info') => {
     const id = ++toastSeq;
     set({ toasts: [...get().toasts, { id, text, tone }] });

@@ -12,6 +12,11 @@ import { dimLabelScreenPos } from '../hitTest';
 import { toScreen, type View } from '../view';
 import { COLORS, FONT } from '../theme';
 import type { Overlay } from '../tools/types';
+import type { OpeningLabel } from '../openingLabels';
+import type { OpeningGhost } from '../../model/store';
+import { needsStructuralBadge, STRUCTURAL_BADGE_TEXT } from '../../geometry/openings';
+import { lerp, perpL, norm, sub } from '../../geometry/vec';
+
 
 interface Props {
   level: Level;
@@ -24,6 +29,8 @@ interface Props {
   showMarkers: boolean;
   editingWallId?: string;
   showDims: boolean;
+  openingLabels: OpeningLabel[];
+  ghost: OpeningGhost | null;
 }
 
 function DimLabel({ d, view, text, active, estimated }: { d: WallDimension; view: View; text: string; active: boolean; estimated: boolean }) {
@@ -136,6 +143,51 @@ export function OverlayLayer(props: Props) {
             </Group>
           );
         })}
+
+      {level.walls.filter(needsStructuralBadge).map((w) => {
+        const a = level.nodes.find((n) => n.id === w.a)?.pos;
+        const b = level.nodes.find((n) => n.id === w.b)?.pos;
+        if (!a || !b) return null;
+        const firstNew = w.openings.find((o) => !o.existing)!;
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        const mid = lerp(a, b, (firstNew.offset + firstNew.width / 2) / len);
+        // Opposite side to the measurements, growing away from the wall.
+        const dim = dims.find((d) => d.wallId === w.id);
+        const base = dim ? { x: -dim.normal.x, y: -dim.normal.y } : perpL(norm(sub(b, a)));
+        const p = toScreen(view, mid);
+        const off = (w.thickness / 2) * view.scale + 10;
+        const pos = { x: p.x + base.x * off, y: p.y + base.y * off };
+        const W = 230;
+        const H = 66;
+        const horizontalWall = Math.abs(base.y) >= Math.abs(base.x);
+        const offsetX = horizontalWall ? W / 2 : base.x < 0 ? W : 0;
+        const offsetY = horizontalWall ? (base.y < 0 ? H : 0) : H / 2;
+        return (
+          <Label key={`badge-${w.id}`} x={pos.x} y={pos.y} offsetX={offsetX} offsetY={offsetY}>
+            <Tag fill={COLORS.amberBg} stroke={COLORS.amber} strokeWidth={1.5} cornerRadius={6} />
+            <Text text={`⚠ ${STRUCTURAL_BADGE_TEXT}`} fontSize={11.5} fontStyle="600" fontFamily={FONT} fill="#8a4b00" padding={7} width={W} wrap="word" lineHeight={1.3} />
+          </Label>
+        );
+      })}
+
+      {props.openingLabels.map((l) => {
+        const text = formatLength(l.value, units);
+        const w = text.length * 6.6 + 8;
+        const isWidth = l.field === 'width';
+        return (
+          <Label key={l.field} x={l.screen.x} y={l.screen.y} rotation={l.angleDeg} offsetX={w / 2} offsetY={10.5}>
+            <Tag fill={isWidth ? COLORS.accent : '#ffffff'} stroke={COLORS.accent} strokeWidth={1} cornerRadius={4} />
+            <Text text={text} fontSize={12} fontFamily={FONT} padding={4} fill={isWidth ? '#ffffff' : COLORS.accent} />
+          </Label>
+        );
+      })}
+
+      {props.ghost && !props.ghost.ok && (
+        <Label x={toScreen(view, props.ghost.at).x + 14} y={toScreen(view, props.ghost.at).y + 14}>
+          <Tag fill="#1f2328" cornerRadius={5} opacity={0.9} />
+          <Text text={props.ghost.reason} fontSize={12} fontFamily={FONT} fill="#fff" padding={6} />
+        </Label>
+      )}
 
       {overlay.draw && <DrawPreview from={overlay.draw.from} to={overlay.draw.to} view={view} units={units} />}
       {overlay.snap && overlay.snap.kind !== 'none' && overlay.snap.kind !== 'grid' && overlay.snap.kind !== 'angle' && (

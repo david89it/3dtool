@@ -654,3 +654,62 @@ button {
     grid-template-columns: 220px 1fr 280px;
   }
 }
+
+/* ---- openings palette --------------------------------------------- */
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  cursor: grab;
+  text-align: left;
+  touch-action: none;
+  user-select: none;
+}
+.palette-item:hover {
+  border-color: #c9c5bc;
+}
+.palette-item.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.palette-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+body.dragging-opening,
+body.dragging-opening * {
+  cursor: grabbing !important;
+}
+.opening-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.warn-box {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--amber-bg);
+  color: var(--amber);
+  font-size: 13px;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.warn-box p {
+  margin: 0;
+}

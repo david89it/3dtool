@@ -5,7 +5,7 @@ trace the floorplan, edit walls, furnish, get layout advice, and walk
 through in 3D. No backend: everything runs in the browser and is saved in
 the browser's own storage (IndexedDB).
 
-Status: **Phase 1** (plan import and wall editing). See `DECISIONS.md` for
+Status: **Phases 1–2** (plan import, wall editing, doors, windows and openings). See `DECISIONS.md` for
 assumptions and `assets/` for the agent's plan and photos.
 
 ## Run it
@@ -51,6 +51,23 @@ npm run build        # static site in dist/, works from any folder or host
 | Undo / redo | Buttons top right, Ctrl/⌘ Z, Ctrl/⌘ Shift Z |
 | Save a copy | File → *Save a copy to my computer* (`.flatplan.json`); *Open a saved plan…* loads one |
 | Picture | File → *Export this floor as a picture (PNG)* |
+
+## Using it (Phase 2: Openings mode)
+
+| Do this | How |
+| --- | --- |
+| Add a door, window or opening | Drag it from the left onto a wall. Or click it, then click a wall |
+| Move it | Drag it along the wall, or onto another wall. It won't overlap another opening or run past a wall end |
+| Exact size or position | Click the blue measurements on the plan (width, wall left at each side), or use the right panel |
+| Door swing | *Hinge on the other side*, *Open into the other room* |
+| Open up a wall | Select the wall → *Open up this wall* (widest opening it allows) |
+| Remove | Select and press Delete, or *Remove* |
+
+In a wall that is load-bearing or "Don't know", 10 cm of wall is kept either
+side of an opening; tick *Allow less than 10 cm* on one opening to override
+(it then shows a warning). New openings in those walls get a permanent amber
+note: *Structural opening: needs engineer, steel and Building Control.
+Leasehold: needs landlord's licence.*
 
 Numbers marked **≈** come from the agent's not-to-scale plan. Amber **?** pins
 mark things to measure on site; the right panel lists them per floor.

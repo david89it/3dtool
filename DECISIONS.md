@@ -117,3 +117,41 @@ challenged.
   out with "Coming in a later phase".
 - The **amber structural badge** (Phase 2) shows in Phase 1 only in the wall
   panel, for cased openings. Phase 2 implements it properly.
+
+## Phase 2: openings
+
+- **Which openings get the structural badge.** Every door and window in the
+  seed is marked `existing`. The badge appears on a wall that is
+  load-bearing or "Don't know" once it has a new opening. Moving an
+  existing opening, making it wider or taller, or moving it to another
+  wall turns it into a new one. Changing a sill or flipping a door swing
+  does not. Outside and party walls count too: they are structural unless
+  she marks them "Not load-bearing".
+- **Ends and piers.** An opening is measured between the inside faces of the
+  walls at each end of its wall, using the mitred outlines. The 100 mm pier
+  applies at both wall ends and between neighbouring openings, in any wall
+  not confirmed non-load-bearing. "Allow less than 10 cm" is per opening
+  (`nibOverride`). The opening then shows a "Narrow pier" warning while a
+  pier is under 100 mm.
+- **Dragging and drop targets.** Openings snap to 10 mm along the wall (Alt:
+  free). A dragged opening moves to another wall only when the pointer is
+  right on that wall. Otherwise it stays on its own wall. If the drop
+  point has no room, it goes to the nearest free spot on that wall. If
+  there is no room anywhere on the wall, it is refused with "No room on
+  this wall".
+- **Palette uses pointer events, not HTML drag and drop**, so it works with a
+  finger or an Apple Pencil. Clicking an item (without dragging) arms it;
+  the next click on a wall places it.
+- **"Open up this wall"** adds the widest cased opening the wall allows,
+  2.10 m high, keeping piers. On the seed, the kitchen/reception wall gives
+  2.61 m. The kitchen and reception stay two named rooms either side of
+  the opening: rooms come from walls, and an opening doesn't remove the
+  wall.
+- **Default sizes:** door 80 cm × 2.00 m, window 1.00 × 1.20 m on a 90 cm sill,
+  opening 1.20 × 2.10 m, bay window face 1.00 × 1.60 m on a 70 cm sill.
+- **Deleting a wall that may be structural** shows a warning toast. The
+  delete still happens: undo is always there, and the brief asks for
+  warnings, not blocks.
+- **Measurements of the selected opening** (width, and the wall left at each
+  side) are drawn on the plan and can be clicked to type. While one is
+  selected, the other wall labels are hidden to keep it readable.

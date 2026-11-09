@@ -3,7 +3,7 @@ import { formatLength, parseLength, formatArea } from '../model/units';
 import { calibrate, imageToWorld } from './calibration';
 import { snapPoint } from './snapping';
 import { addWall, defaultWallProps } from './wallGraph';
-import { blankLevel } from './rooms.test';
+import { blankLevel } from './testUtils';
 import type { Underlay } from '../model/types';
 
 describe('units', () => {

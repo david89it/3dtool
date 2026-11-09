@@ -10,10 +10,12 @@ interface Props {
   min?: number;
   max?: number;
   estimated?: boolean;
+  /** Return a message to refuse a value (shown under the field). */
+  validate?: (mm: number) => string | null;
 }
 
 /** A number she can click and type over. Shown in her units, stored in mm. */
-export function EditableLength({ value, onChange, label, ctx = 'length', min = 1, max = 50000, estimated }: Props) {
+export function EditableLength({ value, onChange, label, ctx = 'length', min = 1, max = 50000, estimated, validate }: Props) {
   const units = useStore((s) => s.units);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,11 @@ export function EditableLength({ value, onChange, label, ctx = 'length', min = 1
     }
     if (mm < min || mm > max) {
       setError(`Between ${formatLength(min, units, ctx)} and ${formatLength(max, units, ctx)}`);
+      return;
+    }
+    const problem = validate?.(mm);
+    if (problem) {
+      setError(problem);
       return;
     }
     setText(null);
@@ -60,7 +67,12 @@ export function EditableLength({ value, onChange, label, ctx = 'length', min = 1
           setText(e.target.value);
           setError(null);
         }}
-        onBlur={commit}
+        onBlur={() => {
+          if (error) {
+            setText(null);
+            setError(null);
+          } else commit();
+        }}
         onKeyDown={(e) => {
           e.stopPropagation();
           if (e.key === 'Enter') commit();

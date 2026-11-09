@@ -14,4 +14,12 @@ export const canvasApi = {
   getView: (): View => ({ scale: 1, x: 0, y: 0 }),
   /** Page position of a wall's dimension label (tests). */
   dimLabelPos: (_wallId: string): Vec2 | null => null,
+  /** Page position of a selected opening's measurement (tests). */
+  openingLabelPos: (_openingId: string, _field: 'width' | 'before' | 'after'): Vec2 | null => null,
+  /** Plan position under a page point, or null when it is outside the canvas. */
+  clientToWorld: (_client: Vec2): Vec2 | null => null,
+  /** Update the placement preview for a palette drag at a page point. */
+  ghostAt: (_client: Vec2) => {},
+  /** Place the opening being dragged from the palette. */
+  dropGhost: (): boolean => false,
 };

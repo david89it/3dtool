@@ -3,6 +3,8 @@ import type { Level, Opening, Vec2, Wall } from '../../model/types';
 import type { JointData, WallOutline } from '../../geometry/joints';
 import { add, mul, perpL, perpR } from '../../geometry/vec';
 import { COLORS } from '../theme';
+import type { OpeningGhost } from '../../model/store';
+import { makeOpening } from '../../geometry/openings';
 
 const flat = (pts: Vec2[]) => pts.flatMap((p) => [p.x, p.y]);
 
@@ -75,11 +77,17 @@ export function WallShapes({
   joints,
   selectedWallId,
   hoverWallId,
+  selectedOpeningId,
+  hoverOpeningId,
+  ghost,
 }: {
   level: Level;
   joints: JointData;
   selectedWallId?: string;
   hoverWallId?: string;
+  selectedOpeningId?: string;
+  hoverOpeningId?: string;
+  ghost?: OpeningGhost | null;
 }) {
   const byId = new Map(level.walls.map((w) => [w.id, w] as const));
   return (
@@ -113,6 +121,46 @@ export function WallShapes({
         if (!o) return null;
         return w.openings.map((op) => <OpeningShape key={op.id} o={o} w={w} op={op} />);
       })}
+      {level.walls.map((w) => {
+        const o = joints.outlines.get(w.id);
+        if (!o) return null;
+        return w.openings
+          .filter((op) => op.id === selectedOpeningId || op.id === hoverOpeningId)
+          .map((op) => (
+            <Line
+              key={`hl-${op.id}`}
+              points={flat(across(o, w.thickness / 2 + 25, op.offset, op.offset + op.width))}
+              closed
+              stroke={COLORS.accent}
+              strokeWidth={op.id === selectedOpeningId ? 3 : 2}
+              dash={op.id === selectedOpeningId ? undefined : [6, 4]}
+              fill={op.id === selectedOpeningId ? 'rgba(37,99,235,0.12)' : undefined}
+              strokeScaleEnabled={false}
+              listening={false}
+            />
+          ));
+      })}
+      {ghost?.ok &&
+        (() => {
+          const w = level.walls.find((x) => x.id === ghost.wallId);
+          const o = joints.outlines.get(ghost.wallId);
+          if (!w || !o) return null;
+          const op = { ...makeOpening(ghost.type, ghost.offset, ghost.width), id: 'ghost' };
+          return (
+            <Group opacity={0.85} listening={false}>
+              <OpeningShape o={o} w={w} op={op} />
+              <Line
+                points={flat(across(o, w.thickness / 2 + 25, ghost.offset, ghost.offset + ghost.width))}
+                closed
+                stroke={COLORS.accent}
+                strokeWidth={2}
+                dash={[6, 4]}
+                fill="rgba(37,99,235,0.18)"
+                strokeScaleEnabled={false}
+              />
+            </Group>
+          );
+        })()}
     </>
   );
 }

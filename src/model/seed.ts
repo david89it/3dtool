@@ -108,6 +108,7 @@ function opening(
     height: opts.height ?? (type === 'window' || type === 'bayWindow' ? 1500 : 2000),
     sill: opts.sill ?? (type === 'window' || type === 'bayWindow' ? 800 : 0),
     estimated: true,
+    existing: true,
   };
   if (type === 'door') {
     const d = norm(sub(b, a));

@@ -2,7 +2,7 @@ import { useStore, type Mode } from '../model/store';
 
 const MODES: { id: Mode; label: string; ready: boolean }[] = [
   { id: 'trace', label: 'Trace', ready: true },
-  { id: 'openings', label: 'Openings', ready: false },
+  { id: 'openings', label: 'Openings', ready: true },
   { id: 'furnish', label: 'Furnish', ready: false },
   { id: 'advice', label: 'Advice', ready: false },
   { id: '3d', label: '3D', ready: false },

@@ -4,6 +4,10 @@ import { PlanCanvas } from '../editor2d/PlanCanvas';
 import { canvasApi } from '../editor2d/canvasApi';
 import { deleteWall } from '../geometry/wallGraph';
 import type { Level } from '../model/types';
+import { deleteOpening } from '../geometry/openingEdits';
+import { isStructural } from '../geometry/openings';
+import { currentLevel } from '../model/store';
+import { STRUCTURAL_DELETE_WARNING } from './Inspector';
 import { TopBar } from './TopBar';
 import { ModeBar } from './ModeBar';
 import { LeftPanel } from './LeftPanel';
@@ -36,13 +40,19 @@ function useShortcuts() {
       if (e.key === 'Escape') canvasApi.escape();
       else if (e.key === 'Enter' && s.tool === 'draw') canvasApi.finishTrace();
       else if (e.key === 'v' || e.key === 'V') s.setTool('select');
-      else if (e.key === 'w' || e.key === 'W') s.setTool('draw');
+      else if ((e.key === 'w' || e.key === 'W') && s.mode === 'trace') s.setTool('draw');
       else if (e.key === 'f' || e.key === 'F') canvasApi.fit();
       else if ((e.key === 'Delete' || e.key === 'Backspace') && s.selection) {
         const sel = s.selection;
         if (sel.kind === 'wall') {
           e.preventDefault();
+          const w = currentLevel()?.walls.find((x) => x.id === sel.id);
           s.editLevel('Delete wall', (L) => deleteWall(L as Level, sel.id));
+          s.select(null);
+          if (w && isStructural(w)) s.toast(STRUCTURAL_DELETE_WARNING, 'warn');
+        } else if (sel.kind === 'opening') {
+          e.preventDefault();
+          s.editLevel('Remove opening', (L) => deleteOpening(L as Level, sel.id));
           s.select(null);
         } else if (sel.kind === 'marker') {
           e.preventDefault();

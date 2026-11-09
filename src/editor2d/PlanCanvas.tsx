@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Group, Layer, Rect, Stage } from 'react-konva';
 import type Konva from 'konva';
-import type { Vec2 } from '../model/types';
-import { useLevel, useStore } from '../model/store';
+import type { Level, Vec2 } from '../model/types';
+import { useLevel, useStore, type Mode, type Tool } from '../model/store';
 import { computeJoints } from '../geometry/joints';
 import { detectRooms } from '../geometry/rooms';
 import { measureWallFace, setInternalLength, wallDimensions, type WallDimension } from '../geometry/dimensions';
@@ -20,7 +20,10 @@ import { selectTool } from './tools/selectTool';
 import { traceTool, finishTrace } from './tools/traceTool';
 import { calibrateTool } from './tools/calibrateTool';
 import { moveImageTool } from './tools/moveImageTool';
+import { openingSelectTool, placeOpeningTool, computeGhost, placeFromGhost } from './tools/openingTools';
 import type { Overlay, PointerInfo, ToolCtx, ToolHandler } from './tools/types';
+import { openingLabels, type OpeningLabel } from './openingLabels';
+import { editOpening } from '../geometry/openingEdits';
 import { COLORS } from './theme';
 import { canvasApi } from './canvasApi';
 
@@ -29,9 +32,24 @@ const TOOLS: Record<string, ToolHandler> = {
   draw: traceTool,
   calibrate: calibrateTool,
   moveImage: moveImageTool,
+  placeOpening: placeOpeningTool,
 };
 
+const ALL_TOOLS = [...Object.values(TOOLS), openingSelectTool];
+
+/** Each mode has its own "select" behaviour; other tools are shared. */
+function toolFor(mode: Mode, tool: Tool): ToolHandler {
+  if (mode === 'openings' && tool === 'select') return openingSelectTool;
+  return TOOLS[tool] ?? selectTool;
+}
+function currentTool(): ToolHandler {
+  const s = useStore.getState();
+  return toolFor(s.mode, s.tool);
+}
+
 interface LabelEdit {
+  /** Set when editing an opening's measurement instead of a wall length. */
+  opening?: { id: string; field: OpeningLabel['field'] };
   wallId: string;
   screen: Vec2;
   angle: number;
@@ -45,6 +63,8 @@ export function PlanCanvas() {
   const project = useStore((s) => s.project);
   const levelId = useStore((s) => s.levelId);
   const tool = useStore((s) => s.tool);
+  const mode = useStore((s) => s.mode);
+  const ghost = useStore((s) => s.ghost);
   const selection = useStore((s) => s.selection);
   const units = useStore((s) => s.units);
   const showMarkers = useStore((s) => s.showMarkers);
@@ -80,10 +100,10 @@ export function PlanCanvas() {
 
   // Tools forget half-finished actions when the tool or floor changes.
   useEffect(() => {
-    Object.values(TOOLS).forEach((t) => t.reset?.());
+    ALL_TOOLS.forEach((t) => t.reset?.());
     setOverlay({});
     setLabelEdit(null);
-  }, [tool, levelId]);
+  }, [tool, levelId, mode]);
 
   const derived = useMemo(() => {
     if (!level) return null;
@@ -119,6 +139,15 @@ export function PlanCanvas() {
       panBy: (dx, dy) => setView((v) => ({ ...v, x: v.x + dx, y: v.y + dy })),
       openLabelEditor,
       openCalibration: (p1, p2) => setCalib({ p1, p2, text: '' }),
+      openOpeningEditor: (openingId, label) =>
+        setLabelEdit({
+          opening: { id: openingId, field: label.field },
+          wallId: '',
+          screen: label.screen,
+          angle: label.angleDeg,
+          current: label.value,
+          text: formatLength(label.value, useStore.getState().units),
+        }),
     };
   }, [level, derived, view, openLabelEditor]);
   const ctxRef = useRef(ctx);
@@ -128,7 +157,7 @@ export function PlanCanvas() {
   useEffect(() => {
     canvasApi.escape = () => {
       const c = ctxRef.current;
-      if (c) TOOLS[useStore.getState().tool].escape?.(c);
+      if (c) currentTool().escape?.(c);
       setLabelEdit(null);
       setCalib(null);
     };
@@ -152,6 +181,19 @@ export function PlanCanvas() {
       return { x: s.x + (r?.left ?? 0), y: s.y + (r?.top ?? 0) };
     };
     canvasApi.getView = () => viewRef.current;
+    canvasApi.clientToWorld = (client) => {
+      const r = wrapRef.current?.getBoundingClientRect();
+      if (!r) return null;
+      if (client.x < r.left || client.x > r.right || client.y < r.top || client.y > r.bottom) return null;
+      return toWorld(viewRef.current, { x: client.x - r.left, y: client.y - r.top });
+    };
+    canvasApi.ghostAt = (client) => {
+      const w = canvasApi.clientToWorld(client);
+      const s = useStore.getState();
+      const L = s.project.levels.find((l) => l.id === s.levelId);
+      s.setGhost(w && L ? computeGhost(L as Level, w, viewRef.current.scale) : null);
+    };
+    canvasApi.dropGhost = () => placeFromGhost();
   }, []);
   useEffect(() => {
     canvasApi.dimLabelPos = (wallId) => {
@@ -160,6 +202,14 @@ export function PlanCanvas() {
       const r = wrapRef.current?.getBoundingClientRect();
       const s = dimLabelScreenPos(viewRef.current, d);
       return { x: s.x + (r?.left ?? 0), y: s.y + (r?.top ?? 0) };
+    };
+    canvasApi.openingLabelPos = (openingId, field) => {
+      const dr = derivedRef.current;
+      const L = useStore.getState().project.levels.find((l) => l.id === useStore.getState().levelId);
+      if (!dr || !L) return null;
+      const lab = openingLabels(L, dr.joints, dr.dims, viewRef.current, openingId).find((x) => x.field === field);
+      const r = wrapRef.current?.getBoundingClientRect();
+      return lab ? { x: lab.screen.x + (r?.left ?? 0), y: lab.screen.y + (r?.top ?? 0) } : null;
     };
   }, []);
 
@@ -204,7 +254,7 @@ export function PlanCanvas() {
     pointers.current.set(e.pointerId, p.screen);
     if (pointers.current.size === 2) {
       // Two fingers: pinch to zoom and pan; abandon whatever the tool started.
-      TOOLS[tool].escape?.(ctx);
+      toolFor(mode, tool).escape?.(ctx);
       const [a, b] = [...pointers.current.values()];
       pinch.current = { d: dist(a, b), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
       return;
@@ -213,7 +263,7 @@ export function PlanCanvas() {
       pan.current = { last: p.screen };
       return;
     }
-    TOOLS[tool].down(ctx, p);
+    toolFor(mode, tool).down(ctx, p);
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -238,7 +288,7 @@ export function PlanCanvas() {
       pan.current = { last: p.screen };
       return;
     }
-    TOOLS[tool].move(ctx, p);
+    toolFor(mode, tool).move(ctx, p);
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -253,12 +303,12 @@ export function PlanCanvas() {
       return;
     }
     if (labelEdit || calib) return;
-    TOOLS[tool].up(ctx, info(e));
+    toolFor(mode, tool).up(ctx, info(e));
   };
 
   const onDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!ctx || labelEdit || calib) return;
-    TOOLS[tool].dbl?.(ctx, info(e));
+    toolFor(mode, tool).dbl?.(ctx, info(e));
   };
 
   // Wheel: pinch on a trackpad (ctrl) or ctrl/cmd + wheel zooms; scrolling pans (like Figma).
@@ -284,6 +334,28 @@ export function PlanCanvas() {
   // ---- label editing ----------------------------------------------------
   const commitLabel = () => {
     if (!labelEdit) return;
+    if (labelEdit.opening) {
+      const mm = parseLength(labelEdit.text, units, 'length');
+      if (mm === null || mm < 0 || mm > 50000) {
+        setLabelEdit({ ...labelEdit, error: 'Try 80 cm, 0.8 m or 2′ 7″' });
+        return;
+      }
+      const { id, field } = labelEdit.opening;
+      let error: string | null = null;
+      const fmt = (x: number) => formatLength(x, units);
+      // Check on a scratch copy first so a refused edit leaves no undo step.
+      const probe = structuredClone(level) as Level;
+      error = editOpening(probe, id, field, mm, fmt);
+      if (error) {
+        setLabelEdit({ ...labelEdit, error });
+        return;
+      }
+      useStore.getState().editLevel(field === 'width' ? 'Change opening width' : 'Move opening', (L) => {
+        editOpening(L as Level, id, field, mm, fmt);
+      });
+      setLabelEdit(null);
+      return;
+    }
     const mm = parseLength(labelEdit.text, units, 'length');
     if (mm === null || mm < 50 || mm > 50000) {
       setLabelEdit({ ...labelEdit, error: 'Try 3.32 m, 332 cm or 10′ 11″' });
@@ -323,13 +395,20 @@ export function PlanCanvas() {
   const cursor =
     tool === 'draw' || tool === 'calibrate'
       ? 'crosshair'
-      : tool === 'moveImage'
-        ? 'move'
-        : overlay.hoverNode
-          ? 'grab'
-          : overlay.hoverWall
-            ? 'pointer'
-            : 'default';
+      : tool === 'placeOpening'
+        ? ghost?.ok
+          ? 'copy'
+          : 'not-allowed'
+        : tool === 'moveImage'
+          ? 'move'
+          : overlay.hoverNode || overlay.hoverOpening
+            ? 'grab'
+            : overlay.hoverWall
+              ? 'pointer'
+              : 'default';
+  const selectedOpeningId = selection?.kind === 'opening' ? selection.id : undefined;
+  const openingLabelList =
+    selectedOpeningId && !labelEdit ? openingLabels(level, derived.joints, derived.dims, view, selectedOpeningId) : [];
 
   const selectedWallId = selection?.kind === 'wall' ? selection.id : undefined;
   const selectedRoomId = selection?.kind === 'room' ? selection.id : undefined;
@@ -344,7 +423,10 @@ export function PlanCanvas() {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onPointerLeave={() => setOverlay((o) => ({ ...o, hoverWall: undefined, hoverNode: undefined, hoverMarker: undefined }))}
+      onPointerLeave={() => {
+        setOverlay((o) => ({ ...o, hoverWall: undefined, hoverNode: undefined, hoverMarker: undefined, hoverOpening: undefined }));
+        if (useStore.getState().tool === 'placeOpening') useStore.getState().setGhost(null);
+      }}
       onDoubleClick={onDoubleClick}
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -355,7 +437,15 @@ export function PlanCanvas() {
             <Group x={view.x} y={view.y} scaleX={view.scale} scaleY={view.scale}>
               {level.underlay && <UnderlayImage underlay={level.underlay} />}
               <RoomFills level={level} rooms={derived.rooms} selectedRoomId={selectedRoomId} translucent={!!level.underlay} />
-              <WallShapes level={level} joints={derived.joints} selectedWallId={selectedWallId} hoverWallId={overlay.hoverWall} />
+              <WallShapes
+                level={level}
+                joints={derived.joints}
+                selectedWallId={selectedWallId}
+                hoverWallId={overlay.hoverWall}
+                selectedOpeningId={selectedOpeningId}
+                hoverOpeningId={overlay.hoverOpening}
+                ghost={ghost}
+              />
               <StairShapes stairs={level.stairs} project={project} />
             </Group>
           </Layer>
@@ -370,7 +460,9 @@ export function PlanCanvas() {
               overlay={overlay}
               showMarkers={showMarkers}
               editingWallId={labelEdit?.wallId}
-              showDims
+              showDims={mode !== 'openings' || !selectedOpeningId}
+              openingLabels={openingLabelList}
+              ghost={ghost}
             />
           </Layer>
         </Stage>
@@ -392,7 +484,7 @@ export function PlanCanvas() {
         >
           <input
             autoFocus
-            aria-label="Wall length on plan"
+            aria-label={labelEdit.opening ? 'Opening measurement on plan' : 'Wall length on plan'}
             value={labelEdit.text}
             onFocus={(e) => e.currentTarget.select()}
             onChange={(e) => setLabelEdit({ ...labelEdit, text: e.target.value, error: undefined })}
@@ -404,7 +496,12 @@ export function PlanCanvas() {
             onBlur={() => setLabelEdit(null)}
           />
           <div className={labelEdit.error ? 'label-editor-hint error' : 'label-editor-hint'}>
-            {labelEdit.error ?? 'Inside length. Enter to apply, Esc to cancel'}
+            {labelEdit.error ??
+              (labelEdit.opening
+                ? labelEdit.opening.field === 'width'
+                  ? 'Opening width. Enter to apply'
+                  : 'Wall left at this side. Enter to apply'
+                : 'Inside length. Enter to apply, Esc to cancel')}
           </div>
         </div>
       )}
@@ -465,8 +562,13 @@ export function PlanCanvas() {
 
 function ToolHint() {
   const tool = useStore((s) => s.tool);
+  const mode = useStore((s) => s.mode);
   const text =
-    tool === 'draw'
+    tool === 'placeOpening'
+      ? 'Move over a wall and click to place it. Esc to cancel.'
+      : mode === 'openings'
+        ? 'Drag a door, window or opening from the left onto a wall. Click one to edit it, drag it to move it, click its measurements to type them.'
+        : tool === 'draw'
       ? 'Click to place corners. Double-click, Enter or Esc to finish. Hold Alt to turn off snapping.'
       : tool === 'calibrate'
         ? 'Click two points on the plan image whose real distance you know.'

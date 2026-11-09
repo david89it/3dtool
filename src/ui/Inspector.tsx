@@ -8,6 +8,13 @@ import { DEFAULT_THICKNESS, deleteWall, splitWall, wallEnds } from '../geometry/
 import { lerp } from '../geometry/vec';
 import { formatArea } from '../model/units';
 import { EditableLength } from './EditableLength';
+import { OpeningPanel } from './OpeningPanel';
+import { isStructural, needsStructuralBadge, OPENING_LABEL, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
+import { openUpWall } from '../geometry/openingEdits';
+import { formatLength } from '../model/units';
+
+export const STRUCTURAL_DELETE_WARNING =
+  'That wall may hold the building up. Removing it needs a structural engineer, steel, Building Control and the landlord’s licence. Undo puts it back.';
 
 const KIND_LABEL: Record<WallKind, string> = {
   internal: 'Inside wall',
@@ -77,6 +84,7 @@ function TextField({ value, onCommit, label }: { value: string; onCommit: (v: st
 function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
   const editLevel = useStore((s) => s.editLevel);
   const select = useStore((s) => s.select);
+  const units = useStore((s) => s.units);
   const face = useMemo(() => {
     const J = computeJoints(level);
     return wallDimensions(level, J, detectRooms(level, J)).find((d) => d.wallId === wall.id)?.length ?? 0;
@@ -88,7 +96,6 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
       if (w) fn(w as Wall, L as Level);
     });
 
-  const structuralOpenings = wall.openings.length > 0 && wall.structural !== 'nonLoadBearing';
 
   return (
     <div className="panel-section" data-testid="wall-panel">
@@ -151,18 +158,44 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
           Only a structural engineer can confirm this. Until then, treat “Don’t know” as load-bearing.
         </p>
       </div>
-      {structuralOpenings && wall.openings.some((o) => o.type === 'opening') && (
-        <p className="badge-amber">
-          Structural opening: needs engineer, steel and Building Control. Leasehold: needs landlord's licence.
+      {needsStructuralBadge(wall) && (
+        <p className="badge-amber" data-testid="structural-badge">
+          ⚠ {STRUCTURAL_BADGE_TEXT}
         </p>
       )}
-      {wall.openings.length > 0 && (
-        <p className="note">
-          {wall.openings.length === 1 ? '1 opening' : `${wall.openings.length} openings`} in this wall (
-          {wall.openings.map((o) => (o.type === 'bayWindow' ? 'bay window' : o.type)).join(', ')}). You can edit
-          openings in the next phase.
-        </p>
-      )}
+      <div className="field column">
+        <span className="field-label">Doors, windows and openings</span>
+        {wall.openings.length === 0 && <p className="note">None yet.</p>}
+        <ul className="opening-list">
+          {wall.openings.map((o) => (
+            <li key={o.id}>
+              <button className="list-btn" onClick={() => select({ kind: 'opening', id: o.id })}>
+                <span>{OPENING_LABEL[o.type]}</span>
+                <span className="muted">{formatLength(o.width, units)} wide</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button
+          className="btn"
+          onClick={() => {
+            let id: string | null = null;
+            let error: string | null = null;
+            editLevel('Open up wall', (L) => {
+              const r = openUpWall(L as Level, wall.id);
+              if ('id' in r) id = r.id;
+              else error = r.error;
+            });
+            if (id) {
+              useStore.getState().setMode('openings');
+              select({ kind: 'opening', id });
+            } else if (error) useStore.getState().toast(error, 'warn');
+          }}
+        >
+          Open up this wall
+        </button>
+        <p className="note">Adds the widest opening this wall allows. You can then change its width.</p>
+      </div>
       {wall.estimated && (
         <div className="estimate-box">
           <p>≈ Estimated from the agent's plan, which is not to scale.</p>
@@ -186,6 +219,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
           onClick={() => {
             editLevel('Delete wall', (L) => deleteWall(L as Level, wall.id));
             select(null);
+            if (isStructural(wall)) useStore.getState().toast(STRUCTURAL_DELETE_WARNING, 'warn');
           }}
         >
           Delete wall
@@ -325,6 +359,22 @@ function LevelPanel({ level }: { level: Level }) {
         />
       </div>
 
+      {level.walls.some(needsStructuralBadge) && (
+        <>
+          <h3>Structural warnings</h3>
+          <ul className="room-list" data-testid="structural-list">
+            {level.walls.filter(needsStructuralBadge).map((w) => (
+              <li key={w.id}>
+                <button className="list-btn" onClick={() => select({ kind: 'wall', id: w.id })}>
+                  <span className="pin">!</span>
+                  <span className="wrap">{STRUCTURAL_BADGE_TEXT}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
       <h3>Rooms</h3>
       {level.rooms.length === 0 && <p className="note">No closed rooms yet. Draw walls that meet up to make one.</p>}
       <ul className="room-list" data-testid="room-list">
@@ -375,6 +425,7 @@ export function Inspector() {
     body = w ? <WallPanel level={level} wall={w} /> : null;
   } else if (selection?.kind === 'room') body = <RoomPanel level={level} roomId={selection.id} />;
   else if (selection?.kind === 'marker') body = <MarkerPanel level={level} markerId={selection.id} />;
+  else if (selection?.kind === 'opening') body = <OpeningPanel level={level} openingId={selection.id} />;
   return (
     <aside className="inspector" aria-label="Details">
       {body ?? <LevelPanel level={level} />}

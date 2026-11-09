@@ -3,10 +3,8 @@ import type { Level } from '../model/types';
 import { addWall, defaultWallProps, deleteWall } from './wallGraph';
 import { detectRooms, syncRooms } from './rooms';
 import { computeJoints } from './joints';
+import { blankLevel } from './testUtils';
 
-export function blankLevel(): Level {
-  return { id: 'l', name: 'Test', elevation: 0, ceilingHeight: 2500, nodes: [], walls: [], rooms: [], items: [], stairs: [] };
-}
 
 function box(level: Level, x0: number, y0: number, x1: number, y1: number, t = 100) {
   const p = { ...defaultWallProps('internal'), thickness: t };
