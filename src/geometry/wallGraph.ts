@@ -114,7 +114,7 @@ export function splitWall(level: Level, wallId: Id, pos: Vec2): Id {
     if (o.offset + o.width <= s + 1e-6) first.push(o);
     else second.push({ ...o, offset: o.offset - s });
   }
-  const piece: Wall = { ...wall, id: uid('w'), a: nid, b: wall.b, openings: second };
+  const piece: Wall = { ...wall, id: uid('w'), a: nid, b: wall.b, openings: second, ...(wall.faces ? { faces: { ...wall.faces } } : {}) };
   wall.b = nid;
   wall.openings = first;
   const idx = level.walls.indexOf(wall);

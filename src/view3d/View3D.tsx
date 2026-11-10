@@ -10,7 +10,9 @@ import { LevelMesh } from './LevelMesh';
 import { WalkRig, touchInput, walkState } from './WalkRig';
 import { CUTAWAY_HEIGHT, levelBoundsMm, MM } from './sceneBuild';
 import { activeLevelsResolved } from '../model/schemes';
-import { FinishPanel } from './FinishPanel';
+import { FinishPanel, type FaceSel } from './FinishPanel';
+import { wallSideRooms } from '../model/faces';
+import { wallDir } from './wallProfile';
 import { view3dBridge } from './captureBridge';
 import './view3d.css';
 
@@ -217,6 +219,34 @@ function LookPad() {
   );
 }
 
+/** A thin tinted sheet over the selected wall face, drawn only while a face is selected (never on hover). */
+function FaceHighlight({ level, face, cut }: { level: Level; face: FaceSel; cut?: number }) {
+  const wall = level.walls.find((w) => w.id === face.wallId);
+  const spec = useMemo(() => {
+    if (!wall) return null;
+    const { a, d, length } = wallDir(level, wall);
+    if (length < 1) return null;
+    const h = Math.min(wall.height ?? level.ceilingHeight, cut ?? Infinity);
+    const sign = face.side === 'L' ? 1 : -1;
+    const n = { x: -d.y * sign, y: d.x * sign };
+    const off = wall.thickness / 2 + 4;
+    const mid = { x: a.x + d.x * (length / 2) + n.x * off, y: a.y + d.y * (length / 2) + n.y * off };
+    return {
+      position: [mid.x * MM, (level.elevation + h / 2) * MM, mid.y * MM] as [number, number, number],
+      // The plane's normal (+z) must point out of the face: yaw so +z maps to (n.x, n.y) in (x, z).
+      rotationY: Math.atan2(n.x, n.y),
+      size: [length * MM, h * MM] as [number, number],
+    };
+  }, [level, wall, face.side, cut]);
+  if (!spec) return null;
+  return (
+    <mesh position={spec.position} rotation={[0, spec.rotationY, 0]} raycast={() => null} renderOrder={5}>
+      <planeGeometry args={spec.size} />
+      <meshBasicMaterial color="#2563eb" transparent opacity={0.28} depthWrite={false} polygonOffset polygonOffsetFactor={-2} />
+    </mesh>
+  );
+}
+
 export function View3D() {
   const project = useStore((s) => s.project);
   const levelId = useStore((s) => s.levelId);
@@ -226,6 +256,7 @@ export function View3D() {
   const [elevation, setElevation] = useState(35);
   const [lightsOn, setLightsOn] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
+  const [face, setFace] = useState<FaceSel | null>(null);
   const [locked, setLocked] = useState(false);
   const [cutaway, setCutaway] = useState(true);
   const touch = useMemo(() => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches, []);
@@ -279,9 +310,19 @@ export function View3D() {
               onPickRoom={(lid, rid) => {
                 if (lid !== useStore.getState().levelId) useStore.getState().setLevel(lid);
                 setRoomId(rid);
+                setFace(null);
+              }}
+              onPickFace={(lid, wallId, side) => {
+                const st = useStore.getState();
+                if (lid !== st.levelId) st.setLevel(lid);
+                const lv = st.project.levels.find((l) => l.id === lid);
+                const room = lv ? wallSideRooms(lv).get(wallId)?.[side]?.room : undefined;
+                if (room) setRoomId(room.id);
+                setFace({ levelId: lid, wallId, side });
               }}
             />
           ))}
+          {face && face.levelId === level.id && <FaceHighlight level={level} face={face} cut={cut} />}
           {/* Ground plane around the building */}
           <mesh rotation-x={-Math.PI / 2} position={[centre.x, -0.02, centre.z]} receiveShadow>
             <planeGeometry args={[80, 80]} />
@@ -372,7 +413,16 @@ export function View3D() {
           </label>
         </section>
 
-        <FinishPanel level={level} roomId={roomId} onPickRoom={setRoomId} />
+        <FinishPanel
+          level={level}
+          roomId={roomId}
+          onPickRoom={(id) => {
+            setRoomId(id);
+            setFace(null);
+          }}
+          face={face}
+          onFace={setFace}
+        />
       </aside>
     </div>
   );

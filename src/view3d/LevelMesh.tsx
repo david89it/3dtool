@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import type { Level, Project } from '../model/types';
-import { buildLevel } from './sceneBuild';
+import { buildLevel, wallFaceAt } from './sceneBuild';
 
 interface Props {
   level: Level;
@@ -10,10 +10,12 @@ interface Props {
   /** Overview cut-away: walls stop at this height (mm). */
   cutHeight?: number;
   onPickRoom?: (levelId: string, roomId: string) => void;
+  /** A click on one face of a wall (L or R of the wall from its first corner to its second). */
+  onPickFace?: (levelId: string, wallId: string, side: 'L' | 'R') => void;
 }
 
 /** One floor of the flat. Geometry is rebuilt only when this level (or a stair target height) changes. */
-export function LevelMesh({ level, project, lightsOn, cutHeight, onPickRoom }: Props) {
+export function LevelMesh({ level, project, lightsOn, cutHeight, onPickRoom, onPickFace }: Props) {
   const elevations = project.levels.map((l) => `${l.id}:${l.elevation}`).join('|');
   const overrides = project.catalogueOverrides;
   const scene = useMemo(
@@ -32,6 +34,17 @@ export function LevelMesh({ level, project, lightsOn, cutHeight, onPickRoom }: P
         }
       : undefined;
 
+  const onWallClick = (ranges: (typeof scene.meshes)[number]['wallFaces']) =>
+    ranges && onPickFace
+      ? (e: ThreeEvent<MouseEvent>) => {
+          if (e.delta > 4) return;
+          const hit = wallFaceAt(ranges, e.faceIndex ?? undefined);
+          if (!hit) return;
+          e.stopPropagation();
+          onPickFace(level.id, hit.wallId, hit.side);
+        }
+      : undefined;
+
   return (
     <group name={`level-${level.id}`}>
       {scene.meshes.map((m) => (
@@ -41,7 +54,7 @@ export function LevelMesh({ level, project, lightsOn, cutHeight, onPickRoom }: P
           material={m.material}
           castShadow={m.castShadow}
           receiveShadow={m.receiveShadow}
-          onClick={onClick(m.roomId)}
+          onClick={m.wallFaces ? onWallClick(m.wallFaces) : onClick(m.roomId)}
           dispose={null}
         />
       ))}

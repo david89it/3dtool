@@ -17,6 +17,26 @@ export interface Project {
   // EXTENSION (phase 6, compare mode): which option of each floor is shown,
   // keyed by Level.scheme.group. Missing means the first option.
   activeSchemes?: Record<Id, Id>;
+  // EXTENSION (materials and paint): saved colour schemes ("finish schemes", not
+  // the floor "options" above). Each keeps a room's floor, wall, ceiling and
+  // woodwork finish, keyed by ROOM NAME so a scheme saved on one option can be
+  // applied to any other option or floor with the same room names.
+  schemes?: FinishScheme[];
+}
+
+// EXTENSION: see Project.schemes. A missing field means "the default", so
+// applying the scheme clears that override in the target room.
+export interface FinishScheme {
+  id: Id;
+  name: string;
+  rooms: Record<string, RoomFinishes>;
+}
+
+export interface RoomFinishes {
+  floor?: string;
+  walls?: string;
+  ceiling?: string;
+  woodwork?: string;
 }
 
 export interface Level {
@@ -109,6 +129,12 @@ export interface Wall {
   // not-to-scale plan. Shown as "≈" on the dimension label until she edits
   // or confirms it.
   estimated?: boolean;
+  // EXTENSION (materials and paint): paint or finish for each face of the
+  // wall, overriding the room's wall finish on that face only (a feature
+  // wall). A value is a finish id (src/view3d/finishes.ts), a paint id
+  // (src/model/palette.ts) or a hex colour. L and R are the left and right
+  // of the wall as drawn from node a to node b.
+  faces?: { L?: string; R?: string };
 }
 
 export type OpeningType = 'door' | 'window' | 'bayWindow' | 'opening';
@@ -141,6 +167,12 @@ export interface Room {
   // EXTENSION: brief phase 5 asks for a finish per room for floor AND walls;
   // the model only had floorFinish. Swatch id from src/view3d/finishes.ts.
   wallFinish?: string;
+  // EXTENSION (materials and paint): ceiling paint (paint id or hex); white
+  // when missing.
+  ceilingFinish?: string;
+  // EXTENSION: colour (paint id or hex) for the skirting, door leaves and
+  // frames and window frames in this room; the standard white when missing.
+  woodworkColor?: string;
 }
 
 export interface PlacedItem {

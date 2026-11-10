@@ -132,7 +132,10 @@ floor.
 | Look around the floor | Drag to turn, scroll or pinch to zoom. Floors above the current one are hidden |
 | Walk through | *Walk* in the right panel. Click the view to look with the mouse, then W A S D or arrow keys. Esc frees the mouse. On a tablet: left thumb to walk, drag on the right to look |
 | Go up or down | Walk onto a stair; the floor tabs follow you |
-| Change a floor or wall finish | Pick a room (or click its floor in the overview), then a swatch. Undo works |
+| Change a floor, walls, ceiling or woodwork | Pick a room (or click its floor in the overview). The tabs *Floor / Walls / Ceiling / Woodwork* each show swatches. Walls, ceiling and woodwork use a palette of 32 paint colours in six groups, or *Any other colour* (type a hex code such as `#5a2a3a`). Floors include herringbone and chevron oak, pattern tile, sisal and studded rubber. Undo works |
+| Paint just one wall | Click the wall in the overview: the Walls tab says *This wall face, facing Reception*. Pick a colour. *Back to the room colour* undoes it for that face. In the plan, select a wall, open *Side facing Reception* (or the other room) under *Paint*. Painted faces get a thin coloured line on the plan |
+| Woodwork | The *Woodwork* tab colours the skirting (120 mm), door leaves and frames, and window frames of that room. *Back to white* resets it |
+| Save and reuse a colour scheme | Under *Schemes* in the 3D panel, name it and press *Save these finishes as a scheme* (every room on this floor, by room name). *Apply scheme…* → *This floor* or *All floors*. It works on any option whose rooms have the same names |
 | See the daylight | Move the sun's direction and height. The bay faces south-south-east |
 | Evening light | Tick *Ceiling lights on* |
 
