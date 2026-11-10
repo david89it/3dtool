@@ -20,7 +20,7 @@ const ROWS: { title: string; keys: [string, string][] }[] = [
       ['Pinch or Ctrl/⌘ + scroll', 'Zoom'],
       ['F', 'Fit the whole floor on screen'],
       ['V', 'Select and edit'],
-      ['Delete or Backspace', 'Delete the selected wall, door, item or pin'],
+      ['Delete or Backspace', 'Delete the selected wall, door, item, note or pin'],
       ['Alt (hold)', 'Turn snapping off while you draw or drag'],
     ],
   },
@@ -30,6 +30,7 @@ const ROWS: { title: string; keys: [string, string][] }[] = [
       ['W', 'Draw walls'],
       ['Enter or double-click', 'Finish the wall you are drawing'],
       ['Double-click a wall', 'Split it in two'],
+      ['Esc (while placing a note)', 'Cancel the note, measurement or arrow'],
     ],
   },
   {

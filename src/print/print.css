@@ -1,0 +1,205 @@
+/* The print view: A4 landscape pages on screen, and the same pages on paper. */
+
+.print-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #dcdad4;
+  overflow: auto;
+  color: #1f2328;
+  display: flex;
+  flex-direction: column;
+}
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e6e3dc;
+}
+.print-status {
+  margin-left: 12px;
+  color: #5b6169;
+  font-size: 13px;
+}
+.print-toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+.print-pages {
+  padding: 20px 12px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* One page. 277 x 190 mm is A4 landscape inside 10 mm margins. */
+.print-page {
+  width: min(277mm, 100%);
+  min-height: 190mm;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  padding: 8mm 10mm;
+  font-size: 12.5pt;
+  line-height: 1.45;
+  overflow: hidden;
+}
+.print-page h1 {
+  font-size: 30pt;
+  margin: 4mm 0 2mm;
+  line-height: 1.15;
+}
+.print-page h2 {
+  font-size: 17pt;
+  margin: 0 0 4mm;
+}
+.print-page h3 {
+  font-size: 13pt;
+  margin: 5mm 0 2mm;
+}
+.print-page p,
+.print-page ul,
+.print-page ol {
+  margin: 0 0 3mm;
+}
+.print-page li {
+  margin-bottom: 1.5mm;
+}
+.print-kicker {
+  color: #5b6169;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10pt;
+}
+.print-date {
+  color: #5b6169;
+  margin-bottom: 8mm !important;
+}
+.print-plan {
+  width: 100%;
+  border: 1px solid #d4d4d8;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+}
+.print-plan img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.print-3d {
+  aspect-ratio: 1040 / 560;
+}
+.print-wait {
+  color: #5b6169;
+}
+.print-legend,
+.print-small {
+  margin-top: 2mm;
+  color: #5b6169;
+  font-size: 10pt;
+}
+.print-callout {
+  padding: 3mm 4mm;
+  border: 1.5px solid #d97706;
+  border-radius: 6px;
+  background: #fff4dc;
+  color: #8a4b00;
+  font-weight: 600;
+}
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11pt;
+  margin-bottom: 4mm;
+}
+.print-table th,
+.print-table td {
+  border: 1px solid #b9b6ae;
+  padding: 2mm 2.5mm;
+  text-align: left;
+  vertical-align: top;
+}
+.print-table th {
+  background: #f1eee6;
+}
+.print-blank {
+  display: flex;
+  align-items: flex-end;
+  gap: 4mm;
+  margin-top: 10mm !important;
+}
+.print-line {
+  flex: 1;
+  border-bottom: 1px solid #1f2328;
+  height: 1.2em;
+}
+.print-blanks {
+  max-width: 180mm;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+  /* Print the pack, not the editor behind it. */
+  #root,
+  .print-toolbar {
+    display: none !important;
+  }
+  .print-root {
+    position: static;
+    display: block;
+    overflow: visible;
+    background: #ffffff;
+  }
+  .print-pages {
+    display: block;
+    padding: 0;
+  }
+  .print-page {
+    width: auto;
+    min-height: 0;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    break-after: page;
+    page-break-after: always;
+  }
+  .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  .print-page.floor {
+    height: 188mm;
+    overflow: hidden;
+  }
+  .print-table tr,
+  .print-page li {
+    break-inside: avoid;
+  }
+  .print-plan img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-callout {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

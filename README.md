@@ -94,8 +94,30 @@ behaves as before and opens on the seed.
 In a wall that is load-bearing or "Don't know", 10 cm of wall is kept either
 side of an opening; tick *Allow less than 10 cm* on one opening to override
 (it then shows a warning). New openings in those walls get a permanent amber
-note: *Structural opening: needs engineer, steel and Building Control.
-Leasehold: needs landlord's licence.*
+⚠ pin beside the opening. It cannot be hidden. Hover it to read the warning
+(*Structural opening: needs engineer, steel and Building Control. Leasehold:
+needs landlord's licence.*); tap it to select the wall, where the full text is
+in the right panel.
+
+## Using it: notes and the engineer and landlord pack
+
+| Do this | How |
+| --- | --- |
+| Pin a note to the plan | Trace mode → left panel *Notes* → **Note**, then click the plan and type in the right panel |
+| Measure a distance | **Measure**, click two points. The length shows as you move (corners and walls snap; Alt turns snapping off) |
+| Point at something | **Arrow**, click two points. Add a comment in the right panel if you like |
+| Move, edit, delete a note | Click it (V). Drag it, or drag a round end of a measurement or arrow. Delete key or *Delete* in the panel. Each drag is one undo step |
+| Print or save as PDF | File → *Print or save as PDF…*, wait for the plans, then *Print / Save as PDF* and choose "Save as PDF" as the printer |
+
+The pack (A4 landscape) has: a cover with a plain summary of the new openings
+and *Prepared for*; one page per floor with room names, areas, every wall's
+inside length, new opening widths, notes and structural pins, and a scale bar
+(1 m and 5 m); a *Structural* page with a table of every new opening in a wall
+that may be load-bearing (wall, thickness, opening size, wall left each side)
+and *Things the engineer should confirm*; the landlord's licence page with
+blanks for freeholder, lease reference and contractor; a 3D overview picture
+if you opened 3D (it is the last overview shown); and a list of your notes by
+floor.
 
 ## Using it (Phase 5: 3D)
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Level, Wall, WallKind, Structural } from '../model/types';
 import { useLevel, useStore } from '../model/store';
 import { detectRooms, matchDetected } from '../geometry/rooms';
@@ -14,6 +14,7 @@ import { ItemPanel } from './ItemPanel';
 import { isStructural, needsStructuralBadge, OPENING_LABEL, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
 import { openUpWall } from '../geometry/openingEdits';
 import { formatLength } from '../model/units';
+import { deleteNote, findNote, NOTE_COLORS, NOTE_KIND_LABEL, noteColor, noteLength, setNoteColor, setNoteText } from '../model/notes';
 
 export const STRUCTURAL_DELETE_WARNING =
   'That wall may hold the building up. Removing it needs a structural engineer, steel, Building Control and the landlord’s licence. Undo puts it back.';
@@ -317,6 +318,88 @@ function MarkerPanel({ level, markerId }: { level: Level; markerId: string }) {
   );
 }
 
+/** Text of a note. Saved when she leaves the box (one undo step), and never lost if the panel closes first. */
+function NoteText({ noteId, value, focus }: { noteId: string; value: string; focus: boolean }) {
+  const [text, setText] = useState(value);
+  const latest = useRef({ text: value, noteId, value });
+  latest.current = { text, noteId, value };
+  const save = () => {
+    const c = latest.current;
+    if (c.text.trim() === c.value.trim()) return;
+    useStore.getState().editLevel('Edit note', (L) => setNoteText(L as Level, c.noteId, c.text));
+  };
+  useEffect(() => save, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <textarea
+      className="text-field area"
+      aria-label="Note text"
+      autoFocus={focus && !value}
+      placeholder="Type your note, for example: is this a chimney breast?"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={save}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === 'Escape') (e.target as HTMLTextAreaElement).blur();
+      }}
+    />
+  );
+}
+
+function NotePanel({ level, noteId }: { level: Level; noteId: string }) {
+  const editLevel = useStore((s) => s.editLevel);
+  const select = useStore((s) => s.select);
+  const units = useStore((s) => s.units);
+  const n = findNote(level, noteId);
+  if (!n) return null;
+  const current = noteColor(n);
+  return (
+    <div className="panel-section" data-testid="note-panel">
+      <h2>{NOTE_KIND_LABEL[n.kind]}</h2>
+      {n.kind === 'measure' && (
+        <div className="field">
+          <span className="field-label">Length</span>
+          <span className="value">{formatLength(noteLength(n), units)}</span>
+        </div>
+      )}
+      <div className="field column">
+        <span className="field-label">{n.kind === 'note' ? 'What do you want to say?' : 'Comment (optional)'}</span>
+        <NoteText key={n.id} noteId={n.id} value={n.text ?? ''} focus={n.kind === 'note'} />
+      </div>
+      <div className="field column">
+        <span className="field-label">Colour</span>
+        <div className="segmented" role="radiogroup" aria-label="Note colour">
+          {NOTE_COLORS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              role="radio"
+              aria-checked={current === c.value}
+              className={current === c.value ? 'on' : ''}
+              onClick={() => editLevel('Colour note', (L) => setNoteColor(L as Level, n.id, c.value))}
+            >
+              <span className="swatch" style={{ background: c.value }} aria-hidden />
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="note">Drag it on the plan to move it. {n.kind !== 'note' ? 'Drag a round end to change it. ' : ''}It goes in the printed pack.</p>
+      <div className="actions">
+        <button
+          className="btn danger"
+          onClick={() => {
+            editLevel('Remove note', (L) => deleteNote(L as Level, n.id));
+            select(null);
+          }}
+        >
+          Delete {NOTE_KIND_LABEL[n.kind].toLowerCase()}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LevelPanel({ level }: { level: Level }) {
   const editLevel = useStore((s) => s.editLevel);
   const units = useStore((s) => s.units);
@@ -393,6 +476,25 @@ function LevelPanel({ level }: { level: Level }) {
         })}
       </ul>
 
+      {(level.notes ?? []).length > 0 && (
+        <>
+          <h3>Notes</h3>
+          <ul className="room-list" data-testid="note-list">
+            {(level.notes ?? []).map((n) => (
+              <li key={n.id}>
+                <button className="list-btn" onClick={() => select({ kind: 'note', id: n.id })}>
+                  <span className="pin note-pin">{n.kind === 'note' ? '✎' : n.kind === 'measure' ? '↔' : '→'}</span>
+                  <span className="wrap">
+                    {n.kind === 'measure' ? `${formatLength(noteLength(n), units)}${n.text ? ' · ' : ''}` : ''}
+                    {n.text ?? (n.kind === 'note' ? 'Empty note' : n.kind === 'arrow' ? 'Arrow' : '')}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
       <h3>To measure on site</h3>
       {estimatedWalls > 0 && (
         <p className="note">
@@ -429,6 +531,7 @@ export function Inspector() {
     body = w ? <WallPanel level={level} wall={w} /> : null;
   } else if (selection?.kind === 'room') body = <RoomPanel level={level} roomId={selection.id} />;
   else if (selection?.kind === 'marker') body = <MarkerPanel level={level} markerId={selection.id} />;
+  else if (selection?.kind === 'note') body = <NotePanel level={level} noteId={selection.id} />;
   else if (selection?.kind === 'opening') body = <OpeningPanel level={level} openingId={selection.id} />;
   else if (selection?.kind === 'item') body = <ItemPanel level={level} itemId={selection.id} />;
   return (

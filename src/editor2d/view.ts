@@ -23,6 +23,7 @@ export function zoomAt(v: View, screen: Vec2, factor: number): View {
 export function levelBounds(level: Level): { min: Vec2; max: Vec2 } | null {
   const pts: Vec2[] = level.nodes.map((n) => n.pos);
   for (const m of level.markers ?? []) pts.push(m.pos);
+  for (const n of level.notes ?? []) pts.push(...(n.to ? [n.pos, n.to] : [n.pos]));
   const u = level.underlay;
   if (u && level.nodes.length === 0) {
     const img = underlaySize.get(u.imageDataUrl);

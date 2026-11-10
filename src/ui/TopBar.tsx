@@ -8,6 +8,7 @@ import { useSeedAvailable, useUnlock } from './UnlockDialog';
 import { canvasApi } from '../editor2d/canvasApi';
 import { activeLevels, groupOf } from '../model/schemes';
 import { OptionSwitcher } from './OptionSwitcher';
+import { usePrint } from '../print/state';
 
 export function TopBar() {
   const project = useStore((s) => s.project);
@@ -149,6 +150,15 @@ export function TopBar() {
                 }}
               >
                 Export this floor as a picture (PNG)
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  usePrint.getState().setOpen(true);
+                }}
+              >
+                Print or save as PDF…
               </button>
               <button
                 role="menuitem"

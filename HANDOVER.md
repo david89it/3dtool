@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-10, after the GitHub Pages hosting work.
+Last updated: 2026-11-10, after the engineer and landlord pack.
 
 ## 1. What this is
 
@@ -127,6 +127,10 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   USDZ/USDA/USDC via three's `USDLoader`, and DXF as `Level.vectorUnderlay`
   with snapping to its line ends.
 - GitHub Pages workflow, public build mode and the encrypted seed (see §5).
+- Engineer and landlord pack: File → *Print or save as PDF…* (`src/print`),
+  notes on the plan (`Level.notes`, `src/model/notes.ts`, Trace panel *Notes*),
+  `canvasApi.renderLevelImage`, and the structural badge shrunk to a ⚠ pin
+  (`src/editor2d/pins.ts`).
 
 **In flight:** none.
 
@@ -145,24 +149,26 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
    then check the live site once (see §5).
 2. Versions: named saves, restore, snapshots before big changes; compare
    later.
-3. Engineer and landlord PDF pack: annotations, dimensioned plans, the
-   structural notes, before and after 3D.
-4. Shrink the structural badge to an icon on the plan, with the full text in
-   the panel.
-5. Materials and paint: per wall face, ceiling and woodwork, a palette, more
+3. Pack follow-ups: before and after 3D (needs versions), detect removed
+   walls (needs a "before" to compare), 3D views per floor.
+4. Materials and paint: per wall face, ceiling and woodwork, a palette, more
    floors, saved schemes.
-6. Real sun for N19: date and time, sun hours per room.
-7. Add an object by description or image link (Claude; needs hosting and a
+5. Real sun for N19: date and time, sun hours per room.
+6. Add an object by description or image link (Claude; needs hosting and a
    key).
-8. Costs and shopping list.
-9. Sloped loft ceiling and chimney-breast objects (after the site visit).
-10. UI batch: collapsible panels, context menu, multi-select and groups,
-    ⌘K, room views, undo history list.
+7. Costs and shopping list.
+8. Sloped loft ceiling and chimney-breast objects (after the site visit).
+9. UI batch: collapsible panels, context menu, multi-select and groups,
+   ⌘K, room views, undo history list.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
 side-by-side compare, live Pinterest sync, fps meter.
 
 **Known gaps:**
+
+- Print pack: no removed-wall detection (no "before" state); the 3D picture
+  is the last overview shown, not one per floor; the structural pin is not
+  tappable in Furnish mode; notes can only be selected in Trace mode.
 
 - No roof slope model.
 - Wall-hung items don't follow their wall when it moves.
@@ -193,6 +199,9 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-10 · pack · Notes on the plan (`Level.notes`), print pack
+  (`src/print`, `renderLevelImage`, `captureBridge`), structural pin,
+  `e2e/printpack.spec.ts`.
 - 2026-11-10 · a07d248 · Live at https://david89it.github.io/3dtool/. The repo
   is public (owner's choice). The build job runs in the `github-pages`
   environment; `seed.enc` is encrypted from the `SEED_PASSWORD` repository
