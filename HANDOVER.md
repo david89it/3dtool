@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-10, after commit aae34b5.
+Last updated: 2026-11-10, after the site-measure merge.
 
 ## 1. What this is
 
@@ -110,17 +110,21 @@ npm run build                        # static site in dist/
   leftover space.
 - Bookcase surround that frames an opening, a colour for each item,
   Japanese bath, and footprints for each part (aae34b5).
+- Site measure (`src/sitemeasure`, its UI state in `state.ts`, not the
+  store), the LiDAR app guide, and scan import (`src/import`): RoomPlan
+  USDZ/USDA/USDC via three's `USDLoader`, and DXF as `Level.vectorUnderlay`
+  with snapping to its line ends.
 
-**In flight:**
+**In flight:** none.
 
-- **Pinterest import:** a worktree branch
-  `worktree-agent-a5b0b6a35de7f154a`. It scrapes 5 room sections with
-  Playwright (Pinterest hosts are now allowed, including `s.pinimg.com`),
-  adds items to `src/catalogue/pinterest.ts`, and a "From your Pinterest"
-  tab. Risk: a login wall. Fallback: the owner saves images into folders.
-- **Site measure + LiDAR:** a checklist of every estimated value and pin, a
-  guide to RoomPlan apps, and import of RoomPlan USDZ (walls, doors, windows)
-  and DXF (as a vector underlay). Branch `sitemeasure` or an agent worktree.
+**Blocked:**
+
+- **Pinterest import:** the "home" board is secret, so signed-out access
+  gets a 404. Two ways forward: the owner makes it public, or sends images
+  in folders per room or the pin links. The scraper is ready in the
+  worktree branch `worktree-agent-a5b0b6a35de7f154a`
+  (`scripts/pinterest-scrape.mjs`, uncommitted). Never sign in with the
+  owner's account.
 
 **Next, in order** (see the plan in the conversation of 2026-11-10):
 
@@ -154,6 +158,9 @@ side-by-side compare, live Pinterest sync, fps meter.
 - A painted item's white parts (pillows) take its finish.
 - Not tested on a real MacBook or iPad.
 - Ask Claude was tested only with a mock.
+- Scan import has not been tried on a real RoomPlan export. Scans line up
+  only by their top-left corner. The site-measure checklist is long (192
+  steps on the seed) and its progress is saved per browser.
 
 ## 7. Brief template for a new agent
 
@@ -172,6 +179,8 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-10 · merge `sitemeasure` (0d0a4f5) · Site measure checklist,
+  LiDAR guide, USDZ/DXF import.
 - 2026-11-10 · aae34b5 · Bookcase surround (parametric builder,
   `params.gapW/gapH`, Fit to opening), `PlacedItem.finish`, `obstacleRects`,
   `bath-japanese`.

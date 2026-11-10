@@ -1,4 +1,5 @@
 import { SettingsDialog } from './SettingsDialog';
+import { useSiteMeasure } from '../sitemeasure/state';
 import { useRef, useState } from 'react';
 import { useStore } from '../model/store';
 import { exportProjectFile, readProjectFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
@@ -144,6 +145,25 @@ export function TopBar() {
                 }}
               >
                 Show the tour again
+              </button>
+              <hr />
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  useSiteMeasure.getState().setOpen(true);
+                }}
+              >
+                Measure on site
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  useSiteMeasure.getState().setImportOpen(true);
+                }}
+              >
+                Import a scan…
               </button>
               <hr />
               <button
