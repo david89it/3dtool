@@ -3,7 +3,7 @@
 
 import type { Level, Project, Stair, Vec2 } from '../model/types';
 import { add, mul, norm, pointInPolygon, projectOnSegment, rotate, sub } from '../geometry/vec';
-import { findCatalogueItem, footprint, isFloorObstacle } from '../catalogue/catalogue';
+import { findCatalogueItem, footprint, isFloorObstacle, obstacleRects } from '../catalogue/catalogue';
 
 export const PLAYER_RADIUS = 250;
 export const EYE_HEIGHT = 1600;
@@ -53,7 +53,9 @@ export function levelObstacles(level: Level, project: Pick<Project, 'catalogueOv
   for (const it of level.items) {
     const cat = findCatalogueItem(project, it.catalogueId);
     if (!cat || !isFloorObstacle(it, cat)) continue;
-    polygons.push(footprint(it, cat));
+    // Solid parts only, so you can walk through the opening of a bookcase surround.
+    const rects = obstacleRects(it, cat);
+    polygons.push(...(rects.length ? rects : [footprint(it, cat)]));
   }
   return { segments, polygons };
 }

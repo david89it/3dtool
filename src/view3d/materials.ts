@@ -29,6 +29,8 @@ const TOKENS: Record<string, { color: string; roughness?: number; metalness?: nu
   frame: { color: '#f4f4f1', roughness: 0.5 },
   stair: { color: '#c9b08a', roughness: 0.7 },
   masonry: { color: '#e9e6df', roughness: 0.95 },
+  joinery: { color: '#e7e1d6', roughness: 0.55 },
+  hinoki: { color: '#dcc092', roughness: 0.7 },
 };
 
 const tokenCache = new Map<string, THREE.Material>();
@@ -47,6 +49,19 @@ export function tokenMaterial(token: string): THREE.Material {
     depthWrite: t.opacity === undefined,
   });
   tokenCache.set(token, m);
+  return m;
+}
+
+const tintCache = new Map<string, THREE.Material>();
+
+/** A token's material repainted in a piece's chosen finish colour. */
+export function tintedMaterial(token: string, hex: string): THREE.Material {
+  const key = `${token}|${hex}`;
+  const hit = tintCache.get(key);
+  if (hit) return hit;
+  const t = TOKENS[token] ?? { roughness: 0.6 };
+  const m = new THREE.MeshStandardMaterial({ color: hex, roughness: Math.min(0.6, t.roughness ?? 0.6), metalness: 0 });
+  tintCache.set(key, m);
   return m;
 }
 

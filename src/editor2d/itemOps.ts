@@ -164,3 +164,82 @@ export function duplicateItem(item: PlacedItem): PlacedItem {
 export function rotateBy(item: PlacedItem, deg: number): PlacedItem {
   return { ...item, rotationDeg: (((item.rotationDeg + deg) % 360) + 360) % 360, mountedTo: undefined };
 }
+
+export interface OpeningSnap {
+  pos: Vec2;
+  rotationDeg: number;
+  mountedTo: { wallId: Id; offset: number };
+  gapW: number;
+  gapH: number;
+  distance: number;
+}
+
+/**
+ * For a bookcase surround: centre it on the nearest door, window or opening
+ * in a wall, backed against the face on the pointer's side. The gap takes
+ * the opening's width and height.
+ */
+export function snapToOpening(level: Level, J: JointData, pointer: Vec2, depth: number, side: number, tol: number): OpeningSnap | null {
+  let best: OpeningSnap | null = null;
+  for (const w of level.walls) {
+    if (w.openings.length === 0) continue;
+    const o = J.outlines.get(w.id);
+    if (!o) continue;
+    for (const n of [perpL(o.dir), perpR(o.dir)]) {
+      for (const op of w.openings) {
+        const along = op.offset + op.width / 2;
+        const base = {
+          x: o.a.x + o.dir.x * along + n.x * (w.thickness / 2),
+          y: o.a.y + o.dir.y * along + n.y * (w.thickness / 2),
+        };
+        const rel = sub(pointer, base);
+        const s = dot(rel, n);
+        const t = dot(rel, o.dir);
+        if (s < -20) continue; // pointer is on the other side of the wall
+        const beyond = Math.max(0, Math.abs(t) - op.width / 2 - side);
+        if (beyond > tol || s > depth + tol) continue;
+        const distance = Math.max(0, s - depth) + beyond;
+        if (!best || distance < best.distance) {
+          best = {
+            pos: { x: base.x + n.x * (depth / 2), y: base.y + n.y * (depth / 2) },
+            rotationDeg: rotationFacing(n),
+            mountedTo: { wallId: w.id, offset: Math.round(along) },
+            gapW: Math.round(op.width),
+            gapH: Math.round(op.height),
+            distance,
+          };
+        }
+      }
+    }
+  }
+  return best;
+}
+
+/** Ceiling height over a point: the room's own setting, else the floor's. */
+export function ceilingAt(level: Level, rooms: { nodeIds: Id[]; inner: Vec2[]; solid: boolean }[], p: Vec2): number {
+  const r = rooms.find((x) => !x.solid && pointInPolygonLocal(p, x.inner));
+  const stored = r && level.rooms.find((x) => x.boundary.join('|') === r.nodeIds.join('|'));
+  return stored?.ceilingHeight ?? level.ceilingHeight;
+}
+
+function pointInPolygonLocal(p: Vec2, poly: Vec2[]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i];
+    const b = poly[j];
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+
+/** Apply an opening snap to a surround: centred, sized to the opening, up to just under the ceiling. */
+export function fitSurround(item: PlacedItem, snap: OpeningSnap, side: number, ceiling: number): PlacedItem {
+  return {
+    ...item,
+    pos: snap.pos,
+    rotationDeg: snap.rotationDeg,
+    mountedTo: snap.mountedTo,
+    params: { ...(item.params ?? {}), gapW: snap.gapW, gapH: snap.gapH },
+    dims: { ...item.dims, w: snap.gapW + 2 * side, h: Math.max(snap.gapH + 250, ceiling - 50) },
+  };
+}

@@ -2,6 +2,7 @@
 // a catalogue item". Sizes are typical UK sizes in millimetres.
 
 import type { CatalogueItem, Clearance } from '../model/types';
+import { buildSurround } from './builders';
 import { bed, box, cabinet, chair, cyl, kitchenBase, roundTable, slab, sofa, table } from './parts';
 
 const front = (min: number, ideal: number, reason: string, dynamic?: Clearance['dynamic']): Clearance => ({
@@ -471,6 +472,19 @@ export const CATALOGUE: CatalogueItem[] = [
     rules: TALL,
   },
   {
+    id: 'bookcase-surround',
+    name: 'Bookcase surround (frames an opening)',
+    aliases: ['library', 'library wall', 'bookcase around door', 'built-in bookcase', 'opening surround', 'shelving surround', 'alcove library', 'bookshelves'],
+    category: 'storage',
+    defaultDims: { w: 2400, d: 350, h: 2700 },
+    resizable: { w: [1500, 6000], d: [250, 500], h: [2200, 3500] },
+    mount: 'wall',
+    builder: 'opening-surround',
+    geometry: buildSurround({ params: { gapW: 1200, gapH: 2100 } }, { w: 2400, d: 350, h: 2700 }),
+    clearance: [front(500, 700, 'Room to stand and reach the shelves')],
+    rules: ['door-swing', 'loft-headroom'],
+  },
+  {
     id: 'shoe-cabinet',
     name: 'Shoe cabinet',
     aliases: ['shoe storage', 'shoe rack', 'tipping shoe cabinet', 'hall storage'],
@@ -734,6 +748,28 @@ export const CATALOGUE: CatalogueItem[] = [
     mount: 'floor',
     geometry: [slab(0, 0, 0, 1700, 560, 700, 'ceramic'), slab(0, 300, 0, 1500, 270, 520, 'water')],
     clearance: [front(700, 800, 'Room to get in and out and dry off')],
+    rules: ['basin-front', 'door-swing'],
+  },
+  {
+    id: 'bath-japanese',
+    name: 'Japanese soaking bath (square)',
+    aliases: ['ofuro', 'japanese bath', 'soaking tub', 'deep bath', 'hinoki bath', 'square bath', 'wooden bath'],
+    category: 'bath',
+    defaultDims: { w: 1100, d: 1100, h: 650 },
+    resizable: { w: [900, 1400], d: [900, 1400], h: [600, 800] },
+    mount: 'floor',
+    geometry: [
+      slab(0, 0, 0, 1100, 45, 1100, 'hinoki'), // floor of the tub
+      slab(0, 0, -527.5, 1100, 650, 45, 'hinoki'), // back wall
+      slab(0, 0, 527.5, 1100, 650, 45, 'hinoki'), // front wall
+      slab(-527.5, 0, 0, 45, 650, 1010, 'hinoki'), // left wall
+      slab(527.5, 0, 0, 45, 650, 1010, 'hinoki'), // right wall
+      slab(0, 45, 0, 1010, 505, 1010, 'water'), // water, about 100 mm below the rim
+      // Stool beside the tub, at the front left, and a slatted duckboard in front.
+      slab(-350, 0, 760, 400, 250, 300, 'hinoki'),
+      ...[0, 1, 2, 3, 4].map((i) => slab(150, 0, 600 + 25 + i * 60, 700, 25, 40, 'hinoki')),
+    ],
+    clearance: [front(700, 900, 'Room to step in, sit on the stool and dry off')],
     rules: ['basin-front', 'door-swing'],
   },
   {

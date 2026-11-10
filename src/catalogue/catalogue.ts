@@ -13,6 +13,7 @@
 import type { CatalogueItem, PlacedItem, PrimitivePart, Project, Vec2 } from '../model/types';
 import { uid } from '../model/ids';
 import { CATALOGUE } from './items';
+import { BUILDERS } from './builders';
 
 export type Dims = { w: number; d: number; h: number };
 
@@ -98,6 +99,8 @@ export function itemParts(item: PlacedItem, cat: CatalogueItem): PrimitivePart[]
   const ref = st ? cat.states![st].dims : cat.defaultDims;
   const parts = st ? cat.states![st].geometry : cat.geometry;
   const eff = effectiveDims(item, cat);
+  const builder = cat.builder ? BUILDERS[cat.builder] : undefined;
+  if (builder) return builder(item, eff);
   const kx = eff.w / ref.w;
   const ky = eff.h / ref.h;
   const kz = eff.d / ref.d;
@@ -147,6 +150,30 @@ export function newPlacedItem(cat: CatalogueItem, pos: Vec2, rotationDeg = 0): P
     dims: { ...(names.length ? cat.states![names[0]].dims : cat.defaultDims) },
     ...(names.length ? { state: names[0] } : {}),
   };
+}
+
+/**
+ * Plan rectangles of the parts you could bump into: everything whose
+ * underside is below 0.9 m. A bookcase surround gives its two towers, not
+ * the opening between them; a corner sofa gives its L. Cylinders give their
+ * bounding square. Empty for items that only float above head height.
+ */
+export function obstacleRects(item: PlacedItem, cat: CatalogueItem): Vec2[][] {
+  const out: Vec2[][] = [];
+  for (const p of itemParts(item, cat)) {
+    if (p.pos[1] - p.size[1] / 2 >= 900) continue;
+    if (p.size[1] < 1 && p.pos[1] < 40) continue;
+    const [x, , z] = p.pos;
+    const hx = p.size[0] / 2;
+    const hz = p.size[2] / 2;
+    out.push([
+      localToPlan(item, cat, x - hx, z - hz),
+      localToPlan(item, cat, x + hx, z - hz),
+      localToPlan(item, cat, x + hx, z + hz),
+      localToPlan(item, cat, x - hx, z + hz),
+    ]);
+  }
+  return out;
 }
 
 /** Plain-language names for states. */

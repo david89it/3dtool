@@ -26,6 +26,9 @@ export interface ItemGhost {
   pos: Vec2;
   rotationDeg: number;
   mountedTo?: { wallId: Id; offset: number };
+  /** Size and parameters when the piece fits itself to something (a surround to an opening). */
+  dims?: { w: number; d: number; h: number };
+  params?: Record<string, number>;
   ok: boolean;
   reason?: string;
 }

@@ -18,9 +18,10 @@ import {
   itemAxes,
   topHeight,
   bottomHeight,
+  obstacleRects,
   type Dims,
 } from '../catalogue/catalogue';
-import { convexOverlap } from './poly';
+import { convexOverlap, polyDistance } from './poly';
 
 export type Side = 'front' | 'back' | 'left' | 'right';
 
@@ -29,6 +30,8 @@ export interface Placed {
   item: PlacedItem;
   cat: CatalogueItem;
   poly: Vec2[]; // footprint: back-left, back-right, front-right, front-left
+  /** The parts you bump into (convex rectangles), e.g. the two towers of a bookcase surround. */
+  solids: Vec2[][];
   centre: Vec2;
   dims: Dims;
   front: Vec2;
@@ -161,12 +164,30 @@ function windowZones(w: Wall, o: WallOutline): WindowZone[] {
   return out;
 }
 
+function solidsOf(item: PlacedItem, cat: CatalogueItem): Vec2[][] {
+  const rects = obstacleRects(item, cat);
+  return rects.length ? rects : [footprint(item, cat)];
+}
+
+/** Closest distance between two items' solid parts. */
+export function solidDistance(a: Placed, b: Placed): number {
+  let best = Infinity;
+  for (const p of a.solids) for (const q of b.solids) best = Math.min(best, polyDistance(p, q));
+  return best;
+}
+
+/** Does any solid part of the item overlap this convex polygon? */
+export function solidsOverlap(p: Placed, poly: Vec2[], tol = 1): boolean {
+  return p.solids.some((s) => convexOverlap(s, poly, tol));
+}
+
 export function makePlaced(item: PlacedItem, cat: CatalogueItem): Placed {
   const { front, xAxis } = itemAxes(item);
   return {
     item,
     cat,
     poly: footprint(item, cat),
+    solids: solidsOf(item, cat),
     centre: footprintCentre(item, cat),
     dims: effectiveDims(item, cat),
     front,
@@ -267,11 +288,13 @@ export class RuleContext {
     }
     for (const q of this.placed) {
       if (q === self || !q.obstacle || (ignore && ignore(q))) continue;
-      for (let i = 0; i < 4; i++) {
-        const hit = segmentIntersect(origin, end, q.poly[i], q.poly[(i + 1) % 4]);
-        if (!hit) continue;
-        const d = hit.t * MAX_RAY;
-        if (d < best.dist) best = { dist: d, item: q, wallId: undefined };
+      for (const sp of q.solids) {
+        for (let i = 0; i < sp.length; i++) {
+          const hit = segmentIntersect(origin, end, sp[i], sp[(i + 1) % sp.length]);
+          if (!hit) continue;
+          const d = hit.t * MAX_RAY;
+          if (d < best.dist) best = { dist: d, item: q, wallId: undefined };
+        }
       }
     }
     return best;
@@ -295,11 +318,14 @@ export class RuleContext {
   }
 
   /** Does a polygon overlap any wall, or any floor obstacle other than `skip`? */
-  overlapsSomething(poly: Vec2[], skip: Set<Id>): boolean {
-    for (const w of this.geo.wallPolys) if (convexOverlap(poly, w.poly, 2)) return true;
-    for (const q of this.placed) {
-      if (skip.has(q.item.id) || !q.obstacle) continue;
-      if (convexOverlap(poly, q.poly, 2)) return true;
+  overlapsSomething(poly: Vec2[] | Vec2[][], skip: Set<Id>): boolean {
+    const polys = Array.isArray(poly[0]) ? (poly as Vec2[][]) : [poly as Vec2[]];
+    for (const pg of polys) {
+      for (const w of this.geo.wallPolys) if (convexOverlap(pg, w.poly, 2)) return true;
+      for (const q of this.placed) {
+        if (skip.has(q.item.id) || !q.obstacle) continue;
+        if (q.solids.some((s) => convexOverlap(pg, s, 2))) return true;
+      }
     }
     return false;
   }

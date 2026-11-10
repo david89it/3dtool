@@ -1133,3 +1133,41 @@ kbd {
   opacity: 0.75;
   font-size: 12px;
 }
+
+/* ---- finish swatches ------------------------------------------------ */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+.swatch.on {
+  border: 2px solid var(--accent);
+}
+.swatch-chip {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+.swatch-chip.as-made {
+  background: linear-gradient(135deg, #e7e1d6 50%, #c9a57d 50%);
+}
+.swatch.custom input {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}

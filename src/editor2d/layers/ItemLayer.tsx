@@ -2,7 +2,7 @@ import { Circle, Group, Label, Line, Tag, Text } from 'react-konva';
 import type { CatalogueItem, Level, PlacedItem, Project, Vec2 } from '../../model/types';
 import type { ItemGhost } from '../../model/store';
 import { findCatalogueItem, footprint, itemParts, localToPlan, newPlacedItem } from '../../catalogue/catalogue';
-import { planColor } from '../../catalogue/colors';
+import { partColor } from '../../catalogue/colors';
 import { clearanceShapes } from '../clearanceShapes';
 import { itemHandles } from '../itemHit';
 import { toScreen, type View } from '../view';
@@ -41,7 +41,7 @@ export function ItemShape({ item, cat, opacity = 1, highlight }: { item: PlacedI
             key={i}
             points={flat(poly)}
             closed
-            fill={planColor(p.colorToken)}
+            fill={partColor(p.colorToken, item.finish)}
             stroke="#5f646b"
             strokeWidth={0.6}
             strokeScaleEnabled={false}
@@ -110,6 +110,14 @@ export function ItemShapes({
   // Flat things (rugs) underneath, then by height.
   withCat.sort((a, b) => a.item.dims.h - b.item.dims.h);
   const ghostCat = ghost ? findCatalogueItem(project, ghost.catalogueId) : undefined;
+  const ghostItem =
+    ghost && ghostCat
+      ? {
+          ...newPlacedItem(ghostCat, ghost.pos, ghost.rotationDeg),
+          ...(ghost.dims ? { dims: ghost.dims } : {}),
+          ...(ghost.params ? { params: ghost.params } : {}),
+        }
+      : undefined;
   return (
     <>
       {showClearances &&
@@ -119,10 +127,10 @@ export function ItemShapes({
       {withCat.map(({ item, cat }) => (
         <ItemShape key={item.id} item={item} cat={cat} highlight={item.id === selectedId ? 'selected' : item.id === hoverId ? 'hover' : undefined} />
       ))}
-      {ghost && ghostCat && (
+      {ghost && ghostCat && ghostItem && (
         <>
-          <Clearances item={newPlacedItem(ghostCat, ghost.pos, ghost.rotationDeg)} cat={ghostCat} />
-          <ItemShape item={newPlacedItem(ghostCat, ghost.pos, ghost.rotationDeg)} cat={ghostCat} opacity={ghost.ok ? 0.75 : 0.35} highlight="selected" />
+          <Clearances item={ghostItem} cat={ghostCat} />
+          <ItemShape item={ghostItem} cat={ghostCat} opacity={ghost.ok ? 0.75 : 0.35} highlight="selected" />
         </>
       )}
     </>

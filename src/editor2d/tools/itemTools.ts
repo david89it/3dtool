@@ -10,7 +10,9 @@ import { useStore, type ItemGhost } from '../../model/store';
 import { computeJoints } from '../../geometry/joints';
 import { dist, dot, sub } from '../../geometry/vec';
 import { effectiveDims, findCatalogueItem, footprintCentre, itemAxes, newPlacedItem } from '../../catalogue/catalogue';
-import { resizeFromEdge, round10, snapToWall, wallFaces, type Edge } from '../itemOps';
+import { ceilingAt, fitSurround, resizeFromEdge, round10, snapToOpening, snapToWall, wallFaces, type Edge } from '../itemOps';
+import { surroundLayout } from '../../catalogue/builders';
+import { detectRooms } from '../../geometry/rooms';
 import { hitItem, hitItemHandle, itemHandles } from '../itemHit';
 import { DRAG_START_PX, type ToolCtx, type ToolHandler } from './types';
 
@@ -26,6 +28,16 @@ export function computeItemGhost(level: Level, catalogueId: string, world: Vec2,
   // Things you walk all round (tables, islands) don't jump to walls.
   const freeStanding = cat.clearance.some((c) => c.side === 'all') && cat.mount !== 'wall';
   if (alt || freeStanding) return { catalogueId, pos: round10(world), rotationDeg: 0, ok: true };
+  if (cat.builder === 'opening-surround') {
+    const J = computeJoints(level);
+    const base = newPlacedItem(cat, world);
+    const side = surroundLayout(base, base.dims).side;
+    const snap = snapToOpening(level, J, world, base.dims.d, side, Math.max(600, 40 / scale));
+    if (snap) {
+      const fitted = fitSurround(base, snap, side, ceilingAt(level, detectRooms(level, J), snap.pos));
+      return { catalogueId, pos: fitted.pos, rotationDeg: fitted.rotationDeg, mountedTo: fitted.mountedTo, dims: fitted.dims, params: fitted.params, ok: true };
+    }
+  }
   const faces = wallFaces(level, computeJoints(level));
   const tol = cat.mount === 'wall' ? Math.max(1500, 120 / scale) : Math.max(600, 40 / scale);
   // Measure from the pointer as if it were the item's back edge, so it slides up to the wall naturally.
@@ -43,6 +55,8 @@ export function placeItemFromGhost(): boolean {
   if (!cat) return false;
   const item = newPlacedItem(cat, g.pos, g.rotationDeg);
   if (g.mountedTo) item.mountedTo = g.mountedTo;
+  if (g.dims) item.dims = { ...g.dims };
+  if (g.params) item.params = { ...g.params };
   s.editLevel(`Add ${cat.name.toLowerCase()}`, (L) => {
     L.items.push(item);
   });
@@ -162,6 +176,12 @@ export const furnishSelectTool: ToolHandler = {
           autoRotate: pend.cat.mount === 'wall',
         });
         if (snap) next = { ...next, pos: snap.pos, rotationDeg: snap.rotationDeg, mountedTo: pend.cat.mount === 'wall' ? snap.mountedTo : undefined };
+        if (pend.cat.builder === 'opening-surround') {
+          const J = computeJoints(ctx.level);
+          const side = surroundLayout(pend.item, pend.item.dims).side;
+          const os = snapToOpening(ctx.level, J, want, pend.item.dims.d, side, Math.max(300, 30 / ctx.view.scale));
+          if (os) next = fitSurround(next, os, side, ceilingAt(ctx.level, detectRooms(ctx.level, J), os.pos));
+        }
       }
     } else if (pend.kind === 'resize') {
       const c = footprintCentre(pend.item, pend.cat);

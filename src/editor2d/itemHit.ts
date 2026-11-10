@@ -1,7 +1,7 @@
 // Finding furniture under the pointer, and where its handles are.
 
 import type { Id, Level, PlacedItem, Project, Vec2 } from '../model/types';
-import { effectiveDims, findCatalogueItem, footprint, itemAxes, localToPlan } from '../catalogue/catalogue';
+import { effectiveDims, findCatalogueItem, footprint, itemAxes, localToPlan, obstacleRects } from '../catalogue/catalogue';
 import { dist, pointInPolygon, signedArea } from '../geometry/vec';
 import { toScreen, type View } from './view';
 import type { Edge } from './itemOps';
@@ -13,7 +13,10 @@ export function hitItem(level: Level, project: Project, p: Vec2): PlacedItem | u
     const cat = findCatalogueItem(project, item.catalogueId);
     if (!cat) continue;
     const fp = footprint(item, cat);
-    if (pointInPolygon(p, fp)) hits.push({ item, area: Math.abs(signedArea(fp)) });
+    // Parametric pieces (a bookcase surround) are hollow: only their solid
+    // parts count, so a click in the opening reaches what's behind.
+    const zones = cat.builder ? obstacleRects(item, cat) : [fp];
+    if (zones.some((z) => pointInPolygon(p, z))) hits.push({ item, area: Math.abs(signedArea(fp)) });
   }
   // Smaller things sit on top (a lamp on a rug, a chair at a table).
   hits.sort((a, b) => a.area - b.area);

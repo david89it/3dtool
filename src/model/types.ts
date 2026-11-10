@@ -125,6 +125,12 @@ export interface PlacedItem {
   // EXTENSION: "lock" (brief phase 3): a locked item can't be moved, resized
   // or rotated by drag or by a rule fix until unlocked.
   locked?: boolean;
+  // EXTENSION: numbers for parametric items (catalogue `builder`), e.g. the
+  // opening a bookcase surround frames: { gapW, gapH } in mm.
+  params?: Record<string, number>;
+  // EXTENSION: painted finish colour (hex) chosen for this piece; applies to
+  // its painted/timber parts (tokens joinery, cabinet, wood, white).
+  finish?: string;
 }
 
 // Convention (not specified in the brief, recorded in DECISIONS.md):
@@ -163,6 +169,10 @@ export interface CatalogueItem {
   states?: Record<string, { dims: { w: number; d: number; h: number }; geometry: PrimitivePart[] }>;
   clearance: Clearance[];
   rules?: RuleRef[];
+  // EXTENSION: name of a parametric shape builder (src/catalogue/builders.ts)
+  // for items whose parts must not simply stretch when resized, such as a
+  // bookcase surround whose middle gap must stay the size of the opening.
+  builder?: string;
 }
 
 export interface PrimitivePart {

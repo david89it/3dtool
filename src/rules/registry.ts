@@ -14,7 +14,7 @@ import type { Id } from '../model/types';
 import { itemParts } from '../catalogue/catalogue';
 import { needsStructuralBadge, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
 import { dist, dot, sub } from '../geometry/vec';
-import { makePlaced, type Placed, type RuleContext, type Hit } from './context';
+import { makePlaced, solidDistance, solidsOverlap, type Placed, type RuleContext, type Hit } from './context';
 import { convexOverlap, pointPolyDistance, polyDistance, strip } from './poly';
 
 export type Severity = 'error' | 'warning' | 'tip';
@@ -314,7 +314,7 @@ export const RULES: Rule[] = [
           const b = items[j];
           if (!has(a, 'walkway') && !has(b, 'walkway')) continue;
           if (!sameRoom(ctx, a, b)) continue;
-          const gap = polyDistance(a.poly, b.poly);
+          const gap = solidDistance(a, b);
           if (gap < ignoreBelow || gap >= ideal) continue;
           out.push({ itemIds: [a.item.id, b.item.id], measured: gap, required: min, ideal, subject: `${name(a)} to ${lname(b)}`, need: 'to walk between them', roomItem: a });
         }
@@ -335,8 +335,8 @@ export const RULES: Rule[] = [
       for (const d of ctx.geo.doors) {
         for (const p of ctx.placed) {
           if (!p.obstacle || !has(p, 'door-swing')) continue;
-          if (!convexOverlap(d.sector, p.poly, 1)) continue;
-          const inside = Math.max(0, d.radius - pointPolyDistance(d.hinge, p.poly));
+          if (!solidsOverlap(p, d.sector, 1)) continue;
+          const inside = Math.max(0, d.radius - Math.min(...p.solids.map((sp) => pointPolyDistance(d.hinge, sp))));
           out.push({
             itemIds: [p.item.id],
             wallIds: [d.wallId],
@@ -365,7 +365,7 @@ export const RULES: Rule[] = [
       if (p.top <= height) return [];
       const out: Finding[] = [];
       for (const w of ctx.geo.windows) {
-        if (w.faces.some((f) => convexOverlap(strip(f.base[0], f.base[1], f.normal, 0, zone), p.poly, 1))) {
+        if (w.faces.some((f) => solidsOverlap(p, strip(f.base[0], f.base[1], f.normal, 0, zone), 1))) {
           out.push({
             itemIds: [p.item.id],
             wallIds: [w.wallId],

@@ -360,3 +360,34 @@ challenged.
   Walk always builds full-height walls.
 - **Advice highlight** clears when you click empty canvas (deselect) or
   press Esc.
+
+## Bookcase surround, finishes and the Japanese bath
+
+- **Parametric items.** `CatalogueItem.builder` names a shape builder in
+  `src/catalogue/builders.ts`. `itemParts()` calls it instead of stretching
+  the parts, and `PlacedItem.params` holds its numbers. The bookcase
+  surround keeps its gap the size of the opening (`gapW`, `gapH`); its
+  towers take the remaining width, and the bridge fills from the head of
+  the opening to the top. Widening it with the edge handles widens the
+  towers, not the gap.
+- **Fitting to an opening.** Placed or dragged near a door, window or
+  opening, the surround centres on it on the side the pointer is on, backs
+  onto the wall face, takes the opening's width and height, and runs up to
+  50 mm below the room's ceiling (the floor's, if the room has no override).
+  After an opening is resized, it re-fits only when she presses *Fit to
+  opening*, so manual changes aren't overwritten.
+- **Hollow footprints.** `obstacleRects()` gives the plan rectangles of
+  parts whose underside is below 0.9 m. The rules engine (ray casts,
+  overlaps, door swings, walkways, windows, fixer checks), walk collision
+  in 3D and clicking on the plan use these instead of the whole outline. So
+  the opening in a surround stays passable, and an L-shaped corner sofa no
+  longer blocks the empty corner. Clicking the plan uses them only for
+  parametric pieces, so clicking a sofa's seat still selects it.
+- **Finish colour.** `PlacedItem.finish` (hex) repaints the parts using the
+  joinery, cabinet, wood and white tokens, in 2D and 3D. Glass, metal,
+  fabric and so on keep their own colour. Swatches are classic joinery
+  colours, plus a free colour picker.
+- **Japanese soaking bath (ofuro).** A 1.1 m square, 650 mm deep hinoki tub
+  with water 100 mm below the rim. The stool and slatted duckboard sit just
+  in front of its footprint, inside the 700/900 mm space it needs in front,
+  so its outline stays the tub itself.

@@ -35,8 +35,8 @@ function valid(ctx: RuleContext, itemId: Id, roomKey: string | undefined): boole
   if (!p) return false;
   if (ctx.roomOf(p).detected?.key !== roomKey) return false;
   if (p.obstacle) {
-    if (ctx.overlapsSomething(p.poly, new Set([itemId]))) return false;
-    for (const d of ctx.geo.doors) if (convexOverlap(d.sector, p.poly, 1)) return false;
+    if (ctx.overlapsSomething(p.solids, new Set([itemId]))) return false;
+    for (const d of ctx.geo.doors) if (p.solids.some((sp) => convexOverlap(d.sector, sp, 1))) return false;
   }
   return true;
 }
