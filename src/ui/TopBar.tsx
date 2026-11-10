@@ -2,7 +2,9 @@ import { SettingsDialog } from './SettingsDialog';
 import { useSiteMeasure } from '../sitemeasure/state';
 import { useRef, useState } from 'react';
 import { useStore } from '../model/store';
-import { exportProjectFile, readProjectFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
+import { exportProjectFile, readPlanFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
+import { exportHistory, runJob } from '../model/versions';
+import { useVersionsUi } from './versionsUi';
 import { createStartProject, PUBLIC_BUILD } from '../model/firstRun';
 import { useSeedAvailable, useUnlock } from './UnlockDialog';
 import { canvasApi } from '../editor2d/canvasApi';
@@ -76,6 +78,17 @@ export function TopBar() {
           >
             ↷ Redo
           </button>
+          <button
+            className="icon-btn"
+            onClick={() => useVersionsUi.getState().setOpen(true)}
+            aria-label="Versions"
+            title="Versions: save and restore copies of your plan"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="M10 5.5V10l3 2" />
+            </svg>
+          </button>
         </div>
         <div className="segmented small" role="radiogroup" aria-label="Units">
           <button role="radio" aria-checked={units === 'metric'} className={units === 'metric' ? 'on' : ''} onClick={() => setUnits('metric')}>
@@ -112,12 +125,23 @@ export function TopBar() {
             >
               <button
                 role="menuitem"
-                onClick={() => {
-                  exportProjectFile(useStore.getState().project);
+                onClick={async () => {
                   setMenu(false);
+                  const withVersions = useVersionsUi.getState().includeHistory;
+                  const history = withVersions ? await runJob('Could not read your versions, so the copy has none.', (kv) => exportHistory(kv)) : undefined;
+                  exportProjectFile(useStore.getState().project, history);
                 }}
               >
                 Save a copy to my computer
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  useVersionsUi.getState().setOpen(true);
+                }}
+              >
+                Versions…
               </button>
               <button
                 role="menuitem"
@@ -190,6 +214,7 @@ export function TopBar() {
                   setConfirmReset(false);
                   setMenu(false);
                   const fresh = await createStartProject();
+                  useStore.getState().snapshotBefore('starting again');
                   useStore.getState().loadProject(fresh);
                   await flushSave();
                 }}
@@ -212,9 +237,11 @@ export function TopBar() {
               e.target.value = '';
               if (!f) return;
               try {
-                const p = await readProjectFile(f);
+                const { project: p, history } = await readPlanFile(f);
+                useStore.getState().snapshotBefore('opening a saved plan');
                 useStore.getState().loadProject(p);
                 useStore.getState().toast(`Opened “${p.name}”.`);
+                if (history) useVersionsUi.getState().setOffer({ history, planName: p.name });
               } catch (err) {
                 useStore.getState().toast((err as Error).message, 'warn');
               }

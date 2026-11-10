@@ -6,6 +6,7 @@ import { pushEntry, type HistoryEntry } from './history';
 import { syncRooms } from '../geometry/rooms';
 import { clampOpenings } from '../geometry/wallGraph';
 import { activeLevels, withActive } from './schemes';
+import { autoSnapshot, noteChange, setVersionWarn } from './versions';
 
 enablePatches();
 
@@ -114,6 +115,11 @@ export interface AppState {
   setTourStep: (n: number | null) => void;
   setShortcutsOpen: (v: boolean) => void;
   setAdviceState: (v: { enabled?: boolean; keySaved?: boolean }) => void;
+  /**
+   * Save the plan as it is now, as an automatic version, before a big change
+   * ("deleting a wall"). Runs in the background and never blocks the edit.
+   */
+  snapshotBefore: (reason: string) => void;
   toast: (text: string, tone?: Toast['tone']) => void;
   dismissToast: (id: number) => void;
 }
@@ -194,6 +200,7 @@ export const useStore = create<AppState>()((set, get) => ({
     const { project, levelId, past } = get();
     const [next, patches, inverse] = produceWithPatches(project, recipe);
     if (patches.length === 0) return;
+    noteChange(project);
     set({
       project: next,
       past: pushEntry(past, { label, levelId, patches, inverse }),
@@ -244,6 +251,7 @@ export const useStore = create<AppState>()((set, get) => ({
       set({ gesture: null });
       return;
     }
+    noteChange(g.base);
     set({
       gesture: null,
       past: pushEntry(get().past, { label, levelId: get().levelId, patches: g.patches, inverse: g.inverse }),
@@ -308,6 +316,7 @@ export const useStore = create<AppState>()((set, get) => ({
       ...(v.enabled !== undefined ? { adviceEnabled: v.enabled } : {}),
       ...(v.keySaved !== undefined ? { adviceKeySaved: v.keySaved } : {}),
     }),
+  snapshotBefore: (reason) => autoSnapshot(get().project, reason),
   toast: (text, tone = 'info') => {
     const id = ++toastSeq;
     set({ toasts: [...get().toasts, { id, text, tone }] });
@@ -324,3 +333,5 @@ export function currentLevel(): Level | undefined {
   const s = useStore.getState();
   return s.project.levels.find((l) => l.id === s.levelId);
 }
+
+setVersionWarn((text) => useStore.getState().toast(text, 'warn'));

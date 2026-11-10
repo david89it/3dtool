@@ -79,6 +79,11 @@ behaves as before and opens on the seed.
 | Undo / redo | Buttons top right, Ctrl/⌘ Z, Ctrl/⌘ Shift Z |
 | Save a copy | File → *Save a copy to my computer* (`.flatplan.json`); *Open a saved plan…* loads one |
 | Picture | File → *Export this floor as a picture (PNG)* |
+| Save a version | The clock button next to Undo, or File → *Versions…* → *Save this version…*. Give it a name such as "Kitchen open". Named versions are kept for good |
+| Go back to a version | *Versions…* → *Restore* on that row. Your current plan is saved first as "Before restoring …", so nothing is lost and you can restore that one too |
+| See what changed | Each row lists what changed since the version before it ("Kitchen wall opened (2.61 m)", "3 items added, 1 moved"). *Compare with now* lists what has changed since that version |
+| Automatic versions | Flat Planner saves one before it deletes a wall, opens a wall up, adds an opening to a wall that may be load-bearing, imports a file or scan, opens a saved plan, restores a version, and before your first change each day. It keeps the latest 30, plus one a day for 14 days |
+| Keep history in a copy | Tick *Include versions when saving a copy* in the Versions window, then File → *Save a copy to my computer*. Opening that file offers to add its versions |
 
 ## Using it (Phase 2: Openings mode)
 

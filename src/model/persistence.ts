@@ -4,6 +4,7 @@ import { get, set } from 'idb-keyval';
 import type { Project } from './types';
 import { useStore } from './store';
 import type { UnitSystem } from './units';
+import { parseHistory, type HistoryFile } from './versions';
 
 const PROJECT_KEY = 'flatplan:project:v1';
 const SETTINGS_KEY = 'flatplan:settings:v1';
@@ -99,11 +100,20 @@ export function safeFileName(name: string): string {
   return name.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') || 'flat-plan';
 }
 
-export function exportProjectFile(p: Project): void {
-  download(new Blob([JSON.stringify(p)], { type: 'application/json' }), `${safeFileName(p.name)}.flatplan.json`);
+/** Key in a .flatplan.json file that holds the version history (the rest of the file is the plan itself). */
+export const HISTORY_FILE_KEY = 'versionHistory';
+
+/**
+ * Save the plan as a file. With `history`, the versions go in under an extra
+ * key; the plan fields stay at the top, so older copies of the app still open it.
+ */
+export function exportProjectFile(p: Project, history?: HistoryFile): void {
+  const data = history && history.versions.length > 0 ? { ...p, [HISTORY_FILE_KEY]: history } : p;
+  download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeFileName(p.name)}.flatplan.json`);
 }
 
-export async function readProjectFile(file: File): Promise<Project> {
+/** Open a saved plan, with its version history if the file has one. */
+export async function readPlanFile(file: File): Promise<{ project: Project; history?: HistoryFile }> {
   const text = await file.text();
   let data: unknown;
   try {
@@ -111,7 +121,13 @@ export async function readProjectFile(file: File): Promise<Project> {
   } catch {
     throw new Error('This file could not be read. Is it a .flatplan.json file?');
   }
-  return validateProject(data);
+  const raw = (data && typeof data === 'object' ? (data as Record<string, unknown>)[HISTORY_FILE_KEY] : undefined) as unknown;
+  if (data && typeof data === 'object') delete (data as Record<string, unknown>)[HISTORY_FILE_KEY];
+  return { project: validateProject(data), history: parseHistory(raw) };
+}
+
+export async function readProjectFile(file: File): Promise<Project> {
+  return (await readPlanFile(file)).project;
 }
 
 export function downloadDataUrl(dataUrl: string, filename: string): void {

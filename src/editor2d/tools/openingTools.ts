@@ -5,7 +5,7 @@
 //   where it would go and click to place it.
 
 import type { Level, Vec2 } from '../../model/types';
-import { useStore } from '../../model/store';
+import { currentLevel, useStore } from '../../model/store';
 import { computeJoints } from '../../geometry/joints';
 import { findOpening, hitOpening, isStructural, MIN_NIB, nearestWall, OPENING_LABEL, OPENING_MIN_WIDTH, placeOnWall, usableRange } from '../../geometry/openings';
 import { formatLength } from '../../model/units';
@@ -48,6 +48,8 @@ export function placeFromGhost(): boolean {
   const g = s.ghost;
   if (!g || !g.ok) return false;
   let newId: string | null = null;
+  const target = currentLevel()?.walls.find((x) => x.id === g.wallId);
+  if (target && isStructural(target)) s.snapshotBefore('adding an opening to a wall that may be load-bearing');
   s.editLevel(`Add ${g.type === 'opening' ? 'opening' : g.type === 'bayWindow' ? 'bay window' : g.type}`, (L) => {
     const r = addOpening(L as Level, g.wallId, g.type, g.offset + g.width / 2, g.width);
     if ('id' in r) newId = r.id;

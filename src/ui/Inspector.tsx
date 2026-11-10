@@ -183,6 +183,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
           onClick={() => {
             let id: string | null = null;
             let error: string | null = null;
+            useStore.getState().snapshotBefore('opening up a wall');
             editLevel('Open up wall', (L) => {
               const r = openUpWall(L as Level, wall.id);
               if ('id' in r) id = r.id;
@@ -219,6 +220,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
         <button
           className="btn danger"
           onClick={() => {
+            useStore.getState().snapshotBefore('deleting a wall');
             editLevel('Delete wall', (L) => deleteWall(L as Level, wall.id));
             select(null);
             if (isStructural(wall)) useStore.getState().toast(STRUCTURAL_DELETE_WARNING, 'warn');

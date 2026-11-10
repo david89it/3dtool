@@ -55,6 +55,7 @@ export function ScanImport() {
         setPending({ name: f.name, surfaces });
       } else if (e === 'dxf') {
         const { segments, unitsLabel } = parseDxf(await f.text());
+        useStore.getState().snapshotBefore('importing a drawing');
         useStore.getState().editLevel('Import a drawing', (L) => {
           L.vectorUnderlay = { name: f.name, segments: placeDxf(L as Level, segments) };
         });
@@ -66,6 +67,7 @@ export function ScanImport() {
         const el = document.querySelector('[data-testid="plan-canvas"]') as HTMLElement | null;
         const centre = toWorld(v, { x: (el?.clientWidth ?? 800) / 2, y: (el?.clientHeight ?? 600) / 2 });
         const scale = 10;
+        useStore.getState().snapshotBefore('importing a plan picture');
         useStore.getState().editLevel('Import plan image', (L) => {
           L.underlay = {
             imageDataUrl: img.dataUrl,
@@ -94,6 +96,7 @@ export function ScanImport() {
     const fromId = s.levelId;
     let summary = '';
     let newId: string | null = null;
+    s.snapshotBefore('importing a scan');
     try {
       s.commit(asOption ? 'Add a scan as a new option' : 'Replace walls with a scan', (d) => {
         const p = d as Project;

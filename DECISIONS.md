@@ -471,3 +471,43 @@ challenged.
   new empty plan", and tour step 1 no longer says a floorplan is already
   underneath.
 
+
+## Versions
+
+- **Own keys, not in the project.** Versions live in IndexedDB beside the
+  autosave (`flatplan:version:<id>`, an index under `flatplan:versions:index`
+  and `flatplan:image:<hash>`), so the autosave of the plan stays small and
+  `Project` is unchanged. Code: `src/model/versions.ts`. The core functions
+  take a tiny key-value interface so unit tests use a `Map`
+  (`fake-indexeddb` is not installed and was not added).
+- **Images stored once.** Each underlay image is hashed (SHA-256 of the data
+  URL; a plain fallback hash on pages without WebCrypto) and the stored copy
+  holds `img:<hash>`. Restore swaps them back exactly. An image that has
+  gone missing drops that floor's picture with a warning. Images no version
+  uses any more are deleted with the last version that used them.
+- **Retention.** Named versions are never pruned. Automatic ones: the newest
+  30, plus the newest of each calendar day (local time) for 14 days.
+- **When snapshots happen.** `store.snapshotBefore(reason)` is called before
+  deleting a wall (button and key), "Open up this wall", adding an opening to
+  a wall that is not marked non-load-bearing, importing a plan picture, DXF
+  or scan, opening a saved plan or the owners' flat, and "Start again". The
+  first change of each day also snapshots the plan as it was (`commit` and
+  `endGesture` call `noteChange`). Snapshots capture the immutable project
+  synchronously and save in the background, one job at a time; asking again
+  for the same unchanged project does nothing. A failing automatic save shows
+  one warning per session, never blocks the edit.
+- **Restore.** Saves the current plan as "Before restoring <name>" first (and
+  stops if that fails), then `loadProject(project, { keepLevel: true })`.
+  Undo history is cleared by `loadProject`, as for opening a file; the
+  safety version is the way back.
+- **Change summary.** `diffProjects` (`src/model/diffProjects.ts`) matches
+  floors, walls, openings, items and rooms by id and writes plain sentences;
+  walls are named by the rooms they bound ("Kitchen wall", "wall between
+  Kitchen and Reception"). Items are counted, not named, to keep the catalogue
+  out of the model code. A row shows up to 3 lines, Compare up to 12, the
+  default cap is 8 plus "and N more changes".
+- **File format.** Saving a copy with versions adds a `versionHistory` key
+  (`{ format: 1, versions, images }`) beside the plan's own fields, so older
+  copies of the app still open the file and `validateProject` is unchanged.
+  Opening such a file offers to add the versions; ones with an id already
+  here are skipped.

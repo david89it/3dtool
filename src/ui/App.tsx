@@ -21,6 +21,7 @@ import { SiteMeasure } from '../sitemeasure/SiteMeasure';
 import { ScanGuide } from '../sitemeasure/ScanGuide';
 import { ScanImport } from '../import/ScanImport';
 import { EmptyStart, UnlockDialog } from './UnlockDialog';
+import { VersionImportPrompt, VersionsPanel } from './VersionsPanel';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
 const View3D = lazy(() => import('../view3d/View3D').then((m) => ({ default: m.View3D })));
@@ -108,6 +109,7 @@ function useShortcuts() {
         if (sel.kind === 'wall') {
           e.preventDefault();
           const w = currentLevel()?.walls.find((x) => x.id === sel.id);
+          s.snapshotBefore('deleting a wall');
           s.editLevel('Delete wall', (L) => deleteWall(L as Level, sel.id));
           s.select(null);
           if (w && isStructural(w)) s.toast(STRUCTURAL_DELETE_WARNING, 'warn');
@@ -161,6 +163,8 @@ export function App() {
       <ScanGuide />
       <EmptyStart />
       <UnlockDialog />
+      <VersionsPanel />
+      <VersionImportPrompt />
     </div>
   );
 }

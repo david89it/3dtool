@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-10, after the GitHub Pages hosting work.
+Last updated: 2026-11-10, after the Versions work.
 
 ## 1. What this is
 
@@ -127,6 +127,10 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   USDZ/USDA/USDC via three's `USDLoader`, and DXF as `Level.vectorUnderlay`
   with snapping to its line ends.
 - GitHub Pages workflow, public build mode and the encrypted seed (see §5).
+- Versions: named saves, automatic snapshots before big changes, restore with
+  a safety copy, plain-language change lists, history optionally inside a
+  saved copy (`src/model/versions.ts`, `diffProjects.ts`,
+  `src/ui/VersionsPanel.tsx`; `store.snapshotBefore(reason)`).
 
 **In flight:** none.
 
@@ -143,20 +147,18 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 
 1. Hosting: the owner adds the `SEED_PASSWORD` secret and turns on Pages,
    then check the live site once (see §5).
-2. Versions: named saves, restore, snapshots before big changes; compare
-   later.
-3. Engineer and landlord PDF pack: annotations, dimensioned plans, the
+2. Engineer and landlord PDF pack: annotations, dimensioned plans, the
    structural notes, before and after 3D.
-4. Shrink the structural badge to an icon on the plan, with the full text in
+3. Shrink the structural badge to an icon on the plan, with the full text in
    the panel.
-5. Materials and paint: per wall face, ceiling and woodwork, a palette, more
+4. Materials and paint: per wall face, ceiling and woodwork, a palette, more
    floors, saved schemes.
-6. Real sun for N19: date and time, sun hours per room.
-7. Add an object by description or image link (Claude; needs hosting and a
+5. Real sun for N19: date and time, sun hours per room.
+6. Add an object by description or image link (Claude; needs hosting and a
    key).
-8. Costs and shopping list.
-9. Sloped loft ceiling and chimney-breast objects (after the site visit).
-10. UI batch: collapsible panels, context menu, multi-select and groups,
+7. Costs and shopping list.
+8. Sloped loft ceiling and chimney-breast objects (after the site visit).
+9. UI batch: collapsible panels, context menu, multi-select and groups,
     ⌘K, room views, undo history list.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
@@ -193,6 +195,10 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-10 · versions · Named and automatic versions in IndexedDB (own keys,
+  images stored once by hash), Versions panel (clock button, File menu),
+  `diffProjects`, restore with a "Before restoring" copy, history in saved
+  copies. Side-by-side compare is still parked.
 - 2026-11-10 · a07d248 · Live at https://david89it.github.io/3dtool/. The repo
   is public (owner's choice). The build job runs in the `github-pages`
   environment; `seed.enc` is encrypted from the `SEED_PASSWORD` repository

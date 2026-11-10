@@ -1198,3 +1198,89 @@ kbd {
 .empty-start .btn {
   flex: none;
 }
+
+/* ---- versions ------------------------------------------------------ */
+.modal.versions {
+  width: min(720px, 94vw);
+  max-height: 88vh;
+}
+.versions-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.versions-save {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.version-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.version-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafaf8;
+}
+.version-row.named {
+  background: #fff;
+  border-color: var(--accent);
+}
+.version-main {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.version-time {
+  font-size: 12.5px;
+}
+.version-changes {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.version-compare {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  font-size: 13px;
+}
+.version-compare ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.version-compare p {
+  margin: 4px 0 0;
+}
+.version-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--hit);
+  cursor: pointer;
+}
+.check-row input {
+  width: 20px;
+  height: 20px;
+}

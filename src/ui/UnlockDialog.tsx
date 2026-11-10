@@ -63,6 +63,7 @@ export function UnlockDialog() {
     setError('');
     try {
       const project = validateProject(await openSeedFlat(password));
+      useStore.getState().snapshotBefore('opening our flat');
       useStore.getState().loadProject(project);
       await flushSave();
       useStore.getState().toast(`Opened “${project.name}”.`);
