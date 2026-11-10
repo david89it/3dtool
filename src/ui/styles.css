@@ -1283,8 +1283,9 @@ kbd {
 .check-row input {
   width: 20px;
   height: 20px;
+}
 /* Notes on the plan */
-.swatch {
+.note-swatch {
   display: inline-block;
   width: 12px;
   height: 12px;
@@ -1296,4 +1297,166 @@ kbd {
   background: #f3f0ff;
   border-color: #7c3aed;
   color: #7c3aed;
+}
+
+/* ---- paint palette (3D finish panel and 2D wall panel) ---------------- */
+.paint-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.paint-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.paint-group-name {
+  font-size: 11.5px;
+  color: var(--muted, #6b7280);
+}
+.paint-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.paint-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  padding: 0;
+  cursor: pointer;
+  background-clip: padding-box;
+}
+.paint-swatch.on {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.paint-hex-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.paint-well {
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+.paint-hex-input {
+  width: 96px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: ui-monospace, monospace;
+}
+.paint-hex-input[aria-invalid='true'] {
+  border-color: #b45309;
+}
+.paint-bad {
+  color: #b45309;
+}
+.paint-chosen {
+  margin: 0;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.tabs button {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+.tabs button[aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.scheme-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+.scheme-row .scheme-name {
+  flex: 1 1 100%;
+  font-weight: 600;
+}
+.face-banner {
+  background: #f1f5f9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.floor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.floor-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px;
+  min-height: 72px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 11.5px;
+  width: auto;
+  height: auto;
+}
+.floor-swatch.on {
+  border: 2px solid var(--accent);
+  padding: 3px;
+}
+.floor-swatch .chip-img {
+  display: block;
+  height: 40px;
+  border-radius: 5px;
+  background-size: cover;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.floor-swatch .chip-name {
+  text-align: center;
+  line-height: 1.2;
+}
+.face-paint {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 8px 8px;
+}
+.face-paint summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.face-paint .paint-grid {
+  margin-bottom: 8px;
+}
+.swatch-dot {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  flex: none;
 }

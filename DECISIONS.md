@@ -561,3 +561,50 @@ challenged.
   overview shows). The pack imports only the bridge, so printing never loads
   three.js; it just has no 3D section until 3D was opened. Walk view does not
   update it.
+
+## Materials and paint
+
+- **One value, three kinds.** A finish stored in the project (`Wall.faces`,
+  `Room.wallFinish`, `ceilingFinish`, `woodworkColor`) is a finish id
+  (`wall-tile-white`, `floor-oak`), a paint id (`paint-sage`) or a hex
+  colour. `findSurface()` in `src/view3d/finishes.ts` resolves all three, so
+  projects saved before the palette still open. Old wall ids such as
+  `wall-sage` map to the palette entry with the same colour.
+- **Palette.** 32 paints in six groups (`src/model/palette.ts`) with plain
+  descriptive names; no paint-brand names or brand colour names. Colours are
+  chosen by eye, not matched to any maker's chart.
+- **Face sides.** `Wall.faces.L / R` are the left and right of the wall drawn
+  from node a to node b, the same sides the 3D build already used for each
+  room's finish. `wallSideRooms()` (`src/model/faces.ts`) says which room is on
+  each side; the 2D panel words it "Side facing Reception". A side with no
+  room (outside the flat) cannot be painted. Splitting a wall copies its face
+  paint to both halves.
+- **Resolution order:** face override, then the room's wall finish, then the
+  default (white, tile in a bathroom).
+- **Woodwork.** One colour per room covers skirting, door leaves and
+  frames, and window frames. A door or window sits between two rooms, so it
+  takes the woodwork colour of the room on the wall's left side, else the
+  right. Skirting takes the colour of the room it faces. Doors gain a simple
+  50 mm architrave on both faces. Skirting (120 x 18 mm) is merged geometry
+  with one mesh per colour, skips openings that reach the floor, and is also
+  drawn in the cut-away view. Ceilings: white unless `ceilingFinish` is set.
+- **Schemes** (`Project.schemes`, `src/model/finishSchemes.ts`) are saved
+  colour sets, not the floor "options" of compare mode. A scheme keeps one
+  floor's rooms (floor, walls, ceiling, woodwork) by room name. Applying one
+  sets what the scheme has and clears what it leaves out, so the room looks as
+  it did when saved. Rooms whose names are not in the scheme are left alone.
+  Single-face wall paint is not part of a scheme (it belongs to a wall, not a
+  room). *All floors* means the active option of every floor.
+- **Lease hint.** Rubber counts like cork: allowed in the kitchen and
+  bathroom, the plain carpet note elsewhere. Sisal gets its own note (a woven
+  covering, but the lease says carpet), because it is not clear it counts.
+- **Clicking a face.** Wall meshes are merged per finish, so each merged mesh
+  keeps a list of triangle runs per wall face (`MeshSpec.wallFaces`);
+  `e.faceIndex` finds the face. The selected face gets one tinted sheet; there
+  is no hover effect, so moving the mouse never rebuilds the scene. Materials
+  are cached by colour and textures by finish id.
+- **Fixed on the way:** `styles.css` was missing the closing brace of
+  `.check-row input`, so every rule after it was nested and never applied.
+  The notes colour dot `.swatch` also clashed with the item colour swatches;
+  it is now `.note-swatch`.
+

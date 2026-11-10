@@ -4,8 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-10, after the Versions work.
-Last updated: 2026-11-10, after the engineer and landlord pack.
+Last updated: 2026-11-10, after the materials and paint work.
 
 ## 1. What this is
 
@@ -46,7 +45,7 @@ beats feature count.
 
 | Folder | What lives there | Start with |
 | --- | --- | --- |
-| `src/model` | Types, store (zustand + immer patches), undo history, units, autosave and file save/open, seed project (private; loaded via `firstRun.ts`), encrypted-seed unlock, schemes ("Options") | `types.ts`, `store.ts` |
+| `src/model` | Types, store (zustand + immer patches), undo history, units, autosave and file save/open, seed project (private; loaded via `firstRun.ts`), encrypted-seed unlock, schemes ("Options"), paint palette, wall faces, saved colour schemes (`finishSchemes.ts`) | `types.ts`, `store.ts` |
 | `src/geometry` | Wall graph, mitred joints, room detection, dimensions, snapping, openings rules and edits, calibration | `wallGraph.ts`, `rooms.ts`, `openings.ts` |
 | `src/catalogue` | 84 items as data, shape helpers, state sizes, footprints, `obstacleRects`, parametric builders (bookcase surround), colours | `items.ts`, `catalogue.ts` |
 | `src/editor2d` | Konva canvas, layers, tools for each mode, hit testing, `canvasApi` bridge (also used by tests) | `PlanCanvas.tsx`, `tools/*` |
@@ -136,6 +135,11 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   notes on the plan (`Level.notes`, `src/model/notes.ts`, Trace panel *Notes*),
   `canvasApi.renderLevelImage`, and the structural badge shrunk to a ⚠ pin
   (`src/editor2d/pins.ts`).
+- Materials and paint: a 32-colour palette plus any hex (`src/model/palette.ts`,
+  `src/ui/PaintGrid.tsx`), paint per wall face (`Wall.faces`, click a wall in
+  3D or use the 2D wall panel), ceiling colour, woodwork colour with skirting
+  and door frames, five new floors, and saved colour schemes keyed by room
+  name (`Project.schemes`, `src/model/finishSchemes.ts`).
 
 **In flight:** none.
 
@@ -150,17 +154,15 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 
 **Next, in order:**
 
-1. Materials and paint: per wall face, ceiling and woodwork, a palette, more
-   floors, saved schemes.
-2. Real sun for N19: date and time, sun hours per room (after 1; both
-   change `src/view3d`).
-3. Add an object by description or image link (Claude; the site is hosted,
+1. Real sun for N19: date and time, sun hours per room (changes
+   `src/view3d`).
+2. Add an object by description or image link (Claude; the site is hosted,
    so the owner only needs a key).
-4. Costs and shopping list.
-5. Pack follow-ups: detect removed walls by comparing with a version, before
+3. Costs and shopping list.
+4. Pack follow-ups: detect removed walls by comparing with a version, before
    and after 3D, 3D views per floor.
-6. Sloped loft ceiling and chimney-breast objects (after the site visit).
-7. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
+5. Sloped loft ceiling and chimney-breast objects (after the site visit).
+6. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
    room views, undo history list.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
@@ -172,6 +174,10 @@ side-by-side compare, live Pinterest sync, fps meter.
   is the last overview shown, not one per floor; the structural pin is not
   tappable in Furnish mode; notes can only be selected in Trace mode.
 - No roof slope model.
+- Materials: schemes do not include single-face wall paint; a window or door
+  between two rooms takes the woodwork colour of the room on the wall's left;
+  skirting is straight boxes (no mitres at corners); the face-click path has
+  unit tests but no end-to-end click test; paint colours are chosen by eye.
 - Wall-hung items don't follow their wall when it moves.
 - The building floats in 3D because only the entrance hall is modelled at
   ground level.
@@ -200,6 +206,11 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-10 · materials · Palette (`src/model/palette.ts`), `Wall.faces`,
+  `Room.ceilingFinish/woodworkColor`, `Project.schemes`, skirting and door
+  frames in `sceneBuild.ts`, tabs and schemes in `FinishPanel.tsx`, 2D
+  "Paint" in the wall panel, `e2e/materials.spec.ts`. Fixed a missing `}` in
+  `styles.css` that left everything after `.check-row input` unstyled.
 - 2026-11-10 · versions · Named and automatic versions in IndexedDB (own keys,
   images stored once by hash), Versions panel (clock button, File menu),
   `diffProjects`, restore with a "Before restoring" copy, history in saved

@@ -7,17 +7,23 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { Level, Opening, Project, Room, Vec2, Wall } from '../model/types';
+import type { Level, Opening, Project, Vec2, Wall } from '../model/types';
 import { computeJoints } from '../geometry/joints';
 import { detectRooms, type DetectedRoom } from '../geometry/rooms';
-import { add, mul, perpL, perpR, signedArea } from '../geometry/vec';
+import type { WallOutline } from '../geometry/joints';
+import { roomForLoop, wallSideRooms, type WallSides } from '../model/faces';
+import { add, dot, mul, perpL, perpR, signedArea, sub } from '../geometry/vec';
 import { findCatalogueItem, itemParts, localToPlan } from '../catalogue/catalogue';
 import { wallDir, wallEndExtensions, wallProfile, type WallProfile } from './wallProfile';
-import { ceilingMaterial, finishMaterial, tintedMaterial, tokenMaterial } from './materials';
+import { ceilingMaterialFor, finishMaterial, tintedMaterial, tokenMaterial, woodworkMaterial } from './materials';
 import { FINISHABLE } from '../catalogue/colors';
-import { defaultFloorId, defaultWallId } from './finishes';
+import { defaultFloorId, wallFaceFinishId, woodworkHex } from './finishes';
 
 export const MM = 0.001;
+
+/** Skirting: 120 mm high, 18 mm deep, along each wall face inside a room. */
+export const SKIRTING_HEIGHT = 120;
+export const SKIRTING_DEPTH = 18;
 
 /** Wall height in the overview's cut-away view (mm). */
 export const CUTAWAY_HEIGHT = 1200;
@@ -35,7 +41,25 @@ export interface MeshSpec {
   receiveShadow: boolean;
   /** Set on floors so a click can pick the room. */
   roomId?: string;
+  /** Set on wall meshes: which wall face each run of triangles belongs to, so a click can pick it. */
+  wallFaces?: FaceRange[];
 }
+
+/** Triangles [from, to) of a merged wall mesh that are one face of one wall. */
+export interface FaceRange {
+  from: number;
+  to: number;
+  wallId: string;
+  side: 'L' | 'R';
+}
+
+/** Which wall face a click on triangle `faceIndex` of a wall mesh hit. */
+export function wallFaceAt(ranges: FaceRange[] | undefined, faceIndex: number | undefined): FaceRange | undefined {
+  if (!ranges || faceIndex === undefined) return undefined;
+  return ranges.find((r) => faceIndex >= r.from && faceIndex < r.to);
+}
+
+const faceTags = new WeakMap<THREE.BufferGeometry, { wallId: string; side: 'L' | 'R' }>();
 
 export interface LevelScene {
   meshes: MeshSpec[];
@@ -61,16 +85,6 @@ function wallBox(basis: THREE.Matrix4, u0: number, u1: number, v0: number, v1: n
   g.translate(((u0 + u1) / 2) * MM, ((v0 + v1) / 2) * MM, ((n0 + n1) / 2) * MM);
   g.applyMatrix4(basis);
   return g;
-}
-
-function roomFor(level: Level, d: DetectedRoom | undefined): Room | undefined {
-  if (!d) return undefined;
-  return level.rooms.find((r) => r.boundary.join('|') === d.nodeIds.join('|'));
-}
-
-function wallFinishId(room: Room | undefined): string {
-  if (!room) return 'wall-white';
-  return room.wallFinish ?? defaultWallId(room.name);
 }
 
 /** Flat polygon at a height with UVs in metres. Normal up or down. */
@@ -171,7 +185,28 @@ function doorLeaf(o: Opening, a: Vec2, d: Vec2, half: number, elevation: number)
   return g;
 }
 
-function wallMeshes(level: Level, wall: Wall, height: number, sideRooms: { L?: Room; R?: Room }, out: Map<string, THREE.BufferGeometry[]>, cut = false) {
+/** Intervals [s, e] of [u0, u1] left after removing the blocked ones. */
+export function freeSpans(u0: number, u1: number, blocked: [number, number][]): [number, number][] {
+  const spans: [number, number][] = [];
+  let cursor = u0;
+  for (const [s, e] of [...blocked].sort((p, q) => p[0] - q[0])) {
+    if (s > cursor) spans.push([cursor, Math.min(s, u1)]);
+    cursor = Math.max(cursor, e);
+    if (cursor >= u1) break;
+  }
+  if (cursor < u1) spans.push([cursor, u1]);
+  return spans.filter(([s, e]) => e - s > 20);
+}
+
+function wallMeshes(
+  level: Level,
+  wall: Wall,
+  outline: WallOutline | undefined,
+  height: number,
+  sideRooms: WallSides,
+  out: Map<string, THREE.BufferGeometry[]>,
+  cut = false,
+) {
   const { a, d, length } = wallDir(level, wall);
   if (length < 1) return;
   const { extA, extB } = wallEndExtensions(level, wall);
@@ -184,9 +219,27 @@ function wallMeshes(level: Level, wall: Wall, height: number, sideRooms: { L?: R
     const g = new THREE.ExtrudeGeometry(shapes, { depth: half * MM, bevelEnabled: false, curveSegments: 1 });
     if (side === 'R') g.translate(0, 0, -half * MM);
     g.applyMatrix4(basis);
-    const key = `wall:${wallFinishId(sideRooms[side])}`;
-    push(out, key, g);
-    for (const sl of sills) push(out, key, side === 'L' ? wallBox(basis, sl.u0, sl.u1, 0, sl.v1, 0, half) : wallBox(basis, sl.u0, sl.u1, 0, sl.v1, -half, 0));
+    const key = `wall:${wallFaceFinishId(sideRooms[side]?.room, wall, side)}`;
+    const tag = { wallId: wall.id, side };
+    push(out, key, g, tag);
+    for (const sl of sills) push(out, key, side === 'L' ? wallBox(basis, sl.u0, sl.u1, 0, sl.v1, 0, half) : wallBox(basis, sl.u0, sl.u1, 0, sl.v1, -half, 0), tag);
+  }
+  // Woodwork takes the colour of the room on the wall's left, else on its right.
+  const woodOf = (hex: string | undefined) => (hex ? `wood:${hex}` : 'token:frame');
+  const openingWood = woodOf(woodworkHex(sideRooms.L?.room) ?? woodworkHex(sideRooms.R?.room));
+  // Skirting along each face that looks into a room, skipping openings that reach the floor.
+  if (outline) {
+    const skirtH = Math.min(SKIRTING_HEIGHT, height);
+    const gaps: [number, number][] = wall.openings.filter((o) => o.sill < SKIRTING_HEIGHT).map((o) => [o.offset, o.offset + o.width]);
+    for (const side of ['L', 'R'] as const) {
+      if (!sideRooms[side]) continue;
+      const u0 = dot(sub(side === 'L' ? outline.aL : outline.aR, a), d);
+      const u1 = dot(sub(side === 'L' ? outline.bL : outline.bR, a), d);
+      const key = woodOf(woodworkHex(sideRooms[side]?.room));
+      for (const [s, e] of freeSpans(Math.min(u0, u1), Math.max(u0, u1), gaps)) {
+        push(out, key, side === 'L' ? wallBox(basis, s, e, 0, skirtH, half, half + SKIRTING_DEPTH) : wallBox(basis, s, e, 0, skirtH, -half - SKIRTING_DEPTH, -half));
+      }
+    }
   }
   // Openings
   for (const o of wall.openings) {
@@ -201,19 +254,32 @@ function wallMeshes(level: Level, wall: Wall, height: number, sideRooms: { L?: R
       push(out, 'token:glass', wallBox(basis, hole.u0, hole.u1, hole.v0, hole.v1, -6, 6));
       const f = 45;
       const depth = Math.min(70, half * 2);
-      push(out, 'token:frame', wallBox(basis, hole.u0, hole.u1, hole.v0, hole.v0 + f, -depth / 2, depth / 2));
-      push(out, 'token:frame', wallBox(basis, hole.u0, hole.u1, hole.v1 - f, hole.v1, -depth / 2, depth / 2));
-      push(out, 'token:frame', wallBox(basis, hole.u0, hole.u0 + f, hole.v0, hole.v1, -depth / 2, depth / 2));
-      push(out, 'token:frame', wallBox(basis, hole.u1 - f, hole.u1, hole.v0, hole.v1, -depth / 2, depth / 2));
+      push(out, openingWood, wallBox(basis, hole.u0, hole.u1, hole.v0, hole.v0 + f, -depth / 2, depth / 2));
+      push(out, openingWood, wallBox(basis, hole.u0, hole.u1, hole.v1 - f, hole.v1, -depth / 2, depth / 2));
+      push(out, openingWood, wallBox(basis, hole.u0, hole.u0 + f, hole.v0, hole.v1, -depth / 2, depth / 2));
+      push(out, openingWood, wallBox(basis, hole.u1 - f, hole.u1, hole.v0, hole.v1, -depth / 2, depth / 2));
       const mid = (hole.v0 + hole.v1) / 2;
-      push(out, 'token:frame', wallBox(basis, hole.u0, hole.u1, mid - 20, mid + 20, -depth / 2, depth / 2));
+      push(out, openingWood, wallBox(basis, hole.u0, hole.u1, mid - 20, mid + 20, -depth / 2, depth / 2));
     } else if (o.type === 'door') {
-      push(out, 'token:door', doorLeaf(o, a, d, half, level.elevation));
+      const leafWood = woodworkHex(sideRooms.L?.room) ?? woodworkHex(sideRooms.R?.room);
+      push(out, leafWood ? openingWood : 'token:door', doorLeaf(o, a, d, half, level.elevation));
+      // Frame: a 50 mm architrave round the opening on both faces of the wall.
+      const w = 50;
+      const t = 12;
+      for (const [n0, n1] of [
+        [half, half + t],
+        [-half - t, -half],
+      ]) {
+        push(out, openingWood, wallBox(basis, hole.u0 - w, hole.u0, 0, hole.v1 + w, n0, n1));
+        push(out, openingWood, wallBox(basis, hole.u1, hole.u1 + w, 0, hole.v1 + w, n0, n1));
+        push(out, openingWood, wallBox(basis, hole.u0, hole.u1, hole.v1, hole.v1 + w, n0, n1));
+      }
     }
   }
 }
 
-function push(map: Map<string, THREE.BufferGeometry[]>, key: string, g: THREE.BufferGeometry) {
+function push(map: Map<string, THREE.BufferGeometry[]>, key: string, g: THREE.BufferGeometry, tag?: { wallId: string; side: 'L' | 'R' }) {
+  if (tag) faceTags.set(g, tag);
   const list = map.get(key);
   if (list) list.push(g);
   else map.set(key, [g]);
@@ -251,23 +317,11 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
   const lights: THREE.Vector3[] = [];
 
   // Which room is on each side of each wall.
-  const sides = new Map<string, { L?: Room; R?: Room }>();
-  for (const r of detected) {
-    if (r.solid) continue;
-    const room = roomFor(level, r);
-    for (const e of r.edges) {
-      const w = level.walls.find((x) => x.id === e.wallId);
-      if (!w) continue;
-      const entry = sides.get(w.id) ?? {};
-      if (e.from === w.a) entry.L = room;
-      else entry.R = room;
-      sides.set(w.id, entry);
-    }
-  }
+  const sides = wallSideRooms(level, detected);
 
   for (const w of level.walls) {
     const full = w.height ?? level.ceilingHeight;
-    wallMeshes(level, w, cut ? Math.min(full, cut) : full, sides.get(w.id) ?? {}, groups, !!cut);
+    wallMeshes(level, w, joints.outlines.get(w.id), cut ? Math.min(full, cut) : full, sides.get(w.id) ?? {}, groups, !!cut);
   }
 
   for (const r of detected) {
@@ -281,7 +335,7 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
       push(groups, 'token:masonry', g);
       continue;
     }
-    const room = roomFor(level, r);
+    const room = roomForLoop(level, r);
     const floor = flatPolygon(r.inner, level.elevation, true);
     if (floor) {
       const fid = room?.floorFinish ?? defaultFloorId(room?.name ?? '');
@@ -296,7 +350,7 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
     }
     const ch = room?.ceilingHeight ?? level.ceilingHeight;
     const ceil = cut ? null : flatPolygon(r.inner, level.elevation + ch, false);
-    if (ceil) meshes.push({ key: `ceiling:${r.key}`, geometry: ceil, material: ceilingMaterial, castShadow: false, receiveShadow: false });
+    if (ceil) meshes.push({ key: `ceiling:${r.key}`, geometry: ceil, material: ceilingMaterialFor(room?.ceilingFinish), castShadow: false, receiveShadow: false });
     lights.push(new THREE.Vector3(r.label.x * MM, (level.elevation + ch - 300) * MM, r.label.y * MM));
   }
 
@@ -325,12 +379,19 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
   }
 
   for (const [key, list] of groups) {
+    // Triangle runs that belong to a wall face, in merge order (for click picking).
+    const wallFaces: FaceRange[] = [];
+    let tri = 0;
     const nonIndexed = list.map((g) => {
       const ni = g.index ? g.toNonIndexed() : g;
       // Merge needs the same attribute set everywhere.
       if (!ni.getAttribute('uv')) ni.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((ni.getAttribute('position').count) * 2), 2));
       for (const name of Object.keys(ni.attributes)) if (!['position', 'normal', 'uv'].includes(name)) ni.deleteAttribute(name);
       ni.clearGroups();
+      const count = ni.getAttribute('position').count / 3;
+      const tag = faceTags.get(g);
+      if (tag) wallFaces.push({ from: tri, to: tri + count, ...tag });
+      tri += count;
       return ni;
     });
     const merged = mergeGeometries(nonIndexed, false);
@@ -339,9 +400,15 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
     if (!merged) continue;
     const [kind, id] = key.split(':');
     const material =
-      kind === 'wall' ? finishMaterial(id, 'wall-white') : kind === 'tint' ? tintedMaterial(id.split('|')[0], id.split('|')[1]) : tokenMaterial(id);
+      kind === 'wall'
+        ? finishMaterial(id, 'wall-white')
+        : kind === 'tint'
+          ? tintedMaterial(id.split('|')[0], id.split('|')[1])
+          : kind === 'wood'
+            ? woodworkMaterial(id)
+            : tokenMaterial(id);
     const glassy = id === 'glass' || id === 'water';
-    meshes.push({ key, geometry: merged, material, castShadow: !glassy, receiveShadow: !glassy });
+    meshes.push({ key, geometry: merged, material, castShadow: !glassy, receiveShadow: !glassy, wallFaces: wallFaces.length ? wallFaces : undefined });
   }
 
   return {

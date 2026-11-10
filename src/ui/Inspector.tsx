@@ -14,6 +14,9 @@ import { ItemPanel } from './ItemPanel';
 import { isStructural, needsStructuralBadge, OPENING_LABEL, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
 import { openUpWall } from '../geometry/openingEdits';
 import { formatLength } from '../model/units';
+import { PaintGrid, finishName } from './PaintGrid';
+import { faceRoomName, setWallFace, wallSideRooms } from '../model/faces';
+import { surfaceColor, wallFaceFinishId, WALL_FINISHES } from '../view3d/finishes';
 import { deleteNote, findNote, NOTE_COLORS, NOTE_KIND_LABEL, noteColor, noteLength, setNoteColor, setNoteText } from '../model/notes';
 
 export const STRUCTURAL_DELETE_WARNING =
@@ -84,6 +87,59 @@ function TextField({ value, onCommit, label }: { value: string; onCommit: (v: st
   );
 }
 
+/** "Paint: Side facing Reception": one wall face, with the same swatches as the 3D panel. */
+function FacePaint({ level, wall }: { level: Level; wall: Wall }) {
+  const editLevel = useStore((s) => s.editLevel);
+  const sides = useMemo(() => wallSideRooms(level), [level]);
+  const mine = sides.get(wall.id);
+  const shown = (['L', 'R'] as const).filter((side) => mine?.[side]);
+  const textured = useMemo(() => WALL_FINISHES.filter((f) => f.kind !== 'paint'), []);
+  return (
+    <div className="field column" data-testid="wall-paint">
+      <span className="field-label">Paint</span>
+      {shown.length === 0 && <p className="note">This wall does not face a room yet, so there is nothing to paint.</p>}
+      {shown.map((side) => {
+        const name = faceRoomName(mine, side)!;
+        const own = wall.faces?.[side];
+        const current = wallFaceFinishId(mine?.[side]?.room, wall, side);
+        const color = surfaceColor(current);
+        return (
+          <details key={side} className="face-paint" data-testid={`face-${side}`}>
+            <summary>
+              <span className="swatch-dot" style={{ backgroundColor: color }} />
+              Side facing {name}
+              <span className="muted"> · {own ? finishName(own) : 'room colour'}</span>
+            </summary>
+            <PaintGrid
+              label={`Paint: side facing ${name}`}
+              value={own}
+              extras={textured}
+              onPick={(id) =>
+                editLevel(`Paint wall: ${finishName(id)}`, (L) => {
+                  const w = L.walls.find((x) => x.id === wall.id);
+                  if (w) setWallFace(w, side, id);
+                })
+              }
+            />
+            <button
+              className="btn small"
+              disabled={!own}
+              onClick={() =>
+                editLevel('Back to the room colour', (L) => {
+                  const w = L.walls.find((x) => x.id === wall.id);
+                  if (w) setWallFace(w, side, undefined);
+                })
+              }
+            >
+              Back to the room colour
+            </button>
+          </details>
+        );
+      })}
+    </div>
+  );
+}
+
 function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
   const editLevel = useStore((s) => s.editLevel);
   const select = useStore((s) => s.select);
@@ -132,6 +188,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
           }
         />
       </div>
+      <FacePaint level={level} wall={wall} />
       <div className="field column">
         <span className="field-label">What kind of wall?</span>
         <Segmented<WallKind>
@@ -380,7 +437,7 @@ function NotePanel({ level, noteId }: { level: Level; noteId: string }) {
               className={current === c.value ? 'on' : ''}
               onClick={() => editLevel('Colour note', (L) => setNoteColor(L as Level, n.id, c.value))}
             >
-              <span className="swatch" style={{ background: c.value }} aria-hidden />
+              <span className="note-swatch" style={{ background: c.value }} aria-hidden />
               {c.label}
             </button>
           ))}

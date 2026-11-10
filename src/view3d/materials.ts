@@ -2,7 +2,7 @@
 // switching floors or editing a wall never piles up GPU objects.
 
 import * as THREE from 'three';
-import { drawFinish, FLOOR_FINISHES, WALL_FINISHES, type Finish } from './finishes';
+import { drawFinish, findSurface, surfaceColor, type Finish } from './finishes';
 
 const TOKENS: Record<string, { color: string; roughness?: number; metalness?: number; opacity?: number; emissive?: string }> = {
   wood: { color: '#a8804f', roughness: 0.65 },
@@ -66,6 +66,8 @@ export function tintedMaterial(token: string, hex: string): THREE.Material {
 }
 
 const finishCache = new Map<string, THREE.MeshStandardMaterial>();
+const woodCache = new Map<string, THREE.MeshStandardMaterial>();
+const ceilingCache = new Map<string, THREE.MeshStandardMaterial>();
 
 function finishTexture(f: Finish): THREE.Texture | null {
   if (f.kind === 'paint' || typeof document === 'undefined') return null;
@@ -81,6 +83,10 @@ function finishTexture(f: Finish): THREE.Texture | null {
   tex.wrapT = THREE.RepeatWrapping;
   // Geometry UVs are in metres; one texture covers tileM metres.
   tex.repeat.set(1 / f.tileM, 1 / f.tileM);
+  if (f.rotation) {
+    tex.center.set(0.5, 0.5);
+    tex.rotation = f.rotation;
+  }
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   return tex;
@@ -90,7 +96,8 @@ export function finishMaterial(id: string, fallback: string): THREE.MeshStandard
   const key = id || fallback;
   const hit = finishCache.get(key);
   if (hit) return hit;
-  const f = [...FLOOR_FINISHES, ...WALL_FINISHES].find((x) => x.id === key) ?? [...FLOOR_FINISHES, ...WALL_FINISHES].find((x) => x.id === fallback)!;
+  // Paint ids and hex colours are shared too: one material per colour.
+  const f = findSurface(key) ?? findSurface(fallback)!;
   const map = finishTexture(f);
   const m = new THREE.MeshStandardMaterial({
     color: map ? '#ffffff' : f.color,
@@ -103,3 +110,23 @@ export function finishMaterial(id: string, fallback: string): THREE.MeshStandard
 
 /** Ceilings: plain white, seen only from below. */
 export const ceilingMaterial = new THREE.MeshStandardMaterial({ color: '#fbfbf9', roughness: 1, side: THREE.FrontSide });
+
+/** Ceiling in a room's own paint (a paint id or hex), shared by colour. White or unknown gives the plain ceiling. */
+export function ceilingMaterialFor(id: string | undefined): THREE.Material {
+  const hex = surfaceColor(id);
+  if (!id || !hex || id === 'paint-chalk-white') return ceilingMaterial;
+  const hit = ceilingCache.get(hex);
+  if (hit) return hit;
+  const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 1, side: THREE.FrontSide });
+  ceilingCache.set(hex, m);
+  return m;
+}
+
+/** Painted woodwork (skirting, door leaves and frames, window frames): one material per colour. */
+export function woodworkMaterial(hex: string): THREE.Material {
+  const hit = woodCache.get(hex);
+  if (hit) return hit;
+  const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.5, metalness: 0 });
+  woodCache.set(hex, m);
+  return m;
+}

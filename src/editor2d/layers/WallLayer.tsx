@@ -5,6 +5,7 @@ import { add, mul, perpL, perpR } from '../../geometry/vec';
 import { COLORS } from '../theme';
 import type { OpeningGhost } from '../../model/store';
 import { makeOpening } from '../../geometry/openings';
+import { surfaceColor } from '../../view3d/finishes';
 
 const flat = (pts: Vec2[]) => pts.flatMap((p) => [p.x, p.y]);
 
@@ -115,6 +116,22 @@ export function WallShapes({
             listening={false}
           />
         );
+      })}
+      {/* A thin coloured line along each painted wall face, so feature walls show on the plan. */}
+      {level.walls.map((w) => {
+        const o = joints.outlines.get(w.id);
+        if (!o || !w.faces) return null;
+        return (['L', 'R'] as const).map((side) => {
+          const color = surfaceColor(w.faces?.[side]);
+          if (!color) return null;
+          const pts = flat(side === 'L' ? [o.aL, o.bL] : [o.aR, o.bR]);
+          return (
+            <Group key={`${w.id}-face-${side}`} listening={false}>
+              <Line points={pts} stroke="rgba(0,0,0,0.35)" strokeWidth={4.5} lineCap="butt" strokeScaleEnabled={false} listening={false} />
+              <Line points={pts} stroke={color} strokeWidth={3} lineCap="butt" strokeScaleEnabled={false} listening={false} />
+            </Group>
+          );
+        });
       })}
       {level.walls.map((w) => {
         const o = joints.outlines.get(w.id);
