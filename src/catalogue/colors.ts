@@ -33,9 +33,25 @@ export function planColor(token: string): string {
 /** Tokens that take a piece's chosen paint or timber finish. */
 export const FINISHABLE = new Set(['joinery', 'cabinet', 'wood', 'white']);
 
-/** Colour of a part in plan, with the piece's finish applied. */
-export function partColor(token: string, finish?: string): string {
-  return finish && FINISHABLE.has(token) ? finish : planColor(token);
+/**
+ * Tokens that take a catalogue item's `tint` (an item described to Claude, for
+ * example "tan leather"): the main body materials, not glass, metal or screens.
+ */
+export const TINTABLE = new Set([...FINISHABLE, 'fabric', 'custom', 'rug', 'hinoki']);
+
+/**
+ * The colour a part is repainted in, or undefined to keep the token's own.
+ * Her chosen finish on the piece wins over the catalogue item's tint.
+ */
+export function overrideColor(token: string, finish?: string, tint?: string): string | undefined {
+  if (finish && FINISHABLE.has(token)) return finish;
+  if (tint && TINTABLE.has(token)) return tint;
+  return undefined;
+}
+
+/** Colour of a part in plan, with the piece's finish (or the item's tint) applied. */
+export function partColor(token: string, finish?: string, tint?: string): string {
+  return overrideColor(token, finish, tint) ?? planColor(token);
 }
 
 /** Classic joinery colours offered in the item panel. */

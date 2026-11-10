@@ -114,7 +114,7 @@ test('phase 3: find, place, fold down, resize, turn, duplicate, lock, custom ite
   await page.getByLabel('Height', { exact: true }).fill('45');
   await page.getByRole('button', { name: 'Add to the list' }).click();
   await page.getByLabel('Search furniture').fill('trunk');
-  await expect(list.locator('li').first()).toContainText("Grandma's trunk");
+  await expect(list.locator('li:not(.group-label)').first()).toContainText("Grandma's trunk");
   const custom = await page.evaluate(() => (window as any).__flatplan.store.getState().project.catalogueOverrides[0]);
   expect(custom.defaultDims).toEqual({ w: 900, d: 500, h: 450 });
 

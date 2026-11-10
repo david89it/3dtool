@@ -41,7 +41,7 @@ export function ItemShape({ item, cat, opacity = 1, highlight }: { item: PlacedI
             key={i}
             points={flat(poly)}
             closed
-            fill={partColor(p.colorToken, item.finish)}
+            fill={partColor(p.colorToken, item.finish, cat.tint)}
             stroke="#5f646b"
             strokeWidth={0.6}
             strokeScaleEnabled={false}

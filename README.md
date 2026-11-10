@@ -260,6 +260,7 @@ item…*). These are saved in the project's `catalogueOverrides`.
 | Duplicate, lock, remove | Ctrl/⌘ D, *Lock*, Delete |
 | See the space things need | Select an item, or tick *Show space needed around everything* |
 | Your own item | *Add custom item…* |
+| Add a piece by describing it | Needs *Ask for advice* switched on in Settings with your API key. At the top of the Furnish panel, type "Vitra-style lounge chair in tan leather" or "a 2.4 m oak sideboard" (you can paste a product photo or Pinterest image link into the text, or into the *Image link* box), then **Add**. Check the preview: change the name or any size, then *Add to my items* (or *Try again*). It appears under *Your items* in the list, with a **?** if the size is only a guess, and the right panel shows the image link. Sizes are estimates, so measure the real piece. Undo removes it |
 | Frame an opening with shelves | Search "library" for the *Bookcase surround*, then click next to a door or opening: it centres on it, sizes its gap to the opening and runs up to the ceiling. Change the opening, tower or depth sizes in the panel; *Fit to opening* re-fits it after the opening changes |
 | Paint a piece | *Colour* in the right panel: aubergine, off-black, deep green, navy, warm grey, white, natural oak, or any colour. Shows in the plan and in 3D |
 

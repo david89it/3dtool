@@ -561,3 +561,36 @@ challenged.
   overview shows). The pack imports only the bridge, so printing never loads
   three.js; it just has no 3D section until 3D was opened. Walk view does not
   update it.
+
+## Add a piece by description or image link
+
+- **Sizes are estimates.** Claude gives the size it was told, a typical UK
+  retail size, or a guess, and says which (`sizeConfidence`: stated, typical,
+  guess). A guess gets a "?" badge in the list and a note in the item panel.
+  She can edit every size in the preview before adding. A size she stated
+  ("2.4 m") is kept up to 4 m even if it is wider than the base shape's
+  usual range; estimated sizes are clamped to the base shape's range (100 to
+  4000 mm if the shape is unknown).
+- **The image is fetched by Anthropic's API, not by the browser.** The image
+  goes in as a URL source block, so there is no CORS problem and no copy is
+  kept. It does mean the link is sent to Anthropic and must be a public,
+  direct image address (a Pinterest pin page is not an image; the image
+  address on i.pinimg.com is). Only http(s) links are accepted. Only the text and the
+  link are sent, never the plan.
+- **Same client as advice.** Same key (IndexedDB), model, beta fallback
+  and error messages as `claudeAdvice.ts`; shown only when Ask Claude is
+  turned on and a key is saved. Replies use structured outputs
+  (`output_config.format` as a JSON schema, with the base shape restricted to
+  the catalogue's ids) and are validated again locally: unknown shape falls
+  back to a plain box, bad colours are dropped, sizes clamped.
+- **Shape and clearances come from a real catalogue item** (the closest
+  one, chosen by Claude), scaled to the sizes. If the mounting differs from
+  that item's (a floor item wanted on the wall), a plain box is used.
+- **Colour is a `tint` on the catalogue item** that repaints the body
+  materials (fabric, wood, joinery, cabinet, rug, custom, hinoki) in plan and
+  3D. A piece's own finish still wins. Glass, metal and screens keep their
+  look. A single hex per item, so a two-tone piece is approximate.
+- **Items are stored in `project.catalogueOverrides`** with ids `ai-…`, plus
+  `source` (kind, text, link, size confidence). Adding goes through `commit()`
+  so it can be undone, and the item travels with saved copies and versions.
+

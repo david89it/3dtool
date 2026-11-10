@@ -202,6 +202,13 @@ export interface CatalogueItem {
   // for items whose parts must not simply stretch when resized, such as a
   // bookcase surround whose middle gap must stay the size of the opening.
   builder?: string;
+  // EXTENSION: a colour (hex) for the item's main body materials (fabric, wood,
+  // joinery, cabinet, rug...), set for items made from a description such as
+  // "tan leather". A piece's own `finish` still wins. See colors.ts `overrideColor`.
+  tint?: string;
+  // EXTENSION: where an item made from a description or an image link came
+  // from, so the item panel can show the link and say how sure the size is.
+  source?: { kind: 'description' | 'image'; text?: string; url?: string; sizeConfidence: string };
 }
 
 export interface PrimitivePart {

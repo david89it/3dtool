@@ -4,10 +4,14 @@ import type { CatalogueItem } from '../model/types';
 import { useStore } from '../model/store';
 import { CATEGORY_LABEL } from '../catalogue/items';
 import { allCatalogue } from '../catalogue/catalogue';
-import { planColor } from '../catalogue/colors';
+import { partColor } from '../catalogue/colors';
 import { canvasApi } from '../editor2d/canvasApi';
 import { formatLength } from '../model/units';
 import { CustomItemDialog } from './CustomItemDialog';
+import { DescribeItemBox } from './DescribeItemBox';
+
+/** Items she made: by hand (custom-) or from a description (ai-). */
+const isMine = (c: CatalogueItem) => c.id.startsWith('custom-') || c.id.startsWith('ai-');
 
 type Cat = CatalogueItem['category'];
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as Cat[];
@@ -21,9 +25,9 @@ export function ItemPreview({ item, size = 44 }: { item: CatalogueItem; size?: n
     <svg width={size} height={size} viewBox={`${-w / 2 - pad} ${-d / 2 - pad} ${w + 2 * pad} ${d + 2 * pad}`} aria-hidden preserveAspectRatio="xMidYMid meet">
       {parts.map((p, i) =>
         p.shape === 'cylinder' ? (
-          <ellipse key={i} cx={p.pos[0]} cy={p.pos[2]} rx={p.size[0] / 2} ry={p.size[2] / 2} fill={planColor(p.colorToken)} stroke="#5f646b" strokeWidth={Math.max(w, d) / 120} />
+          <ellipse key={i} cx={p.pos[0]} cy={p.pos[2]} rx={p.size[0] / 2} ry={p.size[2] / 2} fill={partColor(p.colorToken, undefined, item.tint)} stroke="#5f646b" strokeWidth={Math.max(w, d) / 120} />
         ) : (
-          <rect key={i} x={p.pos[0] - p.size[0] / 2} y={p.pos[2] - p.size[2] / 2} width={p.size[0]} height={p.size[2]} fill={planColor(p.colorToken)} stroke="#5f646b" strokeWidth={Math.max(w, d) / 120} />
+          <rect key={i} x={p.pos[0] - p.size[0] / 2} y={p.pos[2] - p.size[2] / 2} width={p.size[0]} height={p.size[2]} fill={partColor(p.colorToken, undefined, item.tint)} stroke="#5f646b" strokeWidth={Math.max(w, d) / 120} />
         ),
       )}
     </svg>
@@ -108,9 +112,62 @@ export function FurnishPanel() {
     setConfirmRemove(null);
   };
 
+  const mine = shown.filter(isMine);
+  const rest = shown.filter((c) => !isMine(c));
+
+  const renderItem = (c: CatalogueItem) => {
+    const armed = tool === 'placeItem' && placeItemId === c.id;
+    const custom = isMine(c);
+    return (
+      <li key={c.id}>
+        <div
+          role="button"
+          tabIndex={0}
+          className={armed ? 'palette-item on' : 'palette-item'}
+          aria-pressed={armed}
+          data-testid={`catalogue-${c.id}`}
+          onPointerDown={onPointerDown(c.id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') useStore.getState().armItem(c.id);
+          }}
+        >
+          <ItemPreview item={c} />
+          <span className="palette-text">
+            <span className="tool-label">
+              {c.name}
+              {c.source?.sizeConfidence === 'guess' && (
+                <span className="guess-badge" title="Claude guessed this size. Check it against the real thing." aria-label="Size is a guess">
+                  ?
+                </span>
+              )}
+            </span>
+            <span className="tool-desc">
+              {formatLength(c.defaultDims.w, units)} × {formatLength(c.defaultDims.d, units)}
+              {custom ? ' · your item' : ''}
+            </span>
+          </span>
+          {custom && (
+            <button
+              className="remove-custom"
+              aria-label={`Remove ${c.name} from the list`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirmRemove === c.id) removeCustom(c.id);
+                else setConfirmRemove(c.id);
+              }}
+            >
+              {confirmRemove === c.id ? 'Remove?' : '×'}
+            </button>
+          )}
+        </div>
+      </li>
+    );
+  };
+
   return (
     <section className="panel-section furnish" aria-label="Furniture">
       <h2>Furniture</h2>
+      <DescribeItemBox />
       <input
         data-tour="furnish-search"
         className="text-field"
@@ -134,47 +191,18 @@ export function FurnishPanel() {
       <p className="note">Click one, then click the plan. Or drag it onto the plan.</p>
       <ul className="catalogue-list" data-testid="catalogue-list">
         {shown.length === 0 && <li className="note">Nothing matches. Try another word, or add your own item below.</li>}
-        {shown.map((c) => {
-          const armed = tool === 'placeItem' && placeItemId === c.id;
-          const custom = c.id.startsWith('custom-');
-          return (
-            <li key={c.id}>
-              <div
-                role="button"
-                tabIndex={0}
-                className={armed ? 'palette-item on' : 'palette-item'}
-                aria-pressed={armed}
-                data-testid={`catalogue-${c.id}`}
-                onPointerDown={onPointerDown(c.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') useStore.getState().armItem(c.id);
-                }}
-              >
-                <ItemPreview item={c} />
-                <span className="palette-text">
-                  <span className="tool-label">{c.name}</span>
-                  <span className="tool-desc">
-                    {formatLength(c.defaultDims.w, units)} × {formatLength(c.defaultDims.d, units)}
-                    {custom ? ' · your item' : ''}
-                  </span>
-                </span>
-                {custom && (
-                  <button
-                    className="remove-custom"
-                    aria-label={`Remove ${c.name} from the list`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirmRemove === c.id) removeCustom(c.id);
-                      else setConfirmRemove(c.id);
-                    }}
-                  >
-                    {confirmRemove === c.id ? 'Remove?' : '×'}
-                  </button>
-                )}
-              </div>
-            </li>
-          );
-        })}
+        {mine.length > 0 && (
+          <li className="group-label" aria-hidden>
+            Your items
+          </li>
+        )}
+        {mine.map(renderItem)}
+        {mine.length > 0 && rest.length > 0 && (
+          <li className="group-label" aria-hidden>
+            Catalogue
+          </li>
+        )}
+        {rest.map(renderItem)}
       </ul>
       <button className="btn wide" onClick={() => setDialog(true)}>
         Add custom item…

@@ -52,7 +52,7 @@ beats feature count.
 | `src/editor2d` | Konva canvas, layers, tools for each mode, hit testing, `canvasApi` bridge (also used by tests) | `PlanCanvas.tsx`, `tools/*` |
 | `src/rules` | 22 layout rules (one registry file), engine, fixers | `registry.ts`, `engine.ts` |
 | `src/view3d` | 3D scene, wall profiles with holes, walk physics, materials and finishes | `View3D.tsx`, `sceneBuild.ts` |
-| `src/advice` | Optional Claude API client (`claude-opus-5-5`, key kept in the browser) | `claudeAdvice.ts` |
+| `src/advice` | Optional Claude API client (`claude-opus-5-5`, key kept in the browser): advice and describe-a-piece | `claudeAdvice.ts`, `describeItem.ts` |
 | `src/ui` | Panels, mode bar, inspector, dialogs, tour, shortcuts, options | `App.tsx`, `Inspector.tsx` |
 | `e2e` | One Playwright spec per phase or feature | Load the app with `?notour` |
 | `assets` | Agent's floorplan, brochure, listing photos (**private**, see §5) | |
@@ -137,6 +137,11 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   `canvasApi.renderLevelImage`, and the structural badge shrunk to a ⚠ pin
   (`src/editor2d/pins.ts`).
 
+- Add an object by description or image link (`src/advice/describeItem.ts`
+  and `describeModel.ts`, `src/ui/DescribeItemBox.tsx`): Claude returns a sized,
+  coloured item built from the closest catalogue shape, saved in
+  `catalogueOverrides` as `ai-…` with `CatalogueItem.tint` and `.source`.
+
 **In flight:** none.
 
 **Blocked:**
@@ -154,13 +159,11 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
    floors, saved schemes.
 2. Real sun for N19: date and time, sun hours per room (after 1; both
    change `src/view3d`).
-3. Add an object by description or image link (Claude; the site is hosted,
-   so the owner only needs a key).
-4. Costs and shopping list.
-5. Pack follow-ups: detect removed walls by comparing with a version, before
+3. Costs and shopping list.
+4. Pack follow-ups: detect removed walls by comparing with a version, before
    and after 3D, 3D views per floor.
-6. Sloped loft ceiling and chimney-breast objects (after the site visit).
-7. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
+5. Sloped loft ceiling and chimney-breast objects (after the site visit).
+6. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
    room views, undo history list.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
@@ -178,7 +181,7 @@ side-by-side compare, live Pinterest sync, fps meter.
 - Seed stairs are rough.
 - A painted item's white parts (pillows) take its finish.
 - Not tested on a real MacBook or iPad.
-- Ask Claude was tested only with a mock.
+- Ask Claude (advice and describe-a-piece) was tested only with a mock; the structured-output reply and URL image blocks have not met the real API. A tinted item has one colour for all its body materials.
 - Scan import has not been tried on a real RoomPlan export. Scans line up
   only by their top-left corner. The site-measure checklist is long (192
   steps on the seed) and its progress is saved per browser.
@@ -200,6 +203,10 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-10 · describe · Add a piece by description or image link
+  (structured outputs, `describeModel.ts` pure half, `DescribeItemBox`,
+  `tint` and `source` on `CatalogueItem`, "Your items" group, `e2e/describe.spec.ts`
+  with the API mocked).
 - 2026-11-10 · versions · Named and automatic versions in IndexedDB (own keys,
   images stored once by hash), Versions panel (clock button, File menu),
   `diffProjects`, restore with a "Before restoring" copy, history in saved

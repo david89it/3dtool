@@ -1,6 +1,6 @@
 import { useLevelIssues } from './useIssues';
 import { IssueCard } from './AdvicePanel';
-import type { Level, PlacedItem } from '../model/types';
+import type { CatalogueItem, Level, PlacedItem } from '../model/types';
 import { useStore } from '../model/store';
 import { currentState, effectiveDims, findCatalogueItem, itemParts, STATE_LABEL, stateNames } from '../catalogue/catalogue';
 import { FINISHABLE, FINISH_SWATCHES } from '../catalogue/colors';
@@ -47,6 +47,8 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
         {cat.mount === 'wall' ? ' · fixed to a wall' : cat.mount === 'ceiling' ? ' · hangs from the ceiling' : ''}
         {item.locked ? ' · locked' : ''}
       </p>
+
+      {cat.source && <ItemSource source={cat.source} />}
 
       {cat.builder === 'opening-surround' && <SurroundFields level={level} item={item} change={change} locked={!!item.locked} />}
 
@@ -278,6 +280,30 @@ function FinishPicker({ item, change, name, hasFinish }: { item: PlacedItem; cha
           />
         </label>
       </div>
+    </div>
+  );
+}
+
+const SOURCE_NOTE = {
+  stated: 'The size is as described.',
+  typical: 'The size is a typical one for this kind of piece.',
+  guess: 'The size is a rough guess, so check it against the real thing.',
+} as const;
+
+/** Where an item made from a description came from, and how sure its size is. */
+function ItemSource({ source }: { source: NonNullable<CatalogueItem['source']> }) {
+  const link = source.url && /^https?:\/\//i.test(source.url) ? source.url : undefined;
+  return (
+    <div className="item-source" data-testid="item-source">
+      <p className="note">
+        {source.kind === 'image' ? 'Made from an image link' : 'Made from your description'}
+        {source.text ? `: “${source.text}”` : ''}. {SOURCE_NOTE[source.sizeConfidence as keyof typeof SOURCE_NOTE] ?? 'Sizes are estimates.'}
+      </p>
+      {link && (
+        <a href={link} target="_blank" rel="noopener noreferrer" className="source-link">
+          Open the image link
+        </a>
+      )}
     </div>
   );
 }

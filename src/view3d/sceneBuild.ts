@@ -14,7 +14,7 @@ import { add, mul, perpL, perpR, signedArea } from '../geometry/vec';
 import { findCatalogueItem, itemParts, localToPlan } from '../catalogue/catalogue';
 import { wallDir, wallEndExtensions, wallProfile, type WallProfile } from './wallProfile';
 import { ceilingMaterial, finishMaterial, tintedMaterial, tokenMaterial } from './materials';
-import { FINISHABLE } from '../catalogue/colors';
+import { overrideColor } from '../catalogue/colors';
 import { defaultFloorId, defaultWallId } from './finishes';
 
 export const MM = 0.001;
@@ -319,8 +319,8 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
       g.rotateY(rot);
       const c = localToPlan(it, cat, p.pos[0], p.pos[2]);
       g.translate(c.x * MM, (level.elevation + p.pos[1]) * MM, c.y * MM);
-      const tinted = it.finish && FINISHABLE.has(p.colorToken);
-      push(groups, tinted ? `tint:${p.colorToken}|${it.finish}` : `token:${p.colorToken}`, g.index ? g.toNonIndexed() : g);
+      const tinted = overrideColor(p.colorToken, it.finish, cat.tint);
+      push(groups, tinted ? `tint:${p.colorToken}|${tinted}` : `token:${p.colorToken}`, g.index ? g.toNonIndexed() : g);
     }
   }
 
