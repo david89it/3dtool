@@ -103,6 +103,22 @@ pop up the copy menu. Add the page to the Home Screen for full-screen use.
 
 `?notour` in the address skips the tour (used by the tests).
 
+## Using it: on site and scans
+
+| Do this | How |
+| --- | --- |
+| Replace estimates with real measurements | Settings → *Measure on site* (or File → *Measure on site*). Works on a phone |
+| Answer a step | Type the size (`3.32`, `332 cm`, `23 cm`, `10' 11"`) and *Save*. *Skip* or *Can't measure* to move on, *Back* to return |
+| Stop and carry on later | Close it; it reopens where you left off. *Undo* undoes the last measurement |
+| Scan rooms with LiDAR | Settings → *Scan with an iPhone or iPad Pro (LiDAR)* for the apps and steps |
+| Bring a scan in | File → *Import a scan…*: `.usdz` (RoomPlan) builds walls, doors and windows; `.dxf` goes under the plan as a drawing to trace (corners snap to its line ends); an image or PDF becomes the plan picture |
+| Keep your plan while trying a scan | *Add as a new option*: the scan goes in as Option B and your plan stays as Option A |
+
+The checklist asks about every value still marked ≈: each floor's ceiling
+height and height above the front door, each wall's inside length and
+thickness, each door and window's width and height (and sill for windows),
+and every "measure me" pin.
+
 ## Code layout
 
 ```
@@ -110,6 +126,8 @@ assets/            agent floorplan, brochure, listing photos
 src/model          types, zustand store, undo history, units, seed, autosave
 src/geometry       wall graph, joints, room detection, dimensions, snapping, calibration
 src/editor2d       Konva canvas, layers and tools
+src/sitemeasure    site-measure checklist and LiDAR scan guide
+src/import         RoomPlan (USDZ) and DXF scan import
 src/ui             panels, mode bar, inspector
 src/view3d         3D scene (walls, floors, furniture), walkthrough, finishes
 src/catalogue      (phase 3)

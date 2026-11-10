@@ -11,7 +11,7 @@ import { dist } from '../geometry/vec';
 import { formatLength, formatScale, parseLength } from '../model/units';
 import { fitView, MAX_SCALE, MIN_SCALE, toScreen, toWorld, zoomAt, type View } from './view';
 import { dimLabelScreenPos } from './hitTest';
-import { UnderlayImage } from './layers/UnderlayLayer';
+import { UnderlayImage, VectorUnderlayShape } from './layers/UnderlayLayer';
 import { RoomFills } from './layers/RoomLayer';
 import { WallShapes } from './layers/WallLayer';
 import { StairShapes } from './layers/StairLayer';
@@ -509,6 +509,7 @@ export function PlanCanvas() {
             <Rect x={0} y={0} width={size.w} height={size.h} fill={COLORS.paper} />
             <Group x={view.x} y={view.y} scaleX={view.scale} scaleY={view.scale}>
               {level.underlay && <UnderlayImage underlay={level.underlay} />}
+              {level.vectorUnderlay && <VectorUnderlayShape underlay={level.vectorUnderlay} />}
               <RoomFills level={level} rooms={derived.rooms} selectedRoomId={selectedRoomId} translucent={!!level.underlay} />
               <ItemShapes
                 level={level}

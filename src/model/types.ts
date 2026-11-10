@@ -41,6 +41,18 @@ export interface Level {
   // EXTENSION (phase 6, compare mode): set when this floor has several
   // options. `group` is the id of the original floor; `name` is "Option A"...
   scheme?: { group: Id; name: string };
+  // EXTENSION (scan import): line drawing from a DXF export (a LiDAR scan
+  // app's floor plan, or a surveyor's CAD file), in plan mm. Drawn faintly
+  // under the walls; wall drawing snaps to its line ends. Walls are not
+  // built from it automatically: CAD lines are not a wall graph.
+  vectorUnderlay?: VectorUnderlay;
+}
+
+// EXTENSION: see Level.vectorUnderlay.
+export interface VectorUnderlay {
+  name: string;
+  /** Line segments [x1, y1, x2, y2] in plan mm. */
+  segments: [number, number, number, number][];
 }
 
 // EXTENSION: see Level.markers.

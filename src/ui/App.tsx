@@ -17,6 +17,9 @@ import { Toasts } from './Toasts';
 import { Tour } from './Tour';
 import { Shortcuts } from './Shortcuts';
 import { markTourSeen } from '../model/persistence';
+import { SiteMeasure } from '../sitemeasure/SiteMeasure';
+import { ScanGuide } from '../sitemeasure/ScanGuide';
+import { ScanImport } from '../import/ScanImport';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
 const View3D = lazy(() => import('../view3d/View3D').then((m) => ({ default: m.View3D })));
@@ -152,6 +155,9 @@ export function App() {
       <Toasts />
       <Tour />
       <Shortcuts />
+      <SiteMeasure />
+      <ScanImport />
+      <ScanGuide />
     </div>
   );
 }

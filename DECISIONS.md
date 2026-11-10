@@ -360,3 +360,50 @@ challenged.
   Walk always builds full-height walls.
 - **Advice highlight** clears when you click empty canvas (deselect) or
   press Esc.
+
+## Site measure and scan import
+
+- **Checklist.** Built from every active option of every floor: level heights
+  (while `Level.estimated`), each estimated wall's inside length (walls hidden
+  behind a chimney breast have no face, so only their thickness is asked),
+  each estimated opening's width, height and (windows) sill, and every pin.
+  Step ids are `levelId|kind|targetId`, so her place survives reloads. The
+  list is fixed when she starts; anything newly estimated is added at the
+  end next time. Progress and position are kept in this browser only
+  (`flatplan:sitemeasure:v1`), not in the project file.
+- **A measurement is not a design change.** Measured opening sizes are written
+  as given: no pier check, no overlap check, and `existing` is kept, so
+  measuring a seed window never raises the structural badge. Wall lengths go
+  through `setInternalLength` (the same as typing a length on the plan).
+- **RoomPlan USDZ.** Parsed with three's `USDLoader` (USDA and binary USDC,
+  zipped or not), so there is no new dependency. Surfaces are found by prim
+  name (`Wall0`, `Door0`, `Window0`, `Opening0`, case-insensitive). Each
+  prim's box is measured in its own frame; the longer horizontal axis is the
+  surface's length. Flat RoomPlan surfaces have no thickness, so walls under
+  30 mm thick become 100 mm.
+- **Axes.** World metres, Y up, become plan mm with plan (x, y) = world
+  (x, z) × 1000: the same mapping the 3D view uses, so a scan isn't mirrored.
+  The scan is then turned so its walls run square to the page (a 4-fold
+  average of wall directions; RoomPlan's axes are wherever the phone
+  started) and moved so its top-left corner sits on the existing plan's
+  top-left corner (or the origin on an empty floor). Exact alignment with
+  the agent's plan is left to her.
+- **Joining.** Wall ends within 150 mm become one corner; an end within 150
+  mm of another wall joins it. Doors, windows and openings go on the nearest
+  parallel wall within 400 mm; any that match no wall are counted as left
+  out. The median wall height becomes the floor's ceiling height. Everything
+  from a scan is measured (`estimated` unset) and its openings are
+  `existing`. Rooms are named "Scanned room N".
+- **Replace or add.** "Replace this floor's walls" swaps the walls on the
+  current option (furniture, pins, stairs and the plan picture stay). "Add as
+  a new option" duplicates the floor as a new option first and puts the scan
+  there, so the original stays as Option A. This was simpler and safer than
+  merging a scan into an existing wall graph.
+- **DXF.** LINE, LWPOLYLINE and POLYLINE/VERTEX only, in the units of
+  `$INSUNITS` (millimetres when unset); y is flipped (DXF is y-up). Stored as
+  `Level.vectorUnderlay` (an extension), drawn faintly under the walls, with
+  its line ends as snap points for drawing walls. Walls are not built from
+  DXF lines automatically.
+- **App guide wording.** The LiDAR guide names Polycam (Room mode), 3D
+  Scanner App (Room scan) and Canvas as examples, and tells her to check
+  each app's export options; it doesn't promise prices or formats.

@@ -39,6 +39,19 @@ export function snapPoint(level: Level, raw: Vec2, opts: SnapOptions): SnapResul
   }
   if (bestNode) return { point: bestNode.pos, kind: 'node', nodeId: bestNode.id };
 
+  // Line ends of an imported drawing (DXF) count as corners to snap to.
+  let bestEnd: { d: number; pos: Vec2 } | undefined;
+  for (const [x1, y1, x2, y2] of level.vectorUnderlay?.segments ?? []) {
+    for (const pos of [
+      { x: x1, y: y1 },
+      { x: x2, y: y2 },
+    ]) {
+      const d = dist(pos, raw);
+      if (d <= tol && (!bestEnd || d < bestEnd.d)) bestEnd = { d, pos };
+    }
+  }
+  if (bestEnd) return { point: bestEnd.pos, kind: 'node' };
+
   for (const w of level.walls) {
     if (opts.excludeNode && (w.a === opts.excludeNode || w.b === opts.excludeNode)) continue;
     const [a, b] = wallEnds(level, w);

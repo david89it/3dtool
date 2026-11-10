@@ -170,6 +170,19 @@ function UnderlayPanel() {
           </button>
         </>
       )}
+      {level.vectorUnderlay && (
+        <div className="field column" data-testid="drawing-info">
+          <span className="field-label">
+            Drawing: {level.vectorUnderlay.name} ({level.vectorUnderlay.segments.length} lines). Wall corners snap to its line ends.
+          </span>
+          <button
+            className="btn small danger-text"
+            onClick={() => editLevel('Remove drawing', (L) => void delete L.vectorUnderlay)}
+          >
+            Remove drawing
+          </button>
+        </div>
+      )}
     </section>
   );
 }

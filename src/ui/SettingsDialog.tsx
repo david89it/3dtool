@@ -3,6 +3,7 @@ import { useStore } from '../model/store';
 import { RULES } from '../rules/registry';
 import { EditableLength } from './EditableLength';
 import { forgetApiKey, saveAdviceEnabled, saveApiKey } from '../advice/keyStore';
+import { useSiteMeasure } from '../sitemeasure/state';
 
 /** Params that are ratios, not lengths (e.g. 1.5 × the screen size). */
 const isFactor = (key: string) => /factor/i.test(key);
@@ -82,6 +83,34 @@ function RuleSettings() {
             })}
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function OnSiteSettings() {
+  const open = (fn: () => void) => () => {
+    useStore.getState().setSettingsOpen(false);
+    fn();
+  };
+  const sm = useSiteMeasure.getState();
+  return (
+    <section className="settings-section" aria-label="On site">
+      <h3>On site</h3>
+      <p className="note">
+        Replace the estimates from the agent’s plan with real measurements: step through them on your phone, or scan rooms with a
+        LiDAR iPhone or iPad Pro and import the scan.
+      </p>
+      <div className="settings-actions">
+        <button className="btn primary" onClick={open(() => sm.setOpen(true))}>
+          Measure on site
+        </button>
+        <button className="btn" onClick={open(() => sm.setGuideOpen(true))}>
+          Scan with an iPhone or iPad Pro (LiDAR)
+        </button>
+        <button className="btn" onClick={open(() => sm.setImportOpen(true))}>
+          Import a scan…
+        </button>
       </div>
     </section>
   );
@@ -181,6 +210,7 @@ export function SettingsDialog() {
             Done
           </button>
         </div>
+        <OnSiteSettings />
         <ClaudeSettings />
         <RuleSettings />
       </div>
