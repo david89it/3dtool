@@ -16,6 +16,8 @@ export const canvasApi = {
   dimLabelPos: (_wallId: string): Vec2 | null => null,
   /** Page position of a selected opening's measurement (tests). */
   openingLabelPos: (_openingId: string, _field: 'width' | 'before' | 'after'): Vec2 | null => null,
+  /** Page position of a wall's amber structural pin (tests). */
+  structuralPinPos: (_wallId: string): Vec2 | null => null,
   /** Plan position under a page point, or null when it is outside the canvas. */
   clientToWorld: (_client: Vec2): Vec2 | null => null,
   /** Update the placement preview for a palette drag at a page point. */
@@ -26,6 +28,15 @@ export const canvasApi = {
   itemGhostAt: (_client: Vec2, _catalogueId: string, _alt?: boolean) => {},
   /** Place the furniture item being dragged from the catalogue. */
   dropItemGhost: (): boolean => false,
+  /**
+   * Draw one floor on its own, fitted to width x height (logical pixels), with no selection or
+   * hover, and return a PNG data URL (pixelRatio times larger for print). Null if the floor has
+   * nothing to draw. Works in any mode, even while 3D is showing.
+   */
+  renderLevelImage: async (
+    _levelId: string,
+    _opts: { width: number; height: number; pixelRatio?: number },
+  ): Promise<string | null> => null,
   /** Zoom and pan so these plan points fill the view, with room around them. */
   fitPoints: (_pts: Vec2[]) => {},
 };

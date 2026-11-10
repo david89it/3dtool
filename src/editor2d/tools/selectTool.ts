@@ -8,6 +8,9 @@ import { dist, dot, perpL, norm, sub } from '../../geometry/vec';
 import { nodePos, settleNode, splitWall, wallsAt } from '../../geometry/wallGraph';
 import { snapPoint } from '../../geometry/snapping';
 import { hitDimLabel, hitMarker, hitNode, hitRoom, hitWall } from '../hitTest';
+import { hitNote, hitStructuralPin } from '../pins';
+import { findNote, moveNote, type NotePart } from '../../model/notes';
+import type { PlanNote } from '../../model/types';
 import { DRAG_START_PX, type ToolHandler } from './types';
 import type { WallDimension } from '../../geometry/dimensions';
 
@@ -16,6 +19,8 @@ type Pending =
   | { kind: 'node'; id: Id; base: Level }
   | { kind: 'wall'; id: Id; base: Level; a: Vec2; b: Vec2 }
   | { kind: 'marker'; id: Id; start: Vec2 }
+  | { kind: 'note'; id: Id; part: NotePart; base: PlanNote }
+  | { kind: 'pin'; wallId: Id }
   | { kind: 'room'; id: Id }
   | { kind: 'empty' };
 
@@ -51,6 +56,20 @@ export const selectTool: ToolHandler = {
     const label = hitDimLabel(view, derived.dims, p.screen);
     if (label) {
       pending = { kind: 'label', d: label };
+      return;
+    }
+    // Notes sit on top of everything she drew, so they are hit first.
+    const selId = store.selection?.kind === 'note' ? store.selection.id : undefined;
+    const noteHit = hitNote(level, view, p.screen, selId);
+    if (noteHit) {
+      store.select({ kind: 'note', id: noteHit.id });
+      pending = { kind: 'note', id: noteHit.id, part: noteHit.part, base: structuredClone(findNote(level, noteHit.id)!) };
+      return;
+    }
+    // The amber structural pin: a tap selects its wall (the full warning is in the wall panel).
+    const pinWall = hitStructuralPin(level, derived.dims, view, p.screen);
+    if (pinWall) {
+      pending = { kind: 'pin', wallId: pinWall };
       return;
     }
     const markerId = store.showMarkers ? hitMarker(level, view, p.screen) : undefined;
@@ -91,17 +110,19 @@ export const selectTool: ToolHandler = {
       const hoverNode = hitNode(level, view, p.screen, selectedWallNodes(level)) ?? hitNode(level, view, p.screen);
       const hoverWall = hoverNode ? undefined : hitWall(level, derived.joints, view, p.world);
       const hoverMarker = store.showMarkers ? hitMarker(level, view, p.screen) : undefined;
-      ctx.setOverlay({ hoverNode, hoverWall, hoverMarker });
+      const hoverNote = hitNote(level, view, p.screen)?.id;
+      const hoverPin = hitStructuralPin(level, derived.dims, view, p.screen);
+      ctx.setOverlay({ hoverNode, hoverWall, hoverMarker, hoverNote, hoverPin });
       return;
     }
     if (!dragging && dist(p.screen, startScreen) < DRAG_START_PX) return;
     const pend = pending;
     if (!dragging) {
       dragging = true;
-      if (pend.kind === 'node' || pend.kind === 'wall' || pend.kind === 'marker') store.beginGesture();
+      if (pend.kind === 'node' || pend.kind === 'wall' || pend.kind === 'marker' || pend.kind === 'note') store.beginGesture();
     }
 
-    if (pend.kind === 'empty' || pend.kind === 'room' || pend.kind === 'label') {
+    if (pend.kind === 'empty' || pend.kind === 'room' || pend.kind === 'label' || pend.kind === 'pin') {
       ctx.panBy(p.screen.x - lastScreen.x, p.screen.y - lastScreen.y);
       lastScreen = p.screen;
       return;
@@ -149,6 +170,15 @@ export const selectTool: ToolHandler = {
       return;
     }
 
+    if (pend.kind === 'note') {
+      // Always measured from where the drag started, so a drag is one undo step.
+      let d = sub(p.world, startWorld);
+      if (!p.alt) d = { x: Math.round(d.x / 10) * 10, y: Math.round(d.y / 10) * 10 };
+      store.updateGesture((L) => moveNote(L as Level, pend.id, pend.base, d, pend.part));
+      ctx.setOverlay({ dragging: true, hoverNote: pend.id });
+      return;
+    }
+
     if (pend.kind === 'marker') {
       const d = sub(p.world, startWorld);
       store.updateGesture((L) => {
@@ -170,10 +200,12 @@ export const selectTool: ToolHandler = {
         store.endGesture('Move corner', p.alt ? undefined : (L) => settleNode(L as Level, pend.id, tol));
       } else if (pend.kind === 'wall') store.endGesture('Move wall');
       else if (pend.kind === 'marker') store.endGesture('Move pin');
+      else if (pend.kind === 'note') store.endGesture('Move note');
       ctx.setOverlay({});
       return;
     }
-    if (pend.kind === 'label') {
+    if (pend.kind === 'pin') store.select({ kind: 'wall', id: pend.wallId });
+    else if (pend.kind === 'label') {
       store.select({ kind: 'wall', id: pend.d.wallId });
       ctx.openLabelEditor(pend.d);
     } else if (pend.kind === 'room') store.select({ kind: 'room', id: pend.id });

@@ -11,11 +11,22 @@ import { autoSnapshot, noteChange, setVersionWarn } from './versions';
 enablePatches();
 
 export type Mode = 'trace' | 'openings' | 'furnish' | 'advice' | '3d';
-export type Tool = 'select' | 'draw' | 'calibrate' | 'moveImage' | 'placeOpening' | 'placeItem';
+export type Tool =
+  | 'select'
+  | 'draw'
+  | 'calibrate'
+  | 'moveImage'
+  | 'placeOpening'
+  | 'placeItem'
+  // Notes on the plan (a text note, a measured line, an arrow).
+  | 'placeNote'
+  | 'placeMeasure'
+  | 'placeArrow';
 export type Selection =
   | { kind: 'wall'; id: Id }
   | { kind: 'room'; id: Id }
   | { kind: 'marker'; id: Id }
+  | { kind: 'note'; id: Id }
   | { kind: 'node'; id: Id }
   | { kind: 'opening'; id: Id }
   | { kind: 'item'; id: Id }
@@ -144,6 +155,7 @@ function selectionStillValid(p: Project, levelId: Id, s: Selection): Selection {
     (s.kind === 'wall' && L.walls.some((w) => w.id === s.id)) ||
     (s.kind === 'room' && L.rooms.some((r) => r.id === s.id)) ||
     (s.kind === 'marker' && (L.markers ?? []).some((m) => m.id === s.id)) ||
+    (s.kind === 'note' && (L.notes ?? []).some((m) => m.id === s.id)) ||
     (s.kind === 'node' && L.nodes.some((n) => n.id === s.id)) ||
     (s.kind === 'opening' && L.walls.some((w) => w.openings.some((o) => o.id === s.id))) ||
     (s.kind === 'item' && L.items.some((i) => i.id === s.id));

@@ -511,3 +511,53 @@ challenged.
   copies of the app still open the file and `validateProject` is unchanged.
   Opening such a file offers to add the versions; ones with an id already
   here are skipped.
+## Engineer and landlord pack, notes, smaller structural pin
+
+- **The structural badge is a pin, not a text box.** On the plan it is now a
+  28 px amber ⚠ circle (44 px target) beside the first new opening, on the
+  side away from the measurements. It is still drawn for every wall where
+  `needsStructuralBadge()` is true and cannot be switched off. Hover shows the
+  full `STRUCTURAL_BADGE_TEXT` in a tooltip; a tap selects the wall, whose
+  panel already shows the text. The pin is hit-tested in the select tools
+  (Trace and Openings), before anything under it. In Furnish mode it is drawn
+  but not tappable.
+- **Notes are `Level.notes` (EXTENSION), not markers.** Markers are the
+  agent's "measure me" pins (one point, text, hideable). Notes are the
+  owners' own annotations with three kinds (`note`, `measure`, `arrow`),
+  colour, and they always show. A measure's length is computed from its two
+  points, never stored, so it stays right when a point is dragged. Added to
+  `levelBounds` so Fit and the print include them.
+- **Placement tools are real tools** (`placeNote`, `placeMeasure`,
+  `placeArrow`), each placing on the second click (or first for a note), then
+  going back to Select with the new note selected. Notes are hit in the
+  Trace select tool only (not Openings or Furnish) and before walls and
+  markers. Drag uses a gesture, measured from where the drag started, so it
+  is one undo step. Text edits save when the box loses focus or the panel
+  closes (one undo step each), so typing never makes dozens of steps.
+- **Print pack is a portal over the app**, not a route: it reads the project
+  once when opened, so it cannot change under the reader. Print CSS hides
+  `#root` and prints the pack (`@page` A4 landscape, 10 mm margins, a page
+  break after each section; floor pages are fixed to one page).
+- **Plan pictures reuse the Konva layers.** `canvasApi.renderLevelImage`
+  mounts the same Room, Wall, Stair and Overlay layers in a detached React
+  root with a fresh Stage, fitted to the page, with no selection or hover
+  and no photo underlay, furniture or "measure me" pins. This works in any
+  mode, including 3D, where the editor canvas is not mounted. Text is drawn at
+  its screen size on a 1040 x 560 stage at pixel ratio 2.5 (about 2600 px),
+  so it prints crisp at 9-10 pt. The scale bar is drawn into the picture so it
+  stays true however the page is scaled. North is not modelled and is left out.
+- **Structural table rows are per new opening.** A wall with two new
+  openings has two rows. Piers are measured from the inside face at each end
+  of the wall (`usableRange`, `endDistances`), or to the next opening when one
+  is beside it. Sides are named as the plan shows them (left and right, or
+  top and bottom). Wall location is in words from the rooms on each side
+  ("Wall between Kitchen and Reception").
+- **Walls removed.** The model has no "before" state, so a deleted wall
+  cannot be detected. The cover lists new openings and says when one runs
+  along almost all of its wall (90% or more of the usable length). Versions
+  (planned) would let the pack compare.
+- **3D picture without three.js.** `view3d/captureBridge.ts` holds the last
+  overview picture (JPEG from the live canvas, refreshed every 5 s while the
+  overview shows). The pack imports only the bridge, so printing never loads
+  three.js; it just has no 3D section until 3D was opened. Walk view does not
+  update it.

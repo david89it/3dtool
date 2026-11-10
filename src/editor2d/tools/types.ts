@@ -26,6 +26,11 @@ export interface Overlay {
   hoverMarker?: Id;
   hoverOpening?: Id;
   hoverItem?: Id;
+  /** Wall whose amber structural pin is under the pointer (shows the full warning). */
+  hoverPin?: Id;
+  hoverNote?: Id;
+  /** A measure or arrow being placed: first point fixed, second follows the pointer. */
+  notePreview?: { kind: 'measure' | 'arrow'; from: Vec2; to: Vec2 };
   snap?: SnapResult;
   draw?: { from: Vec2; to: Vec2 };
   calib?: { p1?: Vec2; cursor?: Vec2 };

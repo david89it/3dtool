@@ -46,6 +46,23 @@ export interface Level {
   // under the walls; wall drawing snaps to its line ends. Walls are not
   // built from it automatically: CAD lines are not a wall graph.
   vectorUnderlay?: VectorUnderlay;
+  // EXTENSION (engineer and landlord pack): notes pinned to the plan, so the
+  // owners can brief the structural engineer ("is this a chimney breast?",
+  // a measured length, an arrow to a wall). Drawn at a constant screen size
+  // over the plan and listed in the print pack.
+  notes?: PlanNote[];
+}
+
+// EXTENSION: see Level.notes. `pos` is the note's anchor (a text note's pin,
+// the start of a measure or arrow), `to` is the far end of a measure or an
+// arrow. A measure shows its own length, so `text` is an optional comment.
+export interface PlanNote {
+  id: Id;
+  kind: 'note' | 'measure' | 'arrow';
+  pos: Vec2;
+  to?: Vec2;
+  text?: string;
+  color?: string; // hex; each kind has its own default colour
 }
 
 // EXTENSION: see Level.vectorUnderlay.

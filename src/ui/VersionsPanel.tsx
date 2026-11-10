@@ -73,6 +73,15 @@ function PanelBody() {
 
   const close = () => setOpen(false);
 
+  // Esc closes the panel even when focus has left it (e.g. after saving).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !(e.target instanceof HTMLInputElement)) setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setOpen]);
+
   const startSaving = () => {
     setName(nextVersionName((rows ?? []).map((r) => r.meta)));
     setSaving(true);

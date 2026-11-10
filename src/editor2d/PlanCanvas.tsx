@@ -11,6 +11,7 @@ import { dist } from '../geometry/vec';
 import { formatLength, formatScale, parseLength } from '../model/units';
 import { fitView, MAX_SCALE, MIN_SCALE, toScreen, toWorld, zoomAt, type View } from './view';
 import { dimLabelScreenPos } from './hitTest';
+import { structuralPins } from './pins';
 import { UnderlayImage, VectorUnderlayShape } from './layers/UnderlayLayer';
 import { RoomFills } from './layers/RoomLayer';
 import { WallShapes } from './layers/WallLayer';
@@ -21,6 +22,8 @@ import { traceTool, finishTrace } from './tools/traceTool';
 import { calibrateTool } from './tools/calibrateTool';
 import { moveImageTool } from './tools/moveImageTool';
 import { openingSelectTool, placeOpeningTool, computeGhost, placeFromGhost } from './tools/openingTools';
+import { placeArrowTool, placeMeasureTool, placeNoteTool } from './tools/noteTools';
+import { renderLevelImage } from './renderLevel';
 import { furnishSelectTool, placeItemTool, computeItemGhost, placeItemFromGhost } from './tools/itemTools';
 import { ItemOverlay, ItemShapes } from './layers/ItemLayer';
 import { HighlightShapes } from './layers/HighlightLayer';
@@ -37,10 +40,13 @@ const TOOLS: Record<string, ToolHandler> = {
   moveImage: moveImageTool,
   placeOpening: placeOpeningTool,
   placeItem: placeItemTool,
+  placeNote: placeNoteTool,
+  placeMeasure: placeMeasureTool,
+  placeArrow: placeArrowTool,
 };
 
 /** Tools where a click places something: on touch, a drag pans instead. */
-const TAP_TOOLS = new Set<Tool>(['draw', 'calibrate', 'placeOpening', 'placeItem']);
+const TAP_TOOLS = new Set<Tool>(['draw', 'calibrate', 'placeOpening', 'placeItem', 'placeNote', 'placeMeasure', 'placeArrow']);
 
 const ALL_TOOLS = [...Object.values(TOOLS), openingSelectTool, furnishSelectTool];
 
@@ -200,6 +206,7 @@ export function PlanCanvas() {
       if (!el) return;
       setView((v) => zoomAt(v, { x: el.clientWidth / 2, y: el.clientHeight / 2 }, factor));
     };
+    canvasApi.renderLevelImage = renderLevelImage;
     canvasApi.exportPng = () => stageRef.current?.toDataURL({ pixelRatio: 2 }) ?? null;
     canvasApi.worldToScreen = (p) => {
       const r = wrapRef.current?.getBoundingClientRect();
@@ -235,6 +242,14 @@ export function PlanCanvas() {
       const r = wrapRef.current?.getBoundingClientRect();
       const s = dimLabelScreenPos(viewRef.current, d);
       return { x: s.x + (r?.left ?? 0), y: s.y + (r?.top ?? 0) };
+    };
+    canvasApi.structuralPinPos = (wallId) => {
+      const dr = derivedRef.current;
+      const L = useStore.getState().project.levels.find((l) => l.id === useStore.getState().levelId);
+      if (!dr || !L) return null;
+      const pin = structuralPins(L, dr.dims, viewRef.current).find((x) => x.wallId === wallId);
+      const r = wrapRef.current?.getBoundingClientRect();
+      return pin ? { x: pin.screen.x + (r?.left ?? 0), y: pin.screen.y + (r?.top ?? 0) } : null;
     };
     canvasApi.openingLabelPos = (openingId, field) => {
       const dr = derivedRef.current;
@@ -461,7 +476,7 @@ export function PlanCanvas() {
   if (!level || !derived) return <div className="canvas-wrap" ref={wrapRef} />;
 
   const cursor =
-    tool === 'draw' || tool === 'calibrate'
+    tool === 'draw' || tool === 'calibrate' || tool === 'placeNote' || tool === 'placeMeasure' || tool === 'placeArrow'
       ? 'crosshair'
       : tool === 'placeItem'
         ? itemGhost && !itemGhost.ok
@@ -473,9 +488,9 @@ export function PlanCanvas() {
           : 'not-allowed'
         : tool === 'moveImage'
           ? 'move'
-          : overlay.hoverNode || overlay.hoverOpening || overlay.hoverItem
+          : overlay.hoverNode || overlay.hoverOpening || overlay.hoverItem || overlay.hoverNote
             ? 'grab'
-            : overlay.hoverWall
+            : overlay.hoverWall || overlay.hoverPin
               ? 'pointer'
               : 'default';
   const selectedOpeningId = selection?.kind === 'opening' ? selection.id : undefined;
@@ -496,7 +511,7 @@ export function PlanCanvas() {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onPointerLeave={() => {
-        setOverlay((o) => ({ ...o, hoverWall: undefined, hoverNode: undefined, hoverMarker: undefined, hoverOpening: undefined, hoverItem: undefined }));
+        setOverlay((o) => ({ ...o, hoverWall: undefined, hoverNode: undefined, hoverMarker: undefined, hoverOpening: undefined, hoverItem: undefined, hoverPin: undefined, hoverNote: undefined }));
         if (useStore.getState().tool === 'placeOpening') useStore.getState().setGhost(null);
         if (useStore.getState().tool === 'placeItem') useStore.getState().setItemGhost(null);
       }}
@@ -668,6 +683,12 @@ function ToolHint() {
       ? 'Click to place corners. Double-click, Enter or Esc to finish. Hold Alt to turn off snapping.'
       : tool === 'calibrate'
         ? 'Click two points on the plan image whose real distance you know.'
+        : tool === 'placeNote'
+          ? 'Click where the note should go. Esc to cancel.'
+          : tool === 'placeMeasure'
+            ? 'Click the start, then the end. Its length shows as you move. Esc to cancel.'
+            : tool === 'placeArrow'
+              ? 'Click the start of the arrow, then the point it should show. Esc to cancel.'
         : tool === 'moveImage'
           ? 'Drag the plan image to line it up. Lock it when you are done.'
           : 'Click a wall to edit it. Drag to move it. Click a measurement to type a length. Double-click a wall to split it.';

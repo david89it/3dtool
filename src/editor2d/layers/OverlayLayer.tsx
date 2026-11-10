@@ -1,8 +1,8 @@
 // Screen-space overlay: room names, dimensions, pins, handles, previews.
 // Everything here stays the same size whatever the zoom.
 
-import { Circle, Group, Label, Line, Rect, Tag, Text } from 'react-konva';
-import type { Level, Vec2 } from '../../model/types';
+import { Arrow, Circle, Group, Label, Line, Rect, Tag, Text } from 'react-konva';
+import type { Level, PlanNote, Vec2 } from '../../model/types';
 import type { DetectedRoom } from '../../geometry/rooms';
 import type { WallDimension } from '../../geometry/dimensions';
 import { dist } from '../../geometry/vec';
@@ -14,8 +14,9 @@ import { COLORS, FONT } from '../theme';
 import type { Overlay } from '../tools/types';
 import type { OpeningLabel } from '../openingLabels';
 import type { OpeningGhost } from '../../model/store';
-import { needsStructuralBadge, STRUCTURAL_BADGE_TEXT } from '../../geometry/openings';
-import { lerp, perpL, norm, sub } from '../../geometry/vec';
+import { STRUCTURAL_BADGE_TEXT } from '../../geometry/openings';
+import { measureLabelPos, noteTag, NOTE_PLACEHOLDER, PIN_RADIUS, structuralPins } from '../pins';
+import { noteColor, noteLength } from '../../model/notes';
 
 
 interface Props {
@@ -31,6 +32,8 @@ interface Props {
   showDims: boolean;
   openingLabels: OpeningLabel[];
   ghost: OpeningGhost | null;
+  /** Shortest wall (px) that still gets a length label. The print uses a smaller value. */
+  minLabelPx?: number;
 }
 
 function DimLabel({ d, view, text, active, estimated }: { d: WallDimension; view: View; text: string; active: boolean; estimated: boolean }) {
@@ -69,7 +72,7 @@ export function OverlayLayer(props: Props) {
   if (overlay.hoverNode) handleIds.add(overlay.hoverNode);
 
   // Keep labels readable: hide dimensions on very short walls at low zoom.
-  const minLabelPx = 46;
+  const minLabelPx = props.minLabelPx ?? 46;
 
   return (
     <Group listening={false}>
@@ -144,31 +147,45 @@ export function OverlayLayer(props: Props) {
           );
         })}
 
-      {level.walls.filter(needsStructuralBadge).map((w) => {
-        const a = level.nodes.find((n) => n.id === w.a)?.pos;
-        const b = level.nodes.find((n) => n.id === w.b)?.pos;
-        if (!a || !b) return null;
-        const firstNew = w.openings.find((o) => !o.existing)!;
-        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-        const mid = lerp(a, b, (firstNew.offset + firstNew.width / 2) / len);
-        // Opposite side to the measurements, growing away from the wall.
-        const dim = dims.find((d) => d.wallId === w.id);
-        const base = dim ? { x: -dim.normal.x, y: -dim.normal.y } : perpL(norm(sub(b, a)));
-        const p = toScreen(view, mid);
-        const off = (w.thickness / 2) * view.scale + 10;
-        const pos = { x: p.x + base.x * off, y: p.y + base.y * off };
-        const W = 230;
-        const H = 66;
-        const horizontalWall = Math.abs(base.y) >= Math.abs(base.x);
-        const offsetX = horizontalWall ? W / 2 : base.x < 0 ? W : 0;
-        const offsetY = horizontalWall ? (base.y < 0 ? H : 0) : H / 2;
+      {(level.notes ?? []).map((n) => (
+        <NoteShape
+          key={n.id}
+          note={n}
+          view={view}
+          units={units}
+          selected={selection?.kind === 'note' && selection.id === n.id}
+          hot={overlay.hoverNote === n.id}
+        />
+      ))}
+      {overlay.notePreview && (
+        <NoteShape
+          note={{ id: 'preview', kind: overlay.notePreview.kind, pos: overlay.notePreview.from, to: overlay.notePreview.to }}
+          view={view}
+          units={units}
+          selected={false}
+          hot={false}
+          ghost
+        />
+      )}
+
+      {structuralPins(level, dims, view).map((pin) => {
+        const sel = selection?.kind === 'wall' && selection.id === pin.wallId;
         return (
-          <Label key={`badge-${w.id}`} x={pos.x} y={pos.y} offsetX={offsetX} offsetY={offsetY}>
-            <Tag fill={COLORS.amberBg} stroke={COLORS.amber} strokeWidth={1.5} cornerRadius={6} />
-            <Text text={`⚠ ${STRUCTURAL_BADGE_TEXT}`} fontSize={11.5} fontStyle="600" fontFamily={FONT} fill="#8a4b00" padding={7} width={W} wrap="word" lineHeight={1.3} />
-          </Label>
+          <Group key={`pin-${pin.wallId}`} x={pin.screen.x} y={pin.screen.y}>
+            <Circle radius={PIN_RADIUS} fill={sel ? COLORS.amber : COLORS.amberBg} stroke={COLORS.amber} strokeWidth={2} />
+            <Text text="⚠" fontSize={16} fontStyle="700" fontFamily={FONT} fill={sel ? '#ffffff' : '#8a4b00'} width={28} offsetX={14} offsetY={8.5} align="center" />
+          </Group>
         );
       })}
+      {overlay.hoverPin &&
+        structuralPins(level, dims, view)
+          .filter((pin) => pin.wallId === overlay.hoverPin)
+          .map((pin) => (
+            <Label key="pin-tip" x={pin.screen.x + PIN_RADIUS + 6} y={pin.screen.y - PIN_RADIUS}>
+              <Tag fill="#1f2328" cornerRadius={6} opacity={0.95} />
+              <Text text={`⚠ ${STRUCTURAL_BADGE_TEXT}`} fontSize={12} fontFamily={FONT} fill="#ffffff" padding={8} width={260} wrap="word" lineHeight={1.35} />
+            </Label>
+          ))}
 
       {props.openingLabels.map((l) => {
         const text = formatLength(l.value, units);
@@ -248,4 +265,103 @@ function Cross({ p }: { p: Vec2 }) {
       <Circle radius={4} stroke={COLORS.snap} strokeWidth={1.5} />
     </Group>
   );
+}
+
+/** A note on the plan, at a constant screen size. `ghost` is the preview while placing. */
+function NoteShape({
+  note,
+  view,
+  units,
+  selected,
+  hot,
+  ghost,
+}: {
+  note: PlanNote;
+  view: View;
+  units: UnitSystem;
+  selected: boolean;
+  hot: boolean;
+  ghost?: boolean;
+}) {
+  const color = noteColor(note);
+  const a = toScreen(view, note.pos);
+  if (note.kind === 'note') {
+    const t = noteTag(note, view);
+    const empty = !note.text;
+    return (
+      <Group>
+        {selected && <Circle x={a.x} y={a.y} radius={11} stroke={COLORS.accent} strokeWidth={2.5} />}
+        <Circle x={a.x} y={a.y} radius={5.5} fill={color} stroke="#ffffff" strokeWidth={1.5} />
+        <Label x={t.x} y={t.y}>
+          <Tag
+            fill="#fffbe6"
+            stroke={selected ? COLORS.accent : color}
+            strokeWidth={selected || hot ? 2.5 : 1.5}
+            cornerRadius={6}
+            shadowColor="#000000"
+            shadowBlur={4}
+            shadowOpacity={0.15}
+            shadowOffsetY={1}
+          />
+          <Text
+            text={note.text || NOTE_PLACEHOLDER}
+            fontSize={12}
+            fontFamily={FONT}
+            fill={empty ? COLORS.labelMuted : COLORS.label}
+            fontStyle={empty ? 'italic' : 'normal'}
+            padding={7}
+            width={t.w}
+            wrap="word"
+            lineHeight={1.25}
+          />
+        </Label>
+      </Group>
+    );
+  }
+  const b = toScreen(view, note.to ?? note.pos);
+  const len = noteLength(note);
+  if (note.kind === 'arrow') {
+    return (
+      <Group opacity={ghost ? 0.8 : 1}>
+        {selected && <Line points={[a.x, a.y, b.x, b.y]} stroke={COLORS.accent} strokeWidth={7} opacity={0.25} lineCap="round" />}
+        <Arrow points={[a.x, a.y, b.x, b.y]} stroke={color} fill={color} strokeWidth={hot || selected ? 3.5 : 2.5} pointerLength={12} pointerWidth={11} lineCap="round" />
+        <Circle x={a.x} y={a.y} radius={4} fill={color} />
+        {note.text && (
+          <Label x={a.x + 8} y={a.y - 28}>
+            <Tag fill="#ffffff" stroke={color} strokeWidth={1.5} cornerRadius={5} />
+            <Text text={note.text} fontSize={12} fontFamily={FONT} fill={COLORS.label} padding={6} width={Math.min(190, note.text.length * 6.6 + 14)} wrap="word" />
+          </Label>
+        )}
+        {selected && <EndHandle p={a} />}
+        {selected && <EndHandle p={b} />}
+      </Group>
+    );
+  }
+  // Measure: a dimension line with end ticks and its live length.
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l = Math.hypot(dx, dy) || 1;
+  const nx = -dy / l;
+  const ny = dx / l;
+  const text = `${formatLength(len, units)}${note.text ? ` · ${note.text}` : ''}`;
+  const lab = measureLabelPos(note, view);
+  const w = text.length * 6.6 + 10;
+  return (
+    <Group opacity={ghost ? 0.85 : 1}>
+      {selected && <Line points={[a.x, a.y, b.x, b.y]} stroke={COLORS.accent} strokeWidth={7} opacity={0.25} lineCap="round" />}
+      <Line points={[a.x, a.y, b.x, b.y]} stroke={color} strokeWidth={hot || selected ? 2.5 : 1.75} />
+      <Line points={[a.x - nx * 7, a.y - ny * 7, a.x + nx * 7, a.y + ny * 7]} stroke={color} strokeWidth={2} />
+      <Line points={[b.x - nx * 7, b.y - ny * 7, b.x + nx * 7, b.y + ny * 7]} stroke={color} strokeWidth={2} />
+      <Label x={lab.screen.x} y={lab.screen.y} rotation={lab.angleDeg} offsetX={w / 2} offsetY={10.5}>
+        <Tag fill="#ffffff" opacity={0.95} stroke={color} strokeWidth={1} cornerRadius={4} />
+        <Text text={text} fontSize={12} fontStyle="600" fontFamily={FONT} padding={4} fill={color} />
+      </Label>
+      {selected && <EndHandle p={a} />}
+      {selected && <EndHandle p={b} />}
+    </Group>
+  );
+}
+
+function EndHandle({ p }: { p: Vec2 }) {
+  return <Circle x={p.x} y={p.y} radius={7} fill="#ffffff" stroke={COLORS.accent} strokeWidth={2.5} />;
 }

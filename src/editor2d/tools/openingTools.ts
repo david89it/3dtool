@@ -12,6 +12,7 @@ import { formatLength } from '../../model/units';
 import { addOpening, moveOpening } from '../../geometry/openingEdits';
 import { dist } from '../../geometry/vec';
 import { hitRoom, hitWall } from '../hitTest';
+import { hitStructuralPin } from '../pins';
 import { hitOpeningLabel, openingLabels, type OpeningLabel } from '../openingLabels';
 import { DRAG_START_PX, type ToolCtx, type ToolHandler } from './types';
 import { OPENING_DEFAULTS } from '../../geometry/openings';
@@ -123,6 +124,12 @@ export const openingSelectTool: ToolHandler = {
       pending = { kind: 'label', label, openingId: sel.id };
       return;
     }
+    // The amber structural pin: a tap selects its wall.
+    const pinWall = hitStructuralPin(ctx.level, ctx.derived.dims, ctx.view, p.screen);
+    if (pinWall) {
+      pending = { kind: 'wall', id: pinWall };
+      return;
+    }
     const tol = 8 / ctx.view.scale;
     const hit = hitOpening(ctx.level, ctx.derived.joints, p.world, tol);
     if (hit) {
@@ -151,7 +158,11 @@ export const openingSelectTool: ToolHandler = {
     if (!pending) {
       const hit = hitOpening(ctx.level, ctx.derived.joints, p.world, 8 / ctx.view.scale);
       const hoverWall = hit ? undefined : hitWall(ctx.level, ctx.derived.joints, ctx.view, p.world);
-      ctx.setOverlay({ hoverOpening: hit?.opening.id, hoverWall });
+      ctx.setOverlay({
+        hoverOpening: hit?.opening.id,
+        hoverWall,
+        hoverPin: hitStructuralPin(ctx.level, ctx.derived.dims, ctx.view, p.screen),
+      });
       return;
     }
     if (!dragging && dist(p.screen, startScreen) < DRAG_START_PX) return;

@@ -230,7 +230,42 @@ function TracePanel() {
           </div>
         )}
       </section>
+      <NotesPanel />
       <UnderlayPanel />
     </aside>
+  );
+}
+
+const NOTE_TOOLS: { tool: Tool; label: string; title: string }[] = [
+  { tool: 'placeNote', label: 'Note', title: 'Click the plan to pin a text note' },
+  { tool: 'placeMeasure', label: 'Measure', title: 'Click two points to show the distance between them' },
+  { tool: 'placeArrow', label: 'Arrow', title: 'Click two points to point at something' },
+];
+
+/** Notes pinned to the plan for the engineer and the landlord. */
+function NotesPanel() {
+  const tool = useStore((s) => s.tool);
+  const setTool = useStore((s) => s.setTool);
+  return (
+    <section className="panel-section" aria-label="Notes on the plan">
+      <h2>Notes</h2>
+      <div className="segmented" role="group" aria-label="Add to the plan">
+        {NOTE_TOOLS.map((n) => (
+          <button
+            key={n.tool}
+            type="button"
+            aria-pressed={tool === n.tool}
+            className={tool === n.tool ? 'on' : ''}
+            title={n.title}
+            onClick={() => setTool(tool === n.tool ? 'select' : n.tool)}
+          >
+            {n.label}
+          </button>
+        ))}
+      </div>
+      <p className="note">
+        Pin questions for your engineer or measurements to the plan. They go in the printed pack. Click a note to edit it.
+      </p>
+    </section>
   );
 }

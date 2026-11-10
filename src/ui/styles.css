@@ -1283,4 +1283,17 @@ kbd {
 .check-row input {
   width: 20px;
   height: 20px;
+/* Notes on the plan */
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+.pin.note-pin {
+  background: #f3f0ff;
+  border-color: #7c3aed;
+  color: #7c3aed;
 }

@@ -6,6 +6,7 @@ import { deleteWall } from '../geometry/wallGraph';
 import type { Level, PlacedItem } from '../model/types';
 import { duplicateItem, rotateBy } from '../editor2d/itemOps';
 import { deleteOpening } from '../geometry/openingEdits';
+import { deleteNote } from '../model/notes';
 import { isStructural } from '../geometry/openings';
 import { currentLevel } from '../model/store';
 import { STRUCTURAL_DELETE_WARNING } from './Inspector';
@@ -22,6 +23,8 @@ import { ScanGuide } from '../sitemeasure/ScanGuide';
 import { ScanImport } from '../import/ScanImport';
 import { EmptyStart, UnlockDialog } from './UnlockDialog';
 import { VersionImportPrompt, VersionsPanel } from './VersionsPanel';
+import { PrintPack } from '../print/PrintPack';
+import { usePrint } from '../print/state';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
 const View3D = lazy(() => import('../view3d/View3D').then((m) => ({ default: m.View3D })));
@@ -38,6 +41,8 @@ function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e)) return;
+      // The print view is on top: it handles its own keys (Esc closes it) and the plan must not react.
+      if (usePrint.getState().open) return;
       const s = useStore.getState();
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === 'z') {
@@ -121,6 +126,10 @@ function useShortcuts() {
           e.preventDefault();
           s.editLevel('Remove opening', (L) => deleteOpening(L as Level, sel.id));
           s.select(null);
+        } else if (sel.kind === 'note') {
+          e.preventDefault();
+          s.editLevel('Remove note', (L) => deleteNote(L as Level, sel.id));
+          s.select(null);
         } else if (sel.kind === 'marker') {
           e.preventDefault();
           s.editLevel('Remove pin', (L) => void (L.markers = (L.markers ?? []).filter((m) => m.id !== sel.id)));
@@ -139,6 +148,7 @@ export function App() {
   useShortcuts();
   if (!ready) return <div className="loading">Opening your plan…</div>;
   return (
+    <>
     <div className="app">
       <TopBar />
       <ModeBar />
@@ -166,5 +176,7 @@ export function App() {
       <VersionsPanel />
       <VersionImportPrompt />
     </div>
+    <PrintPack />
+    </>
   );
 }
