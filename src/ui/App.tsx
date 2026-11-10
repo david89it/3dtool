@@ -20,6 +20,7 @@ import { markTourSeen } from '../model/persistence';
 import { SiteMeasure } from '../sitemeasure/SiteMeasure';
 import { ScanGuide } from '../sitemeasure/ScanGuide';
 import { ScanImport } from '../import/ScanImport';
+import { EmptyStart, UnlockDialog } from './UnlockDialog';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
 const View3D = lazy(() => import('../view3d/View3D').then((m) => ({ default: m.View3D })));
@@ -158,6 +159,8 @@ export function App() {
       <SiteMeasure />
       <ScanImport />
       <ScanGuide />
+      <EmptyStart />
+      <UnlockDialog />
     </div>
   );
 }

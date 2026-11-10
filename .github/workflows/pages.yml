@@ -1,0 +1,56 @@
+# Publishes the app to GitHub Pages (https://david89it.github.io/3dtool/).
+#
+# The public build starts empty. The owners' flat is added as dist/seed.enc,
+# encrypted with the repository secret SEED_PASSWORD; without the secret the
+# site is published without it. One-time setup: Settings > Pages > Source:
+# GitHub Actions, and Settings > Secrets and variables > Actions > New
+# repository secret named SEED_PASSWORD.
+
+name: Publish site
+
+on:
+  push:
+    branches: [claude/flat-planner-brief-o4stwd]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the public site
+        run: npm run build
+        env:
+          VITE_PUBLIC_BUILD: '1'
+      - name: Encrypt the owners' flat into dist/seed.enc
+        run: node scripts/encrypt-seed.mjs dist
+        env:
+          SEED_PASSWORD: ${{ secrets.SEED_PASSWORD }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

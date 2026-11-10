@@ -438,3 +438,36 @@ challenged.
 - **App guide wording.** The LiDAR guide names Polycam (Room mode), 3D
   Scanner App (Room scan) and Canvas as examples, and tells her to check
   each app's export options; it doesn't promise prices or formats.
+
+## Public site on GitHub Pages
+
+- **Public build, private flat.** `VITE_PUBLIC_BUILD=1` makes the first run
+  an empty project ("My flat", one empty "Ground floor") and removes the seed
+  from the bundle: `firstRun.ts` imports the seed dynamically behind that
+  flag, so the bundler drops it, with the address, the notes and the
+  floorplan PNG. Checked by grepping `dist/` for "Balmore", "N19" and
+  "floorplan-bleuplan" (and the e2e checks the page text). Normal `dev` and
+  `build` still open on the seed.
+- **Encrypted seed, no new dependencies, no browser.**
+  `scripts/encrypt-seed.mjs` loads the app's own `buildSeedProject()` and
+  `applySeedUnderlays()` through Vite's `ssrLoadModule`, cuts the floorplan
+  crops in Node (`node:zlib` PNG read and write, composited on white like
+  the canvas version), and encrypts with AES-256-GCM, key from
+  PBKDF2-SHA256 (600,000 iterations, random 16-byte salt and 12-byte IV).
+  This avoids installing Chromium on the CI runner. `seed.enc` is never
+  committed (git-ignored) and the password is read only from `SEED_PASSWORD`;
+  without it the script warns and exits 0.
+- **Unlock.** `seedCrypto.ts` fetches `./seed.enc` (relative, so it works
+  under `/3dtool/`) with revalidation, decrypts with WebCrypto, then
+  `validateProject` and `loadProject`, then saves. The password is only kept
+  in the open dialog. The option is hidden unless the file exists and parses
+  (a dev server answers any path with the app's page, so a 200 alone is not
+  enough). A wrong password and a damaged file both fail the GCM check and
+  give "That password didn't work."
+- **Honest limit.** The file is public, so its strength is the password's:
+  guesses can be tried offline, only slowed by the 600,000 iterations. The
+  README says to use a long passphrase.
+- **Public wording.** "Start again from the agent's plan" becomes "Start a
+  new empty plan", and tour step 1 no longer says a floorplan is already
+  underneath.
+

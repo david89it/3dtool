@@ -344,3 +344,29 @@ export function buildSeedProject(): Project {
     catalogueOverrides: [],
   };
 }
+
+/**
+ * Lay the floorplan crops under the levels. `cropDataUrl` returns a PNG data
+ * URL for one crop of the floorplan image (the browser draws it on a canvas;
+ * scripts/encrypt-seed.mjs does it in Node), or undefined to skip that level.
+ * Shared so the app and the encrypted seed are built the same way.
+ */
+export function applySeedUnderlays(project: Project, cropDataUrl: (spec: SeedUnderlaySpec) => string | undefined): void {
+  for (const spec of SEED_UNDERLAYS) {
+    const level = project.levels.find((l) => l.id === spec.levelId);
+    if (!level) continue;
+    const imageDataUrl = cropDataUrl(spec);
+    if (!imageDataUrl) continue;
+    level.underlay = {
+      imageDataUrl,
+      scaleMmPerPx: SEED_SCALE_MM_PER_PX,
+      offset: {
+        x: (spec.crop.x - spec.originPx.x) * SEED_SCALE_MM_PER_PX,
+        y: (spec.crop.y - spec.originPx.y) * SEED_SCALE_MM_PER_PX,
+      },
+      rotationDeg: 0,
+      opacity: 0.45,
+      locked: true,
+    };
+  }
+}

@@ -32,6 +32,35 @@ npm run typecheck
 npm run build        # static site in dist/, works from any folder or host
 ```
 
+## Hosting
+
+The public site is at **https://david89it.github.io/3dtool/**. It starts
+empty: no address, no seed plan, no floorplan picture. Our own flat is
+published only as an encrypted file (`seed.enc`) and opens with a password:
+*File → Open our flat…*, or the button on the empty first screen.
+
+Two steps for the owner, once:
+
+1. Repository **Settings → Secrets and variables → Actions → New repository
+   secret**: name `SEED_PASSWORD`, value your password. Choose a long
+   passphrase (four or more random words): anyone can download `seed.enc`
+   and try passwords against it offline, so a short password can be guessed.
+2. **Settings → Pages → Source: GitHub Actions.**
+
+Then every push to `claude/flat-planner-brief-o4stwd` (or *Actions → Publish
+site → Run workflow*) rebuilds and publishes. Without the secret the site
+still publishes, just without "Open our flat". To change the password, change
+the secret and run the workflow again.
+
+Plans live in each visitor's own browser (autosaved there); nothing is sent
+to a server. Use *File → Save a copy to my computer* for backups.
+
+How it works: `VITE_PUBLIC_BUILD=1 npm run build` leaves the seed out of the
+bundle; `SEED_PASSWORD=… node scripts/encrypt-seed.mjs dist` builds the full
+seed project, encrypts it (AES-256-GCM, key from PBKDF2-SHA256 with 600,000
+iterations) and writes `dist/seed.enc`. `npm run build` without the flag
+behaves as before and opens on the seed.
+
 ## Using it (Phase 1)
 
 | Do this | How |

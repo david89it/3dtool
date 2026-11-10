@@ -3,7 +3,8 @@ import { useSiteMeasure } from '../sitemeasure/state';
 import { useRef, useState } from 'react';
 import { useStore } from '../model/store';
 import { exportProjectFile, readProjectFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
-import { createSeedProject } from '../model/seedAssets';
+import { createStartProject, PUBLIC_BUILD } from '../model/firstRun';
+import { useSeedAvailable, useUnlock } from './UnlockDialog';
 import { canvasApi } from '../editor2d/canvasApi';
 import { activeLevels, groupOf } from '../model/schemes';
 import { OptionSwitcher } from './OptionSwitcher';
@@ -21,6 +22,7 @@ export function TopBar() {
   const [menu, setMenu] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const hasFlat = useSeedAvailable();
 
   const current = project.levels.find((l) => l.id === levelId);
   const currentGroup = current ? groupOf(current) : '';
@@ -126,6 +128,17 @@ export function TopBar() {
               >
                 Open a saved plan…
               </button>
+              {hasFlat && (
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setMenu(false);
+                    useUnlock.getState().setOpen(true);
+                  }}
+                >
+                  Open our flat…
+                </button>
+              )}
               <button
                 role="menuitem"
                 onClick={() => {
@@ -176,12 +189,16 @@ export function TopBar() {
                   }
                   setConfirmReset(false);
                   setMenu(false);
-                  const seed = await createSeedProject();
-                  useStore.getState().loadProject(seed);
+                  const fresh = await createStartProject();
+                  useStore.getState().loadProject(fresh);
                   await flushSave();
                 }}
               >
-                {confirmReset ? 'Click again: your changes will be lost' : "Start again from the agent's plan"}
+                {confirmReset
+                  ? 'Click again: your changes will be lost'
+                  : PUBLIC_BUILD
+                    ? 'Start a new empty plan'
+                    : "Start again from the agent's plan"}
               </button>
             </div>
           )}

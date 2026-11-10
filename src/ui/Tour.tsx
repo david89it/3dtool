@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useStore, type Mode } from '../model/store';
 import { markTourSeen } from '../model/persistence';
+import { PUBLIC_BUILD } from '../model/firstRun';
 
 interface Step {
   mode: Mode;
@@ -15,7 +16,9 @@ export const TOUR_STEPS: Step[] = [
     mode: 'trace',
     target: '[aria-label="Plan image"]',
     title: '1 · Set the scale',
-    body: 'Your floorplan is already underneath. If you import a new one, click “Set scale”, then click two points whose real distance you know, such as a room width printed on the plan.',
+    body: PUBLIC_BUILD
+      ? 'Import a floorplan picture, then click “Set scale” and click two points whose real distance you know, such as a room width printed on the plan.'
+      : 'Your floorplan is already underneath. If you import a new one, click “Set scale”, then click two points whose real distance you know, such as a room width printed on the plan.',
   },
   {
     mode: 'trace',

@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-10, after the site-measure merge.
+Last updated: 2026-11-10, after the GitHub Pages hosting work.
 
 ## 1. What this is
 
@@ -45,7 +45,7 @@ beats feature count.
 
 | Folder | What lives there | Start with |
 | --- | --- | --- |
-| `src/model` | Types, store (zustand + immer patches), undo history, units, autosave and file save/open, seed project, schemes ("Options") | `types.ts`, `store.ts` |
+| `src/model` | Types, store (zustand + immer patches), undo history, units, autosave and file save/open, seed project (private; loaded via `firstRun.ts`), encrypted-seed unlock, schemes ("Options") | `types.ts`, `store.ts` |
 | `src/geometry` | Wall graph, mitred joints, room detection, dimensions, snapping, openings rules and edits, calibration | `wallGraph.ts`, `rooms.ts`, `openings.ts` |
 | `src/catalogue` | 84 items as data, shape helpers, state sizes, footprints, `obstacleRects`, parametric builders (bookcase surround), colours | `items.ts`, `catalogue.ts` |
 | `src/editor2d` | Konva canvas, layers, tools for each mode, hit testing, `canvasApi` bridge (also used by tests) | `PlanCanvas.tsx`, `tools/*` |
@@ -78,6 +78,7 @@ npm run dev                          # http://localhost:5173 (?notour skips the 
 npx tsc -b && npx vitest run         # types + unit tests
 npx playwright test --trace off      # e2e; PW_PORT=5191 if 5173 is taken
 npm run build                        # static site in dist/
+VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see §5)
 ```
 
 - **Chromium** is preinstalled; do not run `playwright install`.
@@ -93,12 +94,23 @@ npm run build                        # static site in dist/
   file, PNG export and Ask Claude only work locally or when hosted. To
   publish, the built JS must have control characters and U+FFFD escaped (see
   the Log).
-- **GitHub Pages:** agreed. **Waiting on the owner to choose** A (a public
-  build without the Balmore seed or assets), B (public with the seed) or C
-  (private host). The repo is private; the owner must set Pages to "GitHub
-  Actions" in repository settings.
+- **GitHub Pages (built, not yet live):** https://david89it.github.io/3dtool/
+  is a **public** site that starts empty. `.github/workflows/pages.yml` runs
+  on every push to `claude/flat-planner-brief-o4stwd` and on manual dispatch:
+  `VITE_PUBLIC_BUILD=1 npm run build`, then `scripts/encrypt-seed.mjs` writes
+  `dist/seed.enc`, then the Pages deploy. The Balmore seed, the floorplan
+  crops and the "measure me" notes exist only inside `seed.enc`, encrypted
+  with the repository secret `SEED_PASSWORD`; visitors unlock it with
+  *File → Open our flat…* (`src/model/seedCrypto.ts`, `src/ui/UnlockDialog.tsx`).
+  **Owner steps:** add the secret `SEED_PASSWORD` (a long passphrase) and set
+  Settings → Pages → Source to GitHub Actions. Without the secret the site
+  publishes with no unlock option.
 - **Privacy:** `assets/` and the seed contain the flat's address, plan and
-  photos. Do not make them public without the owner's say-so.
+  photos. They must never reach a public build: the seed is loaded only
+  through `createStartProject()` in `src/model/firstRun.ts`, behind the build
+  flag. After any change to boot or seed code, build with the flag and grep
+  `dist/` for "Balmore", "N19" and "floorplan-bleuplan". Never commit a
+  `seed.enc` or a password.
 
 ## 6. State
 
@@ -114,6 +126,7 @@ npm run build                        # static site in dist/
   store), the LiDAR app guide, and scan import (`src/import`): RoomPlan
   USDZ/USDA/USDC via three's `USDLoader`, and DXF as `Level.vectorUnderlay`
   with snapping to its line ends.
+- GitHub Pages workflow, public build mode and the encrypted seed (see §5).
 
 **In flight:** none.
 
@@ -128,7 +141,8 @@ npm run build                        # static site in dist/
 
 **Next, in order** (see the plan in the conversation of 2026-11-10):
 
-1. Hosting (once the owner chooses).
+1. Hosting: the owner adds the `SEED_PASSWORD` secret and turns on Pages,
+   then check the live site once (see §5).
 2. Versions: named saves, restore, snapshots before big changes; compare
    later.
 3. Engineer and landlord PDF pack: annotations, dimensioned plans, the
@@ -179,6 +193,9 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-10 · hosting · Public build flag `VITE_PUBLIC_BUILD`, empty first run,
+  `scripts/encrypt-seed.mjs` (AES-GCM, PBKDF2) + "Open our flat" unlock,
+  `.github/workflows/pages.yml`, `e2e/pages.spec.ts`.
 - 2026-11-10 · merge `sitemeasure` (0d0a4f5) · Site measure checklist,
   LiDAR guide, USDZ/DXF import.
 - 2026-11-10 · aae34b5 · Bookcase surround (parametric builder,

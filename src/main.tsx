@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
 import { useStore } from './model/store';
 import { flushSave, loadSavedProject, loadSettings, markTourSeen, startAutosave } from './model/persistence';
-import { createSeedProject } from './model/seedAssets';
+import { createStartProject } from './model/firstRun';
 import { loadAdviceEnabled, loadApiKey } from './advice/keyStore';
 import { canvasApi } from './editor2d/canvasApi';
 import './ui/styles.css';
@@ -16,7 +16,7 @@ async function boot() {
   const [adviceOn, key] = await Promise.all([loadAdviceEnabled(), loadApiKey()]);
   useStore.getState().setAdviceState({ enabled: adviceOn, keySaved: !!key });
   const saved = await loadSavedProject();
-  const project = saved ?? (await createSeedProject());
+  const project = saved ?? (await createStartProject());
   useStore.getState().loadProject(project);
   if (!saved) await flushSave();
   startAutosave();
