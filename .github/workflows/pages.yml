@@ -25,6 +25,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Same environment as the deploy job, so SEED_PASSWORD is found whether it
+    # was saved as a repository secret or as a github-pages environment secret.
+    environment: github-pages
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
