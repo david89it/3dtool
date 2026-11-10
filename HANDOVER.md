@@ -193,6 +193,10 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-10 · a07d248 · Live at https://david89it.github.io/3dtool/. The repo
+  is public (owner's choice). The build job runs in the `github-pages`
+  environment; `seed.enc` is encrypted from the `SEED_PASSWORD` repository
+  secret.
 - 2026-11-10 · hosting · Public build flag `VITE_PUBLIC_BUILD`, empty first run,
   `scripts/encrypt-seed.mjs` (AES-GCM, PBKDF2) + "Open our flat" unlock,
   `.github/workflows/pages.yml`, `e2e/pages.spec.ts`.
