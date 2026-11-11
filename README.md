@@ -130,6 +130,7 @@ in the right panel.
 | Point at something | **Arrow**, click two points. Add a comment in the right panel if you like |
 | Move, edit, delete a note | Click it (V). Drag it, or drag a round end of a measurement or arrow. Delete key or *Delete* in the panel. Each drag is one undo step |
 | Print or save as PDF | File → *Print or save as PDF…*, wait for the plans, then *Print / Save as PDF* and choose "Save as PDF" as the printer |
+| Show what changes | In the print view's header, *Compare with* lists your saved versions (named first, then automatic, newest first) and *Nothing (no comparison)*. It starts on your oldest named version (else the oldest automatic one). The cover then lists *Walls removed*, *New or widened openings* and *Openings removed*; the *Structural* page adds a *Walls removed* table; removed walls are dashed red outlines on the floor plans. The choice is kept until you reload the page |
 | Price a piece | Click it in Furnish mode → right panel *Cost*: price in £, shop, link (opens in a new tab) and *Idea / Shortlisted / Bought*. Duplicating copies them. Your own items can carry a default price (*Add custom item…*) |
 | Open the budget | The **£** button in the top bar, or File → *Budget and shopping list…* |
 | Furniture costs | Budget → *Furniture*: every piece by floor and room with size, status, price and link, and totals per room and floor. Type a price in the table; it is one undo step |
@@ -143,9 +144,12 @@ inside length, new opening widths, notes and structural pins, and a scale bar
 (1 m and 5 m); a *Structural* page with a table of every new opening in a wall
 that may be load-bearing (wall, thickness, opening size, wall left each side)
 and *Things the engineer should confirm*; the landlord's licence page with
-blanks for freeholder, lease reference and contractor; a 3D overview picture
-if you opened 3D (it is the last overview shown); and a list of your notes by
-floor.
+blanks for freeholder, lease reference and contractor; a 3D page for each
+floor with walls (drawn for the pack, so you do not need to open 3D first;
+floors that changed show *Before* and *After* side by side); and a list of
+your notes by floor. Removing a wall that is load-bearing or "not known" is
+marked as needing the structural engineer. If a 3D picture cannot be drawn a
+short note replaces it and printing still works.
 
 ## Using it (Phase 5: 3D)
 

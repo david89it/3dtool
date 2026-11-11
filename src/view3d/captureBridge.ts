@@ -1,22 +1,44 @@
-// A tiny bridge so the print pack can include a picture of the 3D overview
-// without loading three.js. View3D (loaded only when she opens 3D) fills it
-// in; this file imports nothing heavy.
+// Bridges between the plan UI and the 3D code, so the UI never imports three.
+//
+// 1. Pictures for the print pack. `renderOverview3D` asks the offscreen 3D
+//    renderer (src/view3d/Offscreen3D.tsx, which the print pack mounts while
+//    it is open) for a PNG of one floor, from above at an angle with cut-away
+//    walls, for any project: the plan as it is now, or an earlier version.
+//    It does not depend on the 3D view being open.
+// 2. Room views (below).
+
+import type { Project } from '../model/types';
+
+export interface OverviewRequest {
+  project: Project;
+  levelId: string;
+  width?: number;
+  height?: number;
+}
 
 export const view3dBridge: {
-  /** Refreshes `snapshot` from the live overview. Null while 3D is closed or in the walk view. */
-  capture: (() => void) | null;
-  /** Latest overview picture, kept after she leaves 3D. */
-  snapshot: { dataUrl: string; floor: string } | null;
-} = { capture: null, snapshot: null };
+  /** Set by Offscreen3D while it is mounted; renders one picture at a time. Null if it fails. */
+  renderer: ((req: OverviewRequest) => Promise<string | null>) | null;
+} = { renderer: null };
 
-/** The best overview picture available: a fresh one if 3D is showing, otherwise the last one taken. */
-export function get3dSnapshot(): { dataUrl: string; floor: string } | null {
+/** How long to wait for the renderer to appear (three.js is loaded on demand), and for one picture. */
+export const RENDERER_WAIT_MS = 25_000;
+
+/**
+ * A PNG data URL of one floor of `project`, seen from above at an angle with the walls cut away
+ * to 1.2 m. Resolves to null on any failure (no WebGL, timeout, nothing to draw): never throws.
+ */
+export async function renderOverview3D(req: OverviewRequest): Promise<string | null> {
   try {
-    view3dBridge.capture?.();
+    const t0 = Date.now();
+    while (!view3dBridge.renderer) {
+      if (Date.now() - t0 > RENDERER_WAIT_MS) return null;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return await view3dBridge.renderer(req);
   } catch {
-    // keep the last picture
+    return null;
   }
-  return view3dBridge.snapshot;
 }
 
 // ---- room views -----------------------------------------------------------

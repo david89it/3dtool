@@ -19,13 +19,13 @@ import { formatLength, type UnitSystem } from '../model/units';
 import { notesWithText } from '../model/notes';
 import type { PlanNote } from '../model/types';
 
-const KIND_LABEL: Record<WallKind, string> = {
+export const KIND_LABEL: Record<WallKind, string> = {
   internal: 'Inside wall',
   external: 'Outside wall',
   party: 'Party wall (shared with a neighbour)',
 };
 
-const STRUCT_LABEL: Record<Structural, string> = {
+export const STRUCT_LABEL: Record<Structural, string> = {
   unknown: 'Load-bearing not confirmed (treated as load-bearing)',
   loadBearing: 'Load-bearing',
   nonLoadBearing: 'Marked not load-bearing',

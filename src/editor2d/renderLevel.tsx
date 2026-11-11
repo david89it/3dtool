@@ -5,9 +5,9 @@
 
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import { Group, Layer, Rect, Stage, Text } from 'react-konva';
+import { Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type Konva from 'konva';
-import type { Level, Project } from '../model/types';
+import type { Level, Project, Vec2 } from '../model/types';
 import { useStore } from '../model/store';
 import { computeJoints } from '../geometry/joints';
 import { detectRooms } from '../geometry/rooms';
@@ -26,6 +26,11 @@ export interface RenderOptions {
   height: number;
   /** Extra sharpness for print. Default 2. */
   pixelRatio?: number;
+  /**
+   * Walls that were taken out (compared with an earlier version), as outline
+   * polygons in plan mm. Drawn as dashed red outlines over the plan.
+   */
+  ghostWalls?: Vec2[][];
 }
 
 /** A floor with nothing but its walls, notes and stairs in view (no photo, no "measure me" pins). */
@@ -71,7 +76,9 @@ function PrintScene({
   width,
   height,
   onStage,
+  ghostWalls,
 }: {
+  ghostWalls?: Vec2[][];
   level: Level;
   project: Project;
   width: number;
@@ -99,6 +106,18 @@ function PrintScene({
           <RoomFills level={level} rooms={rooms} translucent={false} />
           <WallShapes level={level} joints={joints} ghost={null} />
           <StairShapes stairs={level.stairs} project={project} />
+          {(ghostWalls ?? []).map((pts, i) => (
+            <Line
+              key={i}
+              points={pts.flatMap((p) => [p.x, p.y])}
+              closed
+              stroke="#d92d20"
+              strokeWidth={3 / view.scale}
+              dash={[10 / view.scale, 6 / view.scale]}
+              fill="rgba(217,45,32,0.08)"
+              listening={false}
+            />
+          ))}
         </Group>
       </Layer>
       <Layer listening={false}>
@@ -139,7 +158,7 @@ export async function renderLevelImage(levelId: string, opts: RenderOptions): Pr
   try {
     flushSync(() => {
       root.render(
-        <PrintScene level={level} project={project} width={opts.width} height={opts.height} onStage={(s) => void (stage = s)} />,
+        <PrintScene level={level} project={project} width={opts.width} height={opts.height} onStage={(s) => void (stage = s)} ghostWalls={opts.ghostWalls} />,
       );
     });
     const st = stage as Konva.Stage | null;

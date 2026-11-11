@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-11, after UI batch part B (multi-select, groups, ⌘K search).
+Last updated: 2026-11-11, after the pack follow-ups (compare with a version, 3D per floor).
 
 ## 1. What this is
 
@@ -171,6 +171,13 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   `CommandPalette.tsx`, `paletteCommands.ts`). Pieces in groups follow options
   (`cloneLevel`) and show in the versions change list.
 
+- Pack follow-ups: *Compare with* a saved version in the print view
+  (`src/print/compare.ts`): walls removed, new, widened and removed openings,
+  structural wording, dashed red ghost walls on floor plans
+  (`renderLevelImage` option `ghostWalls`), and 3D per floor, with before and
+  after for changed floors, from an off-screen renderer
+  (`src/view3d/Offscreen3D.tsx`, `renderOverview3D` in `captureBridge.ts`).
+
 **In flight:** none.
 
 **Blocked:**
@@ -184,9 +191,8 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 
 **Next, in order:**
 
-1. Pack follow-ups: detect removed walls by comparing with a version, before
-   and after 3D, 3D views per floor.
-2. Sloped loft ceiling and chimney-breast objects (after the site visit).
+1. Sloped loft and chimney breasts after site visit (sloped loft ceiling and
+   chimney-breast objects).
 **Parked:** path-traced photo render, dark mode, electrics layer,
 side-by-side compare, live Pinterest sync, fps meter.
 
@@ -198,9 +204,11 @@ side-by-side compare, live Pinterest sync, fps meter.
   pack, and a group has no outline until selected. Search covers only the
   option of each floor that is showing, and does not look inside notes or
   budget fields.
-- Print pack: no removed-wall detection (no "before" state); the 3D picture
-  is the last overview shown, not one per floor; the structural pin is not
-  tappable in Furnish mode; notes can only be selected in Trace mode.
+- Print pack: a wall that is only shortened is not reported as removed;
+  ghost walls are plain rectangles (no mitred corners); 3D pictures use simple
+  lights, no sun shadows or furniture lights; floors that were added or
+  deleted since the version are ignored; the structural pin is not tappable in
+  Furnish mode; notes can only be selected in Trace mode.
 - No roof slope model.
 - Materials: schemes do not include single-face wall paint; a window or door
   between two rooms takes the woodwork colour of the room on the wall's left;
@@ -234,6 +242,11 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-11 · pack-2 · Compare with a version in the print view
+  (`print/compare.ts`, `compare.test.ts`, `state.ts` remembers the choice),
+  removed walls on cover and structural page, ghost walls in `renderLevel.tsx`,
+  per-floor and before/after 3D from `view3d/Offscreen3D.tsx` (the old
+  `SnapshotRig` is removed), e2e in `printpack.spec.ts`.
 - 2026-11-11 · ui-b · Multi-select and groups (`Selection` kind `items`,
   `Level.groups`, `model/groups.ts`, `selectionActions.ts`, `MultiPanel`),
   align and space evenly, Ctrl/⌘ K search (`searchIndex.ts`, `CommandPalette`),

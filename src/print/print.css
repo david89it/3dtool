@@ -209,3 +209,26 @@
   text-align: right;
   white-space: nowrap;
 }
+
+.print-compare {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+  font-size: 14px;
+}
+.print-compare select {
+  min-height: 44px;
+  max-width: 320px;
+}
+.print-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+}
+.print-shot {
+  margin: 0;
+}
+.print-pair .print-3d {
+  aspect-ratio: 1200 / 646;
+}

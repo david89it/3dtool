@@ -12,7 +12,7 @@ import { activeLevelsResolved } from '../model/schemes';
 import { FinishPanel, type FaceSel } from './FinishPanel';
 import { wallSideRooms } from '../model/faces';
 import { wallDir } from './wallProfile';
-import { view3dBridge, roomViewBridge, type RoomView3D } from './captureBridge';
+import { roomViewBridge, type RoomView3D } from './captureBridge';
 import { SunRig, SunHeatmap } from './SunRig';
 import { SunPanel } from './SunPanel';
 import './view3d.css';
@@ -83,36 +83,6 @@ function OrbitRig({ level, frame }: { level: Level; frame: RoomFrame | null }) {
     }
   }, [level.id, camera, frame?.n]); // eslint-disable-line react-hooks/exhaustive-deps
   return <OrbitControls ref={controls} makeDefault maxPolarAngle={Math.PI / 2.02} minDistance={1.5} maxDistance={60} enableDamping />;
-}
-
-/**
- * Keeps a picture of the overview for the print pack. Taken every few
- * seconds while the overview shows, so it is still there after she leaves 3D.
- */
-function SnapshotRig({ enabled, floor }: { enabled: boolean; floor: string }) {
-  const gl = useThree((s) => s.gl);
-  useEffect(() => {
-    if (!enabled) {
-      view3dBridge.capture = null;
-      return;
-    }
-    const take = () => {
-      try {
-        view3dBridge.snapshot = { dataUrl: gl.domElement.toDataURL('image/jpeg', 0.85), floor };
-      } catch {
-        // the canvas can be gone while the page closes; keep the last picture
-      }
-    };
-    view3dBridge.capture = take;
-    const first = setTimeout(take, 2500);
-    const every = setInterval(take, 5000);
-    return () => {
-      clearTimeout(first);
-      clearInterval(every);
-      if (view3dBridge.capture === take) view3dBridge.capture = null;
-    };
-  }, [enabled, floor, gl]);
-  return null;
 }
 
 /** Frame counter and a small test hook (dev builds only). */
@@ -351,7 +321,6 @@ export function View3D() {
             />
           )}
           <Probe view={view} />
-          <SnapshotRig enabled={view === 'orbit'} floor={level.name} />
         </Canvas>
 
         <div className="view3d-hud" role="status">

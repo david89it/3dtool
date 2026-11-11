@@ -35,7 +35,7 @@ export const canvasApi = {
    */
   renderLevelImage: async (
     _levelId: string,
-    _opts: { width: number; height: number; pixelRatio?: number },
+    _opts: { width: number; height: number; pixelRatio?: number; ghostWalls?: Vec2[][] },
   ): Promise<string | null> => null,
   /** Zoom and pan so these plan points fill the view, with room around them. */
   fitPoints: (_pts: Vec2[], _padMm?: number) => {},

@@ -158,3 +158,85 @@ test('print pack: structural page, opening width, note text, a picture on every 
   expect((await level(page)).notes).toHaveLength(1);
   expect(errors).toEqual([]);
 });
+
+test('print pack: compare with a saved version lists the removed partition, ghost walls and 3D pictures', async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  page.on('pageerror', (e) => errors.push(e.message));
+  await freshStart(page);
+
+  // Save a named version while the partition is still there.
+  await page.getByRole('button', { name: 'Versions', exact: true }).click();
+  const panel = page.getByRole('dialog', { name: 'Versions' });
+  await panel.getByRole('button', { name: 'Save this version…' }).click();
+  await panel.getByLabel('Version name').fill('Before the kitchen');
+  await panel.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(panel.getByTestId('version-row')).toHaveCount(1);
+  await panel.getByRole('button', { name: 'Close' }).click();
+
+  // Delete the wall between the Kitchen and the Reception.
+  const wallId = await page.evaluate(() => {
+    const s = (window as any).__flatplan.store.getState();
+    const L = s.project.levels.find((l: any) => l.id === s.levelId);
+    const kit = L.rooms.find((r: any) => r.name === 'Kitchen');
+    const rec = L.rooms.find((r: any) => r.name === 'Reception');
+    const pairs = (b: string[]) => b.map((n, i) => [n, b[(i + 1) % b.length]]);
+    const shared = (w: any, r: any) => pairs(r.boundary).some(([p, q]) => (p === w.a && q === w.b) || (p === w.b && q === w.a));
+    return (L.walls.find((w: any) => shared(w, kit) && shared(w, rec))?.id ?? null) as string | null;
+  });
+  expect(wallId).toBeTruthy();
+  const wallsBefore = (await level(page)).walls.length;
+  await page.evaluate((id) => (window as any).__flatplan.store.getState().select({ kind: 'wall', id }), wallId);
+  await page.getByTestId('wall-panel').getByRole('button', { name: 'Delete wall' }).click();
+  expect((await level(page)).walls.length).toBe(wallsBefore - 1);
+
+  await page.evaluate(() => {
+    window.print = () => {};
+  });
+  await page.getByRole('button', { name: /File/ }).click();
+  await page.getByRole('menuitem', { name: 'Print or save as PDF…' }).click();
+  await expect(page.getByTestId('print-view')).toBeVisible();
+
+  // Choose the saved version in the header: named versions come first, then automatic ones.
+  const select = page.getByTestId('compare-select');
+  await expect(select.locator('option')).toHaveCount(3); // nothing, the named version, the automatic one
+  await expect(select.locator('option').nth(1)).toContainText('Before the kitchen');
+  await select.selectOption({ index: 1 });
+
+  const cover = page.getByTestId('print-cover');
+  await expect(cover.getByRole('heading', { name: 'Walls removed' })).toBeVisible();
+  await expect(cover.getByTestId('print-walls-removed')).toContainText('Wall between Kitchen and Reception');
+  await expect(cover.getByRole('heading', { name: 'New or widened openings' })).toBeVisible();
+  await expect(cover.getByRole('heading', { name: 'Openings removed' })).toBeVisible();
+
+  const structural = page.getByTestId('print-structural');
+  await expect(structural.getByRole('heading', { name: 'Walls removed' })).toBeVisible();
+  const row = structural.getByTestId('removed-wall-row');
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText('Kitchen and Reception');
+  await expect(row).toContainText('structural engineer');
+
+  // Floor pages have a plan picture (with the dashed ghost wall drawn over it).
+  const pages = page.getByTestId('print-floor-page');
+  const n = await pages.count();
+  expect(n).toBeGreaterThan(0);
+  for (let i = 0; i < n; i++) {
+    const img = pages.nth(i).locator('img');
+    await expect(img).toBeVisible({ timeout: 30_000 });
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 1000)).toBe(true);
+  }
+
+  // 3D pictures come from the offscreen renderer: before and after for the changed floor.
+  expect(await page.getByTestId('print-3d').count()).toBeGreaterThan(0);
+  const pair = page.locator('.print-pair').first();
+  await expect(pair.locator('img')).toHaveCount(2, { timeout: 90_000 });
+  await expect
+    .poll(() => pair.locator('img').first().evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 500))
+    .toBe(true);
+
+  // Choosing "Nothing" removes the comparison.
+  await select.selectOption('none');
+  await expect(page.getByTestId('print-comparison')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

@@ -792,3 +792,39 @@ challenged.
   kept in `localStorage` only (`ui/paletteState.ts`). Tab and the *Toggle 3D*
   command share `ui/modeToggle.ts`.
 
+
+## Pack follow-ups: compare with a version, 3D per floor
+
+- **Before and after.** `print/compare.ts` (pure, tested) compares a saved
+  version ("before") with the plan now ("after"). Floors match by id, walls by
+  id; a wall with no id match counts as still there if at least half its centre
+  line (sampled every 100 mm) is within 50 mm of walls in the new plan. That
+  covers splitting a wall (new ids) and re-drawing it in place. Openings match
+  by id (splitting keeps them), then by type and position (150 mm). Opening
+  widths more than 20 mm larger count as widened. Openings that went with a
+  removed wall are not listed again. A wall that is only shortened is not
+  reported (it is more than half still there).
+- **Engineer wording.** A removed wall that is load-bearing or "Don't know" is
+  marked as needing the structural engineer (unknown is treated as
+  load-bearing, as everywhere else); one marked not load-bearing says the
+  engineer should still confirm.
+- **Default version.** The oldest named version, else the oldest automatic
+  one, else none. A choice (including "Nothing") is kept in `print/state.ts`
+  for the session only. Versions are read through `runJob` (quiet) and
+  `validateProject`; the version storage format is untouched.
+- **Ghost walls.** Done inside the canvas render: `renderLevelImage` takes
+  `ghostWalls` (outline polygons in plan mm) and draws them as dashed red
+  closed lines under the labels. Each outline is the wall's centre line widened
+  by its thickness (no mitring), taken from the "before" plan.
+- **3D renders.** The pack does not use the open 3D view. It mounts, lazily,
+  `view3d/Offscreen3D.tsx`: its own off-screen WebGL canvas (1200 x 646,
+  `preserveDrawingBuffer`), registered on the capture bridge. `renderOverview3D
+  (project, levelId)` queues one picture at a time (steady camera as the
+  overview: from the front at an angle, cut-away walls on, floors above
+  hidden) and returns a PNG, or null after 20 s, on any error or with no WebGL.
+  This was chosen over mounting View3D because it works whether or not 3D is
+  open, never moves her camera, and can draw any project, so the "before"
+  version is rendered in 3D too (for changed floors, side by side with
+  "after"). The old "last overview" snapshot (`SnapshotRig`) is gone. Pictures
+  use simple lights (no sun shadows). Printing never waits for 3D: the button
+  works once the plans are drawn; a missing 3D picture shows a short note.
