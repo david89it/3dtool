@@ -35,6 +35,8 @@ export interface Overlay {
   draw?: { from: Vec2; to: Vec2 };
   calib?: { p1?: Vec2; cursor?: Vec2 };
   dragging?: boolean;
+  /** Selection box being dragged on empty floor in Furnish mode (plan points). */
+  marquee?: { from: Vec2; to: Vec2 };
 }
 
 export interface ToolCtx {

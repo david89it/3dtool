@@ -35,6 +35,13 @@ describe('context menu entries', () => {
     expect(locked[3].danger).toBe(true);
   });
 
+  it('offers group choices when several pieces are selected', () => {
+    const base = { kind: 'item' as const, id: 'i', locked: false, world: w };
+    expect(labels({ ...base, count: 3 })).toEqual(['Turn 90°', 'Duplicate', 'Lock', 'Group', 'Delete']);
+    expect(labels({ ...base, count: 3, groupId: 'g' })).toEqual(['Turn 90°', 'Duplicate', 'Lock', 'Rename group…', 'Ungroup', 'Delete']);
+    expect(labels({ ...base, count: 1, addable: true })[0]).toBe('Add to selection');
+  });
+
   it('offers note, room and empty-floor choices', () => {
     expect(labels({ kind: 'note', id: 'n', world: w })).toEqual(['Edit', 'Delete']);
     expect(labels({ kind: 'room', id: 'r', nodeIds: [], world: w })).toEqual(['Rename…', 'Frame this room']);

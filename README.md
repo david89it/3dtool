@@ -79,7 +79,7 @@ behaves as before and opens on the seed.
 | Undo / redo | Buttons top right, Ctrl/⌘ Z, Ctrl/⌘ Shift Z |
 | Undo history | The small **▾** next to Undo (or press and hold Undo) lists the last 30 changes, newest first, with "you are here" marked. Pick one to go back, or forward, to just after it |
 | Hide a side panel | The **‹ ›** button at the top of the left (Tools) or right (Details) panel, or **[** and **]**. Collapsed, a panel is a 48 px strip and the plan grows. Kept in this browser. Under 1000 px wide both start collapsed and open over the plan |
-| Menu on the plan | Right-click, or press and hold for half a second on a finger or pen. A wall offers *Split here*, *Open up this wall*, *Delete*, *Properties…*; a door or window *Swap hinge* (doors), *Delete*; a piece of furniture *Turn 90°*, *Duplicate*, *Lock/Unlock*, *Delete*; a note *Edit*, *Delete*; a room *Rename…*, *Frame this room*; empty floor *Add a note here*, *Fit the plan*. Esc, a tap elsewhere or a choice closes it |
+| Menu on the plan | Right-click, or press and hold for half a second on a finger or pen. A wall offers *Split here*, *Open up this wall*, *Delete*, *Properties…*; a door or window *Swap hinge* (doors), *Delete*; a piece of furniture *Turn 90°*, *Duplicate*, *Lock/Unlock*, *Delete* (plus *Add to selection*, *Group*, *Ungroup*, *Rename group…* where they apply); a note *Edit*, *Delete*; a room *Rename…*, *Frame this room*; empty floor *Add a note here*, *Fit the plan*. Esc, a tap elsewhere or a choice closes it |
 | Frame a room | Menu on a room, or *Frame this room* in the Room panel: the plan zooms to it, and 3D looks into it from above the next time you open it |
 | Walk in here | Room panel → *Walk in here*: opens 3D in Walk, standing just inside the room's door (or in the middle if it has none) |
 | Save a copy | File → *Save a copy to my computer* (`.flatplan.json`); *Open a saved plan…* loads one |
@@ -108,6 +108,18 @@ side of an opening; tick *Allow less than 10 cm* on one opening to override
 (*Structural opening: needs engineer, steel and Building Control. Leasehold:
 needs landlord's licence.*); tap it to select the wall, where the full text is
 in the right panel.
+
+## Using it: several pieces, groups and search
+
+| Do this | How |
+| --- | --- |
+| Select several pieces | Furnish mode: **Shift**-click pieces to add or remove them, or hold **Shift** and drag on empty floor to draw a box (a piece is picked when its middle is inside). On a finger or pen: press and hold on empty floor, then drag; lift without dragging for the usual menu. On touch you can also press and hold a piece → *Add to selection* |
+| Move them together | Drag any selected piece. They keep their positions to each other, wall snapping is off, and it is one undo step |
+| Turn, copy, lock, delete | **R** (Shift R the other way), **Ctrl/⌘ D**, Delete, or the buttons in the right panel ("3 pieces selected"). The group turns about its middle. Locked pieces stay where they are and the panel says so |
+| Line them up | Right panel → *Align* left, centre, right, top, middle, bottom. *Space evenly* across or down needs 3 or more |
+| Make a group | With 2 or more selected, type a name ("Dining set") and press *Group* (or the menu's *Group*). Click any member to select the whole group; **Alt**-click picks just one piece. A group moves, turns, copies (with its own new group) and deletes as one. *Ungroup* and *Rename group…* are in the panel and the menu |
+| Delete a member | Deleting one piece takes it out of its group; a group left with fewer than 2 pieces is dissolved. Options (copies of a floor) carry their groups. *Versions* lists "Group 'Dining set' added" |
+| Search | **Ctrl/⌘ K**, or the magnifier in the top bar. Type part of a name. Rooms on every floor ("Bedroom 2: Second floor": goes to that floor and frames the room), pieces on the plan ("Murphy bed: Bedroom 1": goes to it, selects it, frames it), catalogue items ("Add: Japanese soaking bath": switches to Furnish and gets it ready to place), and actions (Undo, Versions, Budget, Print, Measure on site, Import a scan, Settings, shortcuts, 3D, each mode). Up and down arrows, Enter to go, Esc to close. Recent picks come first and are remembered in this browser |
 
 ## Using it: notes and the engineer and landlord pack
 

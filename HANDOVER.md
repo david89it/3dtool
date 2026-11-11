@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-11, after UI batch part A (panels, menu, history, room views).
+Last updated: 2026-11-11, after UI batch part B (multi-select, groups, ⌘K search).
 
 ## 1. What this is
 
@@ -164,6 +164,13 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   `model/history.ts`), room views (frame in 2D and 3D, walk in here:
   `ui/roomViews.ts`, `roomViewBridge`). No store changes.
 
+- UI batch part B: multi-select in Furnish (Shift-click, Shift box, touch
+  long-press then drag; `Selection` kind `items`), groups (`Level.groups`,
+  `src/model/groups.ts`, `editor2d/selectionActions.ts`, `ui/MultiPanel.tsx`),
+  align and space evenly, and Ctrl/⌘ K search (`ui/searchIndex.ts`,
+  `CommandPalette.tsx`, `paletteCommands.ts`). Pieces in groups follow options
+  (`cloneLevel`) and show in the versions change list.
+
 **In flight:** none.
 
 **Blocked:**
@@ -180,13 +187,17 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 1. Pack follow-ups: detect removed walls by comparing with a version, before
    and after 3D, 3D views per floor.
 2. Sloped loft ceiling and chimney-breast objects (after the site visit).
-3. UI batch part B: multi-select and groups, ⌘K.
-
 **Parked:** path-traced photo render, dark mode, electrics layer,
 side-by-side compare, live Pinterest sync, fps meter.
 
 **Known gaps:**
 
+- Multi-select and groups: the touch route (hold on empty floor then drag, and
+  *Add to selection* in the menu) is not tested on a real iPad; Playwright
+  covers mouse and keyboard only. Groups are not shown in 3D or the print
+  pack, and a group has no outline until selected. Search covers only the
+  option of each floor that is showing, and does not look inside notes or
+  budget fields.
 - Print pack: no removed-wall detection (no "before" state); the 3D picture
   is the last overview shown, not one per floor; the structural pin is not
   tappable in Furnish mode; notes can only be selected in Trace mode.
@@ -223,6 +234,10 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-11 · ui-b · Multi-select and groups (`Selection` kind `items`,
+  `Level.groups`, `model/groups.ts`, `selectionActions.ts`, `MultiPanel`),
+  align and space evenly, Ctrl/⌘ K search (`searchIndex.ts`, `CommandPalette`),
+  `groups.test.ts`, `searchIndex.test.ts`, `e2e/groups.spec.ts`.
 - 2026-11-11 · ui-a · Collapsible panels, plan context menu (right-click and
   500 ms long press), undo history list, room views (frame, walk in here),
   `e2e/uibatch.spec.ts`; closed a missing `}` in `styles.css`.

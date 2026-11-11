@@ -1,14 +1,14 @@
 // Doing what the plan's context menu offers. Every choice goes through the same
 // store edits and geometry functions as the panels, so it is one undo step and saved.
 
-import type { Id, Level, PlacedItem } from '../model/types';
+import type { Id, Level } from '../model/types';
 import { currentLevel, useStore } from '../model/store';
 import { deleteWall, splitWall } from '../geometry/wallGraph';
 import { deleteOpening, openUpWall } from '../geometry/openingEdits';
 import { findOpening, isStructural, OPENING_LABEL } from '../geometry/openings';
 import { addNote, deleteNote, makeNote } from '../model/notes';
-import { findCatalogueItem } from '../catalogue/catalogue';
-import { duplicateItem, rotateBy } from './itemOps';
+import { expandToGroup, groupMatching, selectionIds, selectionOf } from '../model/groups';
+import { deleteSelected, duplicateSelected, groupSelected, lockSelected, turnSelected, ungroupSelected } from './selectionActions';
 import { canvasApi } from './canvasApi';
 import { detectRooms } from '../geometry/rooms';
 import { frameRoom } from '../ui/roomViews';
@@ -61,7 +61,21 @@ function showDetails(focusSelector?: string): void {
 /** Select what was under the pointer so the panel and the outline follow it. */
 export function selectHit(hit: ContextHit): void {
   const s = useStore.getState();
-  if (hit.kind === 'wall' || hit.kind === 'item' || hit.kind === 'note') s.select({ kind: hit.kind, id: hit.id });
+  if (hit.kind === 'item') {
+    // Pressing a piece that is already selected keeps the selection (so a set can be turned or
+    // deleted); otherwise it selects that piece, or its whole group.
+    const level = currentLevel();
+    const prior = selectionIds(s.selection);
+    hit.prior = prior;
+    if (!prior.includes(hit.id)) s.select(selectionOf(level ? expandToGroup(level, hit.id) : [hit.id]));
+    const now = selectionIds(useStore.getState().selection);
+    hit.count = now.length;
+    hit.locked = !!level && now.every((id) => level.items.find((i) => i.id === id)?.locked);
+    hit.groupId = level && groupMatching(level, now)?.id;
+    hit.addable = prior.length > 0 && !prior.includes(hit.id) && s.mode === 'furnish';
+    return;
+  }
+  if (hit.kind === 'wall' || hit.kind === 'note') s.select({ kind: hit.kind, id: hit.id });
   else if (hit.kind === 'opening') s.select({ kind: 'opening', id: hit.id });
   else if (hit.kind === 'room' && hit.id) s.select({ kind: 'room', id: hit.id });
 }
@@ -106,32 +120,32 @@ export function runContextAction(action: ContextAction, hit: ContextHit): void {
       return;
     }
     case 'item.turn':
+      turnSelected(90);
+      return;
     case 'item.duplicate':
+      duplicateSelected();
+      return;
     case 'item.lock':
-    case 'item.delete': {
+      lockSelected();
+      return;
+    case 'item.delete':
+      deleteSelected();
+      return;
+    case 'item.addToSelection': {
       if (hit.kind !== 'item') return;
-      const item = level.items.find((i) => i.id === hit.id);
-      if (!item) return;
-      const name = (findCatalogueItem(s.project, item.catalogueId)?.name ?? 'item').toLowerCase();
-      const change = (label: string, fn: (i: PlacedItem) => PlacedItem) =>
-        s.editLevel(label, (L) => {
-          const idx = L.items.findIndex((x) => x.id === hit.id);
-          if (idx >= 0) L.items[idx] = fn(L.items[idx] as PlacedItem);
-        });
-      if (action === 'item.turn') {
-        if (!item.locked) change(`Turn ${name}`, (i) => rotateBy(i, 90));
-      } else if (action === 'item.duplicate') {
-        const copy = duplicateItem(item);
-        s.editLevel(`Duplicate ${name}`, (L) => void L.items.push(copy));
-        s.select({ kind: 'item', id: copy.id });
-      } else if (action === 'item.lock') {
-        change(item.locked ? `Unlock ${name}` : `Lock ${name}`, (i) => ({ ...i, locked: !i.locked }));
-      } else {
-        s.editLevel(`Remove ${name}`, (L) => void (L.items = L.items.filter((x) => x.id !== hit.id)));
-        s.select(null);
-      }
+      s.select(selectionOf([...(hit.prior ?? []), ...selectionIds(s.selection)]));
       return;
     }
+    case 'item.group':
+      // Named "Group 1", "Group 2"...; the name field in the panel takes focus so she can rename it.
+      if (groupSelected('')) showDetails('[aria-label="Group name"]');
+      return;
+    case 'item.ungroup':
+      ungroupSelected();
+      return;
+    case 'group.rename':
+      showDetails('[aria-label="Group name"]');
+      return;
     case 'note.edit':
       if (hit.kind === 'note') {
         s.select({ kind: 'note', id: hit.id });

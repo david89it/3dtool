@@ -7,6 +7,7 @@ const ROWS: { title: string; keys: [string, string][] }[] = [
       ['Ctrl/⌘ Z', 'Undo'],
       ['Ctrl/⌘ Shift Z or Ctrl Y', 'Redo'],
       ['Tab', 'Switch between the plan and 3D'],
+      ['Ctrl/⌘ K', 'Search rooms, furniture and actions'],
       ['?', 'Show or hide this list'],
       ['[', 'Hide or show the tools panel on the left'],
       [']', 'Hide or show the details panel on the right'],
@@ -39,8 +40,11 @@ const ROWS: { title: string; keys: [string, string][] }[] = [
   {
     title: 'Furnish',
     keys: [
-      ['R / Shift R', 'Turn the selected item 90° right / left'],
-      ['Ctrl/⌘ D', 'Duplicate the selected item'],
+      ['R / Shift R', 'Turn the selected item (or all selected) 90° right / left'],
+      ['Ctrl/⌘ D', 'Duplicate the selected item or items'],
+      ['Shift + click', 'Add a piece to the selection, or take it out'],
+      ['Shift + drag on empty floor', 'Draw a box to select what is inside it'],
+      ['Alt + click', 'Pick one piece of a group'],
       ['Alt + rotate handle', 'Turn freely instead of in 90° steps'],
     ],
   },

@@ -87,6 +87,18 @@ export interface Level {
   // a measured length, an arrow to a wall). Drawn at a constant screen size
   // over the plan and listed in the print pack.
   notes?: PlanNote[];
+  // EXTENSION (multi-select and groups): named sets of furniture ("Dining
+  // set") that select, move, turn, duplicate and delete as one. An item is in
+  // at most one group; a group has at least two members (a smaller one is
+  // dissolved by src/model/groups.ts `pruneGroups`, which every edit runs).
+  groups?: ItemGroup[];
+}
+
+// EXTENSION: see Level.groups.
+export interface ItemGroup {
+  id: Id;
+  name: string;
+  itemIds: Id[];
 }
 
 // EXTENSION: see Level.notes. `pos` is the note's anchor (a text note's pin,

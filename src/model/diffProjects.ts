@@ -179,6 +179,13 @@ function diffItems(a: Level, b: Level, out: string[]) {
   if (line) out.push(line);
 }
 
+function diffGroups(a: Level, b: Level, out: string[]) {
+  const { added, removed, both } = match(a.groups, b.groups);
+  for (const g of added) out.push(`Group '${g.name}' added`);
+  for (const g of removed) out.push(`Group '${g.name}' removed`);
+  for (const [x, y] of both) if (x.name !== y.name) out.push(`Group '${x.name}' renamed to '${y.name}'`);
+}
+
 function diffSimple<T extends { id: string }>(a: T[] | undefined, b: T[] | undefined, noun: string, out: string[]) {
   const { added, removed, both } = match(a, b);
   const changed = both.filter(([x, y]) => !sameJson(x, y)).length;
@@ -199,6 +206,7 @@ function diffLevel(a: Level, b: Level, fmt: (mm: number) => string): string[] {
   diffOpenings(a, b, fmt, out);
   diffRooms(a, b, out);
   diffItems(a, b, out);
+  diffGroups(a, b, out);
   diffSimple(a.stairs, b.stairs, 'stair', out);
   diffSimple(a.markers, b.markers, 'note pin', out);
   if (!a.underlay && b.underlay) out.push('Plan picture added');

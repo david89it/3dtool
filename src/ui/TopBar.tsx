@@ -13,6 +13,7 @@ import { OptionSwitcher } from './OptionSwitcher';
 import { usePrint } from '../print/state';
 import { useBudgetUi } from './budgetUi';
 import { UndoButton } from './UndoHistory';
+import { usePalette } from './paletteState';
 
 export function TopBar() {
   const project = useStore((s) => s.project);
@@ -59,6 +60,18 @@ export function TopBar() {
       <OptionSwitcher />
 
       <div className="topbar-right">
+        <button
+          className="icon-btn"
+          onClick={() => usePalette.getState().setOpen(true)}
+          aria-label="Search"
+          title="Search rooms, furniture and actions (Ctrl/⌘ K)"
+          data-testid="search-button"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+            <circle cx="8.5" cy="8.5" r="5.5" />
+            <path d="M12.8 12.8L17 17" />
+          </svg>
+        </button>
         <div className="undo-group">
           <UndoButton />
           <button

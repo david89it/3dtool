@@ -3,6 +3,9 @@ import { Group, Layer, Rect, Stage } from 'react-konva';
 import type Konva from 'konva';
 import type { Level, Vec2 } from '../model/types';
 import { useLevel, useStore, type Mode, type Tool } from '../model/store';
+import { selectionIds } from '../model/groups';
+import { hitItem } from './itemHit';
+import { selectInBox } from './tools/itemTools';
 import { computeJoints } from '../geometry/joints';
 import { detectRooms } from '../geometry/rooms';
 import { measureWallFace, setInternalLength, wallDimensions, type WallDimension } from '../geometry/dimensions';
@@ -90,6 +93,7 @@ export function PlanCanvas() {
   const itemGhost = useStore((s) => s.itemGhost);
   const showAllClearances = useStore((s) => s.showAllClearances);
   const selection = useStore((s) => s.selection);
+  const selIds = useMemo(() => selectionIds(selection), [selection]);
   const units = useStore((s) => s.units);
   const showMarkers = useStore((s) => s.showMarkers);
 
@@ -290,12 +294,18 @@ export function PlanCanvas() {
   const spaceDown = useRef(false);
   const fingerTap = useRef<{ start: Vec2; last: Vec2; panning: boolean } | null>(null);
   const afterPinch = useRef(false);
-  const longPress = useRef<{ id: number; start: Vec2; timer: ReturnType<typeof setTimeout>; fired: boolean } | null>(null);
+  const longPress = useRef<{ id: number; start: Vec2; timer: ReturnType<typeof setTimeout>; fired: boolean; marquee?: boolean } | null>(null);
+  // Touch, Furnish mode: a long press on empty floor then a drag draws a selection box (plan points).
+  const touchBox = useRef<{ from: Vec2; to: Vec2; moved: boolean } | null>(null);
   const lastPointerType = useRef('mouse');
 
   const cancelLongPress = () => {
     if (longPress.current) clearTimeout(longPress.current.timer);
     longPress.current = null;
+    if (touchBox.current) {
+      touchBox.current = null;
+      setOverlay({});
+    }
   };
 
   /** Open the menu for whatever is at this point of the plan area, and select it. */
@@ -359,6 +369,15 @@ export function PlanCanvas() {
         const st = useStore.getState();
         currentTool().reset?.();
         if (st.gesture) st.cancelGesture();
+        // Furnish mode, empty floor: hold, then drag to draw a selection box. Lifting without
+        // dragging opens the menu as usual.
+        const c = ctxRef.current;
+        if (c && st.mode === 'furnish' && st.tool === 'select' && !hitItem(c.level, st.project, toWorld(viewRef.current, start))) {
+          lp.marquee = true;
+          const w = toWorld(viewRef.current, start);
+          touchBox.current = { from: w, to: w, moved: false };
+          return;
+        }
         openMenu(start, true);
       }, LONG_PRESS_MS);
       longPress.current = { id, start, timer, fired: false };
@@ -389,7 +408,14 @@ export function PlanCanvas() {
     const p = info(e);
     const lp = longPress.current;
     if (lp && lp.id === e.pointerId) {
-      if (lp.fired) return;
+      if (lp.fired) {
+        const tb = touchBox.current;
+        if (lp.marquee && tb) {
+          touchBox.current = { from: tb.from, to: p.world, moved: tb.moved || dist(lp.start, p.screen) > LONG_PRESS_SLOP_PX };
+          setOverlay({ marquee: { from: tb.from, to: p.world } });
+        }
+        return;
+      }
       if (dist(lp.start, p.screen) > LONG_PRESS_SLOP_PX) cancelLongPress();
     }
     if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, p.screen);
@@ -429,10 +455,17 @@ export function PlanCanvas() {
     pointers.current.delete(e.pointerId);
     const lp = longPress.current;
     if (lp && lp.id === e.pointerId) {
-      const fired = lp.fired;
+      const { fired, marquee, start } = lp;
+      const box = touchBox.current;
       cancelLongPress();
-      // The press became the menu: lifting the finger is not a click on the plan.
-      if (fired) return;
+      // The press became the menu or a selection box: lifting the finger is not a click on the plan.
+      if (fired) {
+        if (marquee && box && ctx) {
+          if (box.moved) selectInBox(ctx.level, useStore.getState().project, box.from, box.to, false);
+          else openMenu(start, true);
+        }
+        return;
+      }
     }
     if (e.button === 2) return;
     if (!ctx) return;
@@ -609,7 +642,7 @@ export function PlanCanvas() {
               <ItemShapes
                 level={level}
                 project={project}
-                selectedId={selection?.kind === 'item' ? selection.id : undefined}
+                selectedIds={selIds}
                 hoverId={mode === 'furnish' ? overlay.hoverItem : undefined}
                 showClearances={mode === 'furnish'}
                 showAllClearances={showAllClearances}
@@ -647,9 +680,10 @@ export function PlanCanvas() {
               level={level}
               project={project}
               view={view}
-              selectedId={selection?.kind === 'item' ? selection.id : undefined}
+              selectedIds={selIds}
               hoverId={mode === 'furnish' ? overlay.hoverItem : undefined}
               ghost={itemGhost}
+              marquee={overlay.marquee}
             />
           </Layer>
         </Stage>
@@ -756,7 +790,7 @@ function ToolHint() {
     tool === 'placeItem'
       ? 'Click to place it. Near a wall it turns to back onto the wall. Alt: no snapping. Esc to cancel.'
       : mode === 'furnish'
-        ? 'Click an item to edit it. Drag to move, drag the dots to resize, the round handle to turn (Alt: any angle). R turns 90°, Ctrl/⌘ D duplicates.'
+        ? 'Click an item to edit it. Drag to move, drag the dots to resize, the round handle to turn (Alt: any angle). R turns 90°, Ctrl/⌘ D duplicates. Shift-click or Shift-drag selects several.'
         : tool === 'placeOpening'
       ? 'Move over a wall and click to place it. Esc to cancel.'
       : mode === 'openings'

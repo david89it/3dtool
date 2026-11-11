@@ -4,16 +4,22 @@
 // - select: click to select; drag to move (slides flush along walls); drag
 //   the edge handles to resize, the round handle to turn (90° steps, Alt
 //   for free). Locked items stay put.
+//   Several at once: Shift-click toggles a piece, Shift-drag on empty floor
+//   draws a selection box, and a group selects as a whole (Alt-click picks
+//   one piece). Dragging a selection of several moves them together, with
+//   wall snapping off.
 
-import type { CatalogueItem, Level, PlacedItem, Vec2 } from '../../model/types';
+import type { CatalogueItem, Id, Level, PlacedItem, Project, Vec2 } from '../../model/types';
 import { useStore, type ItemGhost } from '../../model/store';
 import { computeJoints } from '../../geometry/joints';
 import { dist, dot, sub } from '../../geometry/vec';
-import { effectiveDims, findCatalogueItem, footprintCentre, itemAxes, newPlacedItem } from '../../catalogue/catalogue';
+import { effectiveDims, findCatalogueItem, footprint, footprintCentre, itemAxes, newPlacedItem } from '../../catalogue/catalogue';
 import { ceilingAt, fitSurround, resizeFromEdge, round10, snapToOpening, snapToWall, wallFaces, type Edge } from '../itemOps';
 import { surroundLayout } from '../../catalogue/builders';
 import { detectRooms } from '../../geometry/rooms';
 import { hitItem, hitItemHandle, itemHandles } from '../itemHit';
+import { expandToGroup, selectionIds, selectionOf } from '../../model/groups';
+import { toggleInSelection } from '../selectionActions';
 import { DRAG_START_PX, type ToolCtx, type ToolHandler } from './types';
 
 function project() {
@@ -95,6 +101,11 @@ type Pending =
   | { kind: 'resize'; item: PlacedItem; cat: CatalogueItem; edge: Edge }
   | { kind: 'rotate'; item: PlacedItem; cat: CatalogueItem }
   | { kind: 'select'; id: string }
+  // Several pieces dragged together. `clickId` is the piece pressed: a plain click (no drag)
+  // narrows the selection to it (or its group).
+  | { kind: 'moveMany'; ids: Id[]; starts: Map<Id, Vec2>; grab: Vec2; clickId?: Id; locked: boolean }
+  | { kind: 'marquee'; from: Vec2 }
+  | { kind: 'idle' }
   | { kind: 'empty' };
 
 let pending: Pending | null = null;
@@ -102,6 +113,32 @@ let dragging = false;
 let startScreen: Vec2 = { x: 0, y: 0 };
 let lastScreen: Vec2 = { x: 0, y: 0 };
 let warnedLocked = false;
+
+/** Pieces whose middle lies inside the box between two plan points, with whole groups. */
+export function marqueeIds(level: Level, project: Project, a: Vec2, b: Vec2): Id[] {
+  const x0 = Math.min(a.x, b.x);
+  const x1 = Math.max(a.x, b.x);
+  const y0 = Math.min(a.y, b.y);
+  const y1 = Math.max(a.y, b.y);
+  const out = new Set<Id>();
+  for (const item of level.items) {
+    const cat = findCatalogueItem(project, item.catalogueId);
+    if (!cat) continue;
+    const fp = footprint(item, cat);
+    const cx = (Math.min(...fp.map((p) => p.x)) + Math.max(...fp.map((p) => p.x))) / 2;
+    const cy = (Math.min(...fp.map((p) => p.y)) + Math.max(...fp.map((p) => p.y))) / 2;
+    if (cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1) for (const id of expandToGroup(level, item.id)) out.add(id);
+  }
+  return [...out];
+}
+
+/** Select what a box covers. `additive` keeps what was selected already (Shift). */
+export function selectInBox(level: Level, project: Project, a: Vec2, b: Vec2, additive: boolean): void {
+  const s = useStore.getState();
+  const found = marqueeIds(level, project, a, b);
+  const keep = additive ? selectionIds(s.selection) : [];
+  s.select(selectionOf([...keep, ...found]));
+}
 
 function selectedItem(ctx: ToolCtx): PlacedItem | undefined {
   const sel = useStore.getState().selection;
@@ -121,7 +158,7 @@ export const furnishSelectTool: ToolHandler = {
     warnedLocked = false;
     const store = useStore.getState();
     const sel = selectedItem(ctx);
-    if (sel) {
+    if (sel && !p.shift) {
       const cat = findCatalogueItem(store.project, sel.catalogueId);
       const h = cat ? hitItemHandle(itemHandles(sel, store.project, ctx.view), p.screen) : undefined;
       if (h && cat) {
@@ -131,12 +168,43 @@ export const furnishSelectTool: ToolHandler = {
     }
     const hit = hitItem(ctx.level, store.project, p.world);
     if (hit) {
-      store.select({ kind: 'item', id: hit.id });
+      // Alt picks just this piece; otherwise a grouped piece brings its group.
+      const ids = p.alt ? [hit.id] : expandToGroup(ctx.level, hit.id);
+      const cur = selectionIds(store.selection);
+      let now: Id[];
+      let clickId: Id | undefined;
+      if (p.shift) {
+        toggleInSelection(ids);
+        now = selectionIds(useStore.getState().selection);
+        if (!now.includes(hit.id)) {
+          pending = { kind: 'idle' };
+          return;
+        }
+      } else if (!p.alt && cur.length > 1 && cur.includes(hit.id)) {
+        // Pressing a piece of the current selection keeps it, so it can be dragged as a set.
+        now = cur;
+        clickId = hit.id;
+      } else {
+        now = ids;
+        store.select(selectionOf(ids));
+      }
+      if (now.length > 1) {
+        const items = ctx.level.items.filter((i) => now.includes(i.id));
+        pending = {
+          kind: 'moveMany',
+          ids: now,
+          starts: new Map(items.map((i) => [i.id, i.pos])),
+          grab: p.world,
+          clickId,
+          locked: items.every((i) => i.locked),
+        };
+        return;
+      }
       const cat = findCatalogueItem(store.project, hit.catalogueId);
       pending = hit.locked || !cat ? { kind: 'select', id: hit.id } : { kind: 'move', item: hit, cat, grab: sub(p.world, hit.pos) };
       return;
     }
-    pending = { kind: 'empty' };
+    pending = p.shift ? { kind: 'marquee', from: p.world } : { kind: 'empty' };
   },
 
   move(ctx, p) {
@@ -150,7 +218,32 @@ export const furnishSelectTool: ToolHandler = {
     const pend = pending;
     if (!dragging) {
       dragging = true;
-      if (pend.kind === 'move' || pend.kind === 'resize' || pend.kind === 'rotate') store.beginGesture();
+      if (pend.kind === 'move' || pend.kind === 'resize' || pend.kind === 'rotate' || pend.kind === 'moveMany') store.beginGesture();
+    }
+    if (pend.kind === 'idle') return;
+    if (pend.kind === 'marquee') {
+      ctx.setOverlay({ marquee: { from: pend.from, to: p.world } });
+      return;
+    }
+    if (pend.kind === 'moveMany') {
+      if (pend.locked) {
+        if (!warnedLocked) {
+          warnedLocked = true;
+          store.toast('These pieces are locked. Unlock them in the panel to move them.');
+        }
+        return;
+      }
+      const d = round10({ x: p.world.x - pend.grab.x, y: p.world.y - pend.grab.y });
+      store.updateGesture((L) => {
+        for (const it of L.items) {
+          const start = pend.starts.get(it.id);
+          if (!start || it.locked) continue;
+          it.pos = { x: start.x + d.x, y: start.y + d.y };
+          it.mountedTo = undefined;
+        }
+      });
+      ctx.setOverlay({ dragging: true });
+      return;
     }
     if (pend.kind === 'empty') {
       ctx.panBy(p.screen.x - lastScreen.x, p.screen.y - lastScreen.y);
@@ -207,7 +300,7 @@ export const furnishSelectTool: ToolHandler = {
     ctx.setOverlay({ dragging: true, hoverItem: id });
   },
 
-  up(ctx) {
+  up(ctx, p) {
     const store = useStore.getState();
     const pend = pending;
     pending = null;
@@ -215,11 +308,14 @@ export const furnishSelectTool: ToolHandler = {
     if (dragging) {
       dragging = false;
       if (pend.kind === 'move') store.endGesture(`Move ${pend.cat.name.toLowerCase()}`);
+      else if (pend.kind === 'moveMany') store.endGesture(`Move ${pend.ids.length} pieces`);
       else if (pend.kind === 'resize') store.endGesture(`Resize ${pend.cat.name.toLowerCase()}`);
       else if (pend.kind === 'rotate') store.endGesture(`Turn ${pend.cat.name.toLowerCase()}`);
+      else if (pend.kind === 'marquee') selectInBox(ctx.level, store.project, pend.from, p.world, true);
       ctx.setOverlay({});
       return;
     }
+    if (pend.kind === 'moveMany' && pend.clickId) store.select(selectionOf(p.alt ? [pend.clickId] : expandToGroup(ctx.level, pend.clickId)));
     if (pend.kind === 'empty') store.select(null);
   },
 

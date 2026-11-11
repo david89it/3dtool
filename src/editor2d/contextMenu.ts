@@ -14,7 +14,21 @@ import { hitOpening } from '../geometry/openings';
 export type ContextHit =
   | { kind: 'wall'; id: Id; world: Vec2 }
   | { kind: 'opening'; id: Id; wallId: Id; isDoor: boolean; world: Vec2 }
-  | { kind: 'item'; id: Id; locked: boolean; world: Vec2 }
+  | {
+      kind: 'item';
+      id: Id;
+      locked: boolean;
+      world: Vec2;
+      // Filled in by selectHit once the press has been turned into a selection:
+      /** How many pieces the menu acts on (the whole selection or group). */
+      count?: number;
+      /** The pieces selected before the press, so "Add to selection" can keep them. */
+      prior?: Id[];
+      /** Offer "Add to selection" (something else was selected first). */
+      addable?: boolean;
+      /** The selection is exactly one group. */
+      groupId?: Id;
+    }
   | { kind: 'note'; id: Id; world: Vec2 }
   | { kind: 'room'; id: Id | null; nodeIds: Id[]; world: Vec2 }
   | { kind: 'empty'; world: Vec2 };
@@ -30,6 +44,10 @@ export type ContextAction =
   | 'item.duplicate'
   | 'item.lock'
   | 'item.delete'
+  | 'item.addToSelection'
+  | 'item.group'
+  | 'item.ungroup'
+  | 'group.rename'
   | 'note.edit'
   | 'note.delete'
   | 'room.rename'
@@ -61,9 +79,18 @@ export function contextEntries(hit: ContextHit): ContextEntry[] {
       ];
     case 'item':
       return [
+        ...(hit.addable ? [{ action: 'item.addToSelection' as const, label: 'Add to selection' }] : []),
         { action: 'item.turn', label: 'Turn 90°', disabled: hit.locked },
         { action: 'item.duplicate', label: 'Duplicate' },
         { action: 'item.lock', label: hit.locked ? 'Unlock' : 'Lock' },
+        ...(hit.groupId
+          ? [
+              { action: 'group.rename' as const, label: 'Rename group…' },
+              { action: 'item.ungroup' as const, label: 'Ungroup' },
+            ]
+          : (hit.count ?? 1) >= 2
+            ? [{ action: 'item.group' as const, label: 'Group' }]
+            : []),
         { action: 'item.delete', label: 'Delete', danger: true },
       ];
     case 'note':

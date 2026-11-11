@@ -742,3 +742,53 @@ challenged.
   furniture; collision still applies.
 - **CSS.** A missing `}` after `.item-source .source-link` had left all rules
   after it (paint grid, budget, and anything new) unstyled; closed.
+
+## UI batch part B: several pieces, groups, search
+
+- **Selection.** New `Selection` kind `{ kind: 'items'; ids }` (2 or more
+  pieces; one piece stays `{ kind: 'item' }`). `selectionStillValid` trims ids
+  that no longer exist and falls back to one piece or nothing. Handles (resize
+  and turn) show only for a single piece.
+- **Groups.** `Level.groups?: { id; name; itemIds }[]` (EXTENSION, per floor).
+  A piece is in at most one group. Rule: a group has 2 or more members.
+  `pruneGroups` runs inside the store's `tidy`, so every edit (panel, key,
+  menu, rule fix) drops missing members and dissolves small groups, with no
+  special case at each delete. Clicking a member selects the group; Alt-click
+  picks one piece (and the piece panel offers *Select the whole group*). Group
+  names are plain text and not unique. Duplicating a group copies it only when
+  all its members are copied, named "... copy". `cloneLevel` (options) remaps
+  member ids and gives the group a new id. The versions change list has
+  "Group 'x' added / removed / renamed to".
+- **Moves.** Dragging a multi-selection moves each piece by the same rounded
+  (10 mm) offset from where it started, as one gesture; wall snapping and
+  wall-hung links are off (a moved piece comes off its wall, as for one
+  piece). Locked pieces never move, turn or align; the panel counts them. A
+  turn is about the middle of the box that the movable pieces' centres span,
+  so four turns return to the start exactly (positions kept to 0.01 mm). One
+  piece turns about itself, so single-piece behaviour is unchanged. All the
+  keyboard, panel and menu actions share `editor2d/selectionActions.ts`.
+- **Align and space evenly.** Pure box maths in `model/groups.ts`. Align uses
+  each piece's footprint box (turned pieces included) against the union of the
+  boxes; centre and middle align to the middle of the union. Space evenly keeps
+  the first and last piece (by position) and makes the gaps equal; it needs 3.
+- **Selection box.** A piece is picked when the middle of its footprint box is
+  inside the box (so a big rug under a table is not picked by a box round the
+  chairs). With Shift the box adds to the selection. On touch the existing
+  500 ms long press on empty floor in Furnish mode starts the box instead of
+  opening the menu straight away; lifting without moving opens the menu.
+- **Menu on a piece.** The press keeps the selection if the piece is in it,
+  otherwise selects it (and its group). *Add to selection* appears when
+  something else was selected first (the touch route to multi-select);
+  *Group*, *Ungroup* and *Rename group…* appear when they apply.
+- **Search (Ctrl/⌘ K).** `ui/searchIndex.ts` (pure, tested) indexes rooms of
+  the showing option of every floor, placed pieces (room found from the wall
+  centreline loop the piece's middle is in, else the floor name), catalogue
+  items and commands; fuse.js, threshold 0.35. With no text it lists recent
+  picks, then commands. Ranking: fuzzy score, ties go rooms, commands, pieces,
+  catalogue; recent picks get a small bonus. The shortcut works even while
+  typing in a field. Picking a room or piece switches floor, selects it and
+  frames it (once now and once after 120 ms, because the plan fits itself to a
+  floor it has not shown yet); a piece also switches to Furnish. Recents are
+  kept in `localStorage` only (`ui/paletteState.ts`). Tab and the *Toggle 3D*
+  command share `ui/modeToggle.ts`.
+

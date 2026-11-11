@@ -91,9 +91,17 @@ export function cloneLevel(src: Level): Level {
     r.id = uid('r');
     r.boundary = r.boundary.map((id) => map.get(id) ?? id);
   }
+  const items = new Map<Id, Id>();
   for (const it of copy.items) {
+    const old = it.id;
     it.id = uid('i');
+    items.set(old, it.id);
     if (it.mountedTo) it.mountedTo.wallId = map.get(it.mountedTo.wallId) ?? it.mountedTo.wallId;
+  }
+  // Groups of furniture follow their pieces to the copy.
+  for (const g of copy.groups ?? []) {
+    g.id = uid('g');
+    g.itemIds = g.itemIds.map((id) => items.get(id) ?? id);
   }
   for (const s of copy.stairs) s.id = uid('s');
   for (const m of copy.markers ?? []) m.id = uid('m');

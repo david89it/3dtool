@@ -1,12 +1,15 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { useStore, type Mode } from '../model/store';
+import { useStore } from '../model/store';
 import { useLayout, watchWidth } from './layoutState';
 import { PanelSlot } from './PanelSlot';
 import { PlanCanvas } from '../editor2d/PlanCanvas';
 import { canvasApi } from '../editor2d/canvasApi';
 import { deleteWall } from '../geometry/wallGraph';
-import type { Level, PlacedItem } from '../model/types';
-import { duplicateItem, rotateBy } from '../editor2d/itemOps';
+import type { Level } from '../model/types';
+import { deleteSelected, duplicateSelected, turnSelected } from '../editor2d/selectionActions';
+import { CommandPalette } from './CommandPalette';
+import { usePalette } from './paletteState';
+import { toggleThreeD } from './modeToggle';
 import { deleteOpening } from '../geometry/openingEdits';
 import { deleteNote } from '../model/notes';
 import { isStructural } from '../geometry/openings';
@@ -32,9 +35,6 @@ import { usePrint } from '../print/state';
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
 const View3D = lazy(() => import('../view3d/View3D').then((m) => ({ default: m.View3D })));
 
-/** The 2D mode to return to when Tab leaves 3D. */
-let last2DMode: Mode = 'trace';
-
 function isTyping(e: KeyboardEvent): boolean {
   const t = e.target as HTMLElement | null;
   return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
@@ -43,6 +43,12 @@ function isTyping(e: KeyboardEvent): boolean {
 function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Search works from anywhere, even while typing in a field.
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        usePalette.getState().toggle();
+        return;
+      }
       if (isTyping(e)) return;
       // The print view is on top: it handles its own keys (Esc closes it) and the plan must not react.
       if (usePrint.getState().open) return;
@@ -54,14 +60,9 @@ function useShortcuts() {
         else s.undo();
         return;
       }
-      if (mod && e.key.toLowerCase() === 'd' && s.selection?.kind === 'item') {
+      if (mod && e.key.toLowerCase() === 'd' && (s.selection?.kind === 'item' || s.selection?.kind === 'items')) {
         e.preventDefault();
-        const it = currentLevel()?.items.find((i) => i.id === s.selection!.id);
-        if (it) {
-          const copy = duplicateItem(it);
-          s.editLevel('Duplicate item', (L) => void L.items.push(copy));
-          s.select({ kind: 'item', id: copy.id });
-        }
+        duplicateSelected();
         return;
       }
       if (mod && e.key.toLowerCase() === 'y') {
@@ -86,11 +87,7 @@ function useShortcuts() {
       }
       if (e.key === 'Tab' && !e.shiftKey && !e.altKey) {
         e.preventDefault();
-        if (s.mode === '3d') s.setMode(last2DMode);
-        else {
-          last2DMode = s.mode;
-          s.setMode('3d');
-        }
+        toggleThreeD();
         return;
       }
       if (s.mode === '3d') return;
@@ -107,15 +104,8 @@ function useShortcuts() {
       else if (e.key === 'v' || e.key === 'V') s.setTool('select');
       else if ((e.key === 'w' || e.key === 'W') && s.mode === 'trace') s.setTool('draw');
       else if (e.key === 'f' || e.key === 'F') canvasApi.fit();
-      else if ((e.key === 'r' || e.key === 'R') && s.selection?.kind === 'item') {
-        const id = s.selection.id;
-        const it = currentLevel()?.items.find((i) => i.id === id);
-        if (it && !it.locked) {
-          s.editLevel('Turn item', (L) => {
-            const idx = L.items.findIndex((x) => x.id === id);
-            if (idx >= 0) L.items[idx] = rotateBy(L.items[idx] as PlacedItem, e.shiftKey ? -90 : 90);
-          });
-        }
+      else if ((e.key === 'r' || e.key === 'R') && (s.selection?.kind === 'item' || s.selection?.kind === 'items')) {
+        turnSelected(e.shiftKey ? -90 : 90);
       }
       else if ((e.key === 'Delete' || e.key === 'Backspace') && s.selection) {
         const sel = s.selection;
@@ -126,10 +116,9 @@ function useShortcuts() {
           s.editLevel('Delete wall', (L) => deleteWall(L as Level, sel.id));
           s.select(null);
           if (w && isStructural(w)) s.toast(STRUCTURAL_DELETE_WARNING, 'warn');
-        } else if (sel.kind === 'item') {
+        } else if (sel.kind === 'item' || sel.kind === 'items') {
           e.preventDefault();
-          s.editLevel('Remove item', (L) => void (L.items = L.items.filter((i) => i.id !== sel.id)));
-          s.select(null);
+          deleteSelected();
         } else if (sel.kind === 'opening') {
           e.preventDefault();
           s.editLevel('Remove opening', (L) => deleteOpening(L as Level, sel.id));
@@ -193,6 +182,7 @@ export function App() {
       <VersionsPanel />
       <BudgetPanel />
       <VersionImportPrompt />
+      <CommandPalette />
     </div>
     <PrintPack />
     </>

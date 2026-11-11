@@ -1,10 +1,11 @@
-import { Circle, Group, Label, Line, Tag, Text } from 'react-konva';
+import { Circle, Group, Label, Line, Rect, Tag, Text } from 'react-konva';
 import type { CatalogueItem, Level, PlacedItem, Project, Vec2 } from '../../model/types';
 import type { ItemGhost } from '../../model/store';
 import { findCatalogueItem, footprint, itemParts, localToPlan, newPlacedItem } from '../../catalogue/catalogue';
 import { partColor } from '../../catalogue/colors';
 import { clearanceShapes } from '../clearanceShapes';
 import { itemHandles } from '../itemHit';
+import { groupMatching } from '../../model/groups';
 import { toScreen, type View } from '../view';
 import { COLORS, FONT } from '../theme';
 
@@ -90,7 +91,7 @@ function Clearances({ item, cat }: { item: PlacedItem; cat: CatalogueItem }) {
 export function ItemShapes({
   level,
   project,
-  selectedId,
+  selectedIds,
   hoverId,
   showClearances,
   showAllClearances,
@@ -98,7 +99,7 @@ export function ItemShapes({
 }: {
   level: Level;
   project: Project;
-  selectedId?: string;
+  selectedIds: string[];
   hoverId?: string;
   showClearances: boolean;
   showAllClearances: boolean;
@@ -122,10 +123,10 @@ export function ItemShapes({
     <>
       {showClearances &&
         withCat
-          .filter(({ item }) => showAllClearances || item.id === selectedId)
+          .filter(({ item }) => showAllClearances || (selectedIds.length === 1 && item.id === selectedIds[0]))
           .map(({ item, cat }) => <Clearances key={`c-${item.id}`} item={item} cat={cat} />)}
       {withCat.map(({ item, cat }) => (
-        <ItemShape key={item.id} item={item} cat={cat} highlight={item.id === selectedId ? 'selected' : item.id === hoverId ? 'hover' : undefined} />
+        <ItemShape key={item.id} item={item} cat={cat} highlight={selectedIds.includes(item.id) ? 'selected' : item.id === hoverId ? 'hover' : undefined} />
       ))}
       {ghost && ghostCat && ghostItem && (
         <>
@@ -142,19 +143,39 @@ export function ItemOverlay({
   level,
   project,
   view,
-  selectedId,
+  selectedIds,
   hoverId,
   ghost,
+  marquee,
 }: {
   level: Level;
   project: Project;
   view: View;
-  selectedId?: string;
+  selectedIds: string[];
   hoverId?: string;
   ghost: ItemGhost | null;
+  /** A selection box being dragged, in plan points. */
+  marquee?: { from: Vec2; to: Vec2 };
 }) {
-  const sel = level.items.find((i) => i.id === selectedId);
-  const hov = level.items.find((i) => i.id === hoverId && i.id !== selectedId);
+  const sel = selectedIds.length === 1 ? level.items.find((i) => i.id === selectedIds[0]) : undefined;
+  const hov = level.items.find((i) => i.id === hoverId && !selectedIds.includes(i.id));
+  // Several selected: one dashed box round them all, named after the group when it is one.
+  let multi: { x: number; y: number; w: number; h: number; text: string } | null = null;
+  if (selectedIds.length > 1) {
+    const pts: Vec2[] = [];
+    for (const id of selectedIds) {
+      const it = level.items.find((i) => i.id === id);
+      const cat = it && findCatalogueItem(project, it.catalogueId);
+      if (it && cat) pts.push(...footprint(it, cat).map((p) => toScreen(view, p)));
+    }
+    if (pts.length) {
+      const x = Math.min(...pts.map((p) => p.x)) - 6;
+      const y = Math.min(...pts.map((p) => p.y)) - 6;
+      const g = groupMatching(level, selectedIds);
+      multi = { x, y, w: Math.max(...pts.map((p) => p.x)) + 6 - x, h: Math.max(...pts.map((p) => p.y)) + 6 - y, text: g ? `${g.name} · ${selectedIds.length} pieces` : `${selectedIds.length} pieces` };
+    }
+  }
+  const box = marquee && { a: toScreen(view, marquee.from), b: toScreen(view, marquee.to) };
   const tag = (item: PlacedItem, key: string) => {
     const cat = findCatalogueItem(project, item.catalogueId);
     if (!cat) return null;
@@ -173,6 +194,27 @@ export function ItemOverlay({
     <Group listening={false}>
       {hov && tag(hov, 'hov')}
       {sel && tag(sel, 'sel')}
+      {multi && (
+        <>
+          <Rect x={multi.x} y={multi.y} width={multi.w} height={multi.h} stroke={COLORS.accent} strokeWidth={1.5} dash={[6, 4]} cornerRadius={4} />
+          <Label x={multi.x + multi.w / 2} y={multi.y - 4} offsetX={(multi.text.length * 6.6 + 12) / 2} offsetY={22}>
+            <Tag fill="#1f2328" opacity={0.85} cornerRadius={5} />
+            <Text text={multi.text} fontSize={12} fontFamily={FONT} fill="#fff" padding={5} />
+          </Label>
+        </>
+      )}
+      {box && (
+        <Rect
+          x={Math.min(box.a.x, box.b.x)}
+          y={Math.min(box.a.y, box.b.y)}
+          width={Math.abs(box.a.x - box.b.x)}
+          height={Math.abs(box.a.y - box.b.y)}
+          fill="rgba(37,99,235,0.10)"
+          stroke={COLORS.accent}
+          strokeWidth={1}
+          dash={[4, 3]}
+        />
+      )}
       {sel &&
         itemHandles(sel, project, view).map((h, i) =>
           h.kind === 'rotate' ? (

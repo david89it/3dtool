@@ -7,6 +7,7 @@ import { syncRooms } from '../geometry/rooms';
 import { clampOpenings } from '../geometry/wallGraph';
 import { activeLevels, withActive } from './schemes';
 import { autoSnapshot, noteChange, setVersionWarn } from './versions';
+import { pruneGroups } from './groups';
 
 enablePatches();
 
@@ -30,6 +31,10 @@ export type Selection =
   | { kind: 'node'; id: Id }
   | { kind: 'opening'; id: Id }
   | { kind: 'item'; id: Id }
+  // EXTENSION (multi-select): several pieces of furniture at once (Shift-click,
+  // a selection box, or a whole group). Always 2 or more ids; one piece is
+  // `{ kind: 'item' }`. See src/model/groups.ts.
+  | { kind: 'items'; ids: Id[] }
   | null;
 
 /** Preview of a furniture item being placed. */
@@ -145,12 +150,18 @@ function levelIndex(p: Project, id: Id): number {
 function tidy(level: Draft<Level>): void {
   clampOpenings(level as Level);
   syncRooms(level as Level);
+  pruneGroups(level as Level);
 }
 
 function selectionStillValid(p: Project, levelId: Id, s: Selection): Selection {
   if (!s) return null;
   const L = p.levels.find((l) => l.id === levelId);
   if (!L) return null;
+  if (s.kind === 'items') {
+    const ids = s.ids.filter((id) => L.items.some((i) => i.id === id));
+    if (ids.length === s.ids.length) return s;
+    return ids.length === 0 ? null : ids.length === 1 ? { kind: 'item', id: ids[0] } : { kind: 'items', ids };
+  }
   const ok =
     (s.kind === 'wall' && L.walls.some((w) => w.id === s.id)) ||
     (s.kind === 'room' && L.rooms.some((r) => r.id === s.id)) ||

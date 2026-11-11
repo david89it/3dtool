@@ -11,6 +11,7 @@ import { EditableLength } from './EditableLength';
 import { AdvicePanel } from './AdvicePanel';
 import { OpeningPanel } from './OpeningPanel';
 import { ItemPanel } from './ItemPanel';
+import { MultiPanel } from './MultiPanel';
 import { needsStructuralBadge, OPENING_LABEL, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
 import { deleteWallAction, openUpWallAction, STRUCTURAL_DELETE_WARNING } from '../editor2d/contextActions';
 import { frameRoom, walkIntoRoom } from './roomViews';
@@ -585,6 +586,7 @@ export function Inspector() {
   else if (selection?.kind === 'note') body = <NotePanel level={level} noteId={selection.id} />;
   else if (selection?.kind === 'opening') body = <OpeningPanel level={level} openingId={selection.id} />;
   else if (selection?.kind === 'item') body = <ItemPanel level={level} itemId={selection.id} />;
+  else if (selection?.kind === 'items') body = <MultiPanel level={level} ids={selection.ids} />;
   return (
     <aside className="inspector" aria-label="Details">
       {body ?? <LevelPanel level={level} />}

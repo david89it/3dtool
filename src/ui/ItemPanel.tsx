@@ -9,13 +9,15 @@ import { computeJoints } from '../geometry/joints';
 import { detectRooms } from '../geometry/rooms';
 import { ceilingAt, fitSurround, snapToOpening } from '../editor2d/itemOps';
 import { CATEGORY_LABEL } from '../catalogue/items';
-import { canResize, duplicateItem, rotateBy, setDimension } from '../editor2d/itemOps';
+import { canResize, setDimension } from '../editor2d/itemOps';
 import { formatLength } from '../model/units';
 import { EditableLength } from './EditableLength';
 import { ItemPreview } from './FurnishPanel';
 import { CommitInput } from './budgetFields';
 import { isWebLink, normaliseLink, parsePrice, STATUSES, STATUS_LABEL } from '../model/costs';
 import { useBudgetUi } from './budgetUi';
+import { groupOfItem } from '../model/groups';
+import { deleteSelected, duplicateSelected, lockSelected, turnSelected } from '../editor2d/selectionActions';
 
 const AXIS_LABEL = { w: 'Width', d: 'Depth', h: 'Height' } as const;
 
@@ -50,6 +52,14 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
         {cat.mount === 'wall' ? ' · fixed to a wall' : cat.mount === 'ceiling' ? ' · hangs from the ceiling' : ''}
         {item.locked ? ' · locked' : ''}
       </p>
+      {groupOfItem(level, item.id) && (
+        <p className="note" data-testid="item-group-note">
+          Part of the group “{groupOfItem(level, item.id)!.name}”.{' '}
+          <button className="link-btn" onClick={() => select({ kind: 'items', ids: groupOfItem(level, item.id)!.itemIds })}>
+            Select the whole group
+          </button>
+        </p>
+      )}
 
       {cat.source && <ItemSource source={cat.source} />}
 
@@ -109,10 +119,10 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
         <span className="value">{Math.round(item.rotationDeg)}°</span>
       </div>
       <div className="actions">
-        <button className="btn" disabled={item.locked} onClick={() => change(`Turn ${name}`, (i) => rotateBy(i, -90))} aria-label="Turn 90° anticlockwise">
+        <button className="btn" disabled={item.locked} onClick={() => turnSelected(-90)} aria-label="Turn 90° anticlockwise">
           ↺ Turn 90°
         </button>
-        <button className="btn" disabled={item.locked} onClick={() => change(`Turn ${name}`, (i) => rotateBy(i, 90))} aria-label="Turn 90° clockwise">
+        <button className="btn" disabled={item.locked} onClick={() => turnSelected(90)} aria-label="Turn 90° clockwise">
           ↻ Turn 90°
         </button>
       </div>
@@ -139,25 +149,16 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
       <div className="actions">
         <button
           className="btn"
-          onClick={() => {
-            const copy = duplicateItem(item);
-            editLevel(`Duplicate ${name}`, (L) => void L.items.push(copy));
-            select({ kind: 'item', id: copy.id });
-          }}
+          onClick={() => duplicateSelected()}
         >
           Duplicate
         </button>
-        <button className={item.locked ? 'btn on' : 'btn'} aria-pressed={!!item.locked} onClick={() => change(item.locked ? `Unlock ${name}` : `Lock ${name}`, (i) => ({ ...i, locked: !i.locked }))}>
+        <button className={item.locked ? 'btn on' : 'btn'} aria-pressed={!!item.locked} onClick={() => lockSelected()}>
           {item.locked ? 'Unlock' : 'Lock'}
         </button>
         <button
           className="btn danger"
-          onClick={() => {
-            editLevel(`Remove ${name}`, (L) => {
-              L.items = L.items.filter((x) => x.id !== itemId);
-            });
-            select(null);
-          }}
+          onClick={() => deleteSelected()}
         >
           Remove
         </button>
