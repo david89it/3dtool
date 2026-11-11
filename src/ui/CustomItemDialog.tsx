@@ -4,6 +4,7 @@ import { useStore } from '../model/store';
 import { uid } from '../model/ids';
 import { CATEGORY_LABEL, customGeometry } from '../catalogue/items';
 import { formatLength, parseLength } from '../model/units';
+import { parsePrice } from '../model/costs';
 
 type Cat = CatalogueItem['category'];
 
@@ -38,10 +39,16 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
     Object.fromEntries([...SIZE_FIELDS, ...CLEAR_FIELDS].map((f) => [f.key, formatLength(f.initial, units, 'small')])),
   );
   const [error, setError] = useState<string | null>(null);
+  const [priceText, setPriceText] = useState('');
 
   const save = () => {
     if (!name.trim()) {
       setError('Give it a name, for example "Grandma\'s trunk".');
+      return;
+    }
+    const price = priceText.trim() ? parsePrice(priceText) : undefined;
+    if (priceText.trim() && price === undefined) {
+      setError('Price: type an amount in pounds, like 250 or 79.99. Or leave it empty.');
       return;
     }
     const v: Record<string, number> = {};
@@ -69,6 +76,7 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
       geometry: customGeometry(v.w, v.d, v.h, mount),
       clearance,
       rules: ['door-swing', 'loft-headroom'],
+      ...(price !== undefined ? { price } : {}),
     };
     useStore.getState().commit(`Add custom item “${item.name}”`, (draft) => {
       draft.catalogueOverrides.push(item);
@@ -95,6 +103,10 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
         <label className="form-row">
           <span className="field-label">Name</span>
           <input className="text-field" aria-label="Item name" value={name} autoFocus onChange={(e) => setName(e.target.value)} placeholder="e.g. Grandma's trunk" />
+        </label>
+        <label className="form-row">
+          <span className="field-label">Price in £ (optional)</span>
+          <input className="text-field" aria-label="Price in pounds" inputMode="decimal" value={priceText} onChange={(e) => setPriceText(e.target.value)} placeholder="e.g. 250" />
         </label>
         <div className="form-grid">
           {SIZE_FIELDS.map((f) => (

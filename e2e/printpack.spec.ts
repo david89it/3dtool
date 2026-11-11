@@ -134,6 +134,7 @@ test('print pack: structural page, opening width, note text, a picture on every 
   await expect(structural).toContainText('Things the engineer should confirm');
   await expect(page.getByTestId('print-landlord')).toContainText('Freeholder / landlord');
   await expect(page.getByTestId('print-notes')).toContainText('Engineer: please check the beam above');
+  await expect(page.getByTestId('print-budget')).toContainText('Grand total');
   await expect(page.getByTestId('print-cover')).toContainText('2.61 m wide');
 
   const pages = page.getByTestId('print-floor-page');

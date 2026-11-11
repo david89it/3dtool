@@ -639,3 +639,33 @@ challenged.
   The notes colour dot `.swatch` also clashed with the item colour swatches;
   it is now `.note-swatch`.
 
+## Costs and shopping list
+
+- **Rough defaults, all editable.** Paint £12 a litre, one litre covers 12 m²
+  per coat, 2 coats, 10% extra flooring, 10% spare money, and a price per m²
+  for each of the 14 floor finishes (for example pale oak £60, grey carpet £25, grey
+  tile £45). They are rough UK figures for a first total, not quotes. They
+  are saved in `Project.costSettings` and edited in the Budget panel, so
+  undo and saved copies include them. Missing values fall back to
+  `DEFAULT_COST_SETTINGS` (`src/model/costs.ts`).
+- **Wall area.** For each room, the inside length of each wall face (from the
+  mitred corners) times the wall's height (else the room's ceiling height),
+  minus the width × height of every opening in that wall, doors, windows and
+  cased openings alike. An opening between two rooms comes off both. Skirting,
+  tiled walls, chimney breasts and sloped ceilings are not allowed for, and
+  paint is priced for every wall whatever its finish.
+- **Items.** `PlacedItem.price` is for one piece, in £. `status` is missing
+  while it is an idea. Items with no price count as £0 and are counted in
+  the Summary ("n without a price"). An item is put in the room whose inside
+  face contains its centre, else under "Not in a room". `CatalogueItem.price`
+  is a default for her own items, copied when placed.
+- **Spare money** is a percentage on furniture plus decorating. Everything is
+  in pounds only, formatted with `Intl` en-GB (whole pounds when there are
+  no pence).
+- **CSV** is one table (furniture, then decorating rows, then totals) with a
+  byte-order mark so spreadsheets read it as UTF-8. A cell that starts with
+  `=`, `+`, `-` or `@` gets a leading `'` so a spreadsheet will not run it.
+- **Editing.** Prices and settings are saved when the box loses focus or
+  Enter is pressed (one undo step each), not on every key. The Budget panel
+  is derived from the project on every change; it stores nothing of its own.
+

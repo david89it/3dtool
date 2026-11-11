@@ -24,6 +24,7 @@ import { ScanImport } from '../import/ScanImport';
 import { EmptyStart, UnlockDialog } from './UnlockDialog';
 import { VersionImportPrompt, VersionsPanel } from './VersionsPanel';
 import { PrintPack } from '../print/PrintPack';
+import { BudgetPanel } from './BudgetPanel';
 import { usePrint } from '../print/state';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
@@ -174,6 +175,7 @@ export function App() {
       <EmptyStart />
       <UnlockDialog />
       <VersionsPanel />
+      <BudgetPanel />
       <VersionImportPrompt />
     </div>
     <PrintPack />

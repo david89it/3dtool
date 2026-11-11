@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-10, after the materials and paint work.
+Last updated: 2026-11-11, after the costs and shopping list work.
 
 ## 1. What this is
 
@@ -146,6 +146,12 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   coloured item built from the closest catalogue shape, saved in
   `catalogueOverrides` as `ai-…` with `CatalogueItem.tint` and `.source`.
 
+- Costs and shopping list: price, shop, link and status on each piece,
+  paint and flooring quantities per room, Budget panel (£ button, File menu),
+  copy as a list, CSV, and a Budget page in the print pack
+  (`src/model/costs.ts`, `costEdits.ts`, `src/ui/BudgetPanel.tsx`,
+  `Project.costSettings`).
+
 **In flight:** none.
 
 **Blocked:**
@@ -161,11 +167,10 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 
 1. Real sun for N19: date and time, sun hours per room (changes
    `src/view3d`).
-2. Costs and shopping list.
-3. Pack follow-ups: detect removed walls by comparing with a version, before
+2. Pack follow-ups: detect removed walls by comparing with a version, before
    and after 3D, 3D views per floor.
-4. Sloped loft ceiling and chimney-breast objects (after the site visit).
-5. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
+3. Sloped loft ceiling and chimney-breast objects (after the site visit).
+4. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
    room views, undo history list.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
@@ -209,6 +214,11 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-11 · costs · Budget and shopping list: `PlacedItem.price/supplier/link/status`,
+  `Project.costSettings`, `CatalogueItem.price`, `src/model/costs.ts` (paint,
+  flooring, totals, CSV, text), Budget panel, Cost section in the item panel,
+  Budget page in the print pack, `e2e/budget.spec.ts`. Defaults are rough UK
+  figures.
 - 2026-11-10 · describe · Add a piece by description or image link
   (structured outputs, `describeModel.ts` pure half, `DescribeItemBox`,
   `tint` and `source` on `CatalogueItem`, "Your items" group, `e2e/describe.spec.ts`

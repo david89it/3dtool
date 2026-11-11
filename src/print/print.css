@@ -203,3 +203,9 @@
     print-color-adjust: exact;
   }
 }
+
+/* Budget page */
+.print-table .num {
+  text-align: right;
+  white-space: nowrap;
+}

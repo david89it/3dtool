@@ -149,6 +149,7 @@ export function newPlacedItem(cat: CatalogueItem, pos: Vec2, rotationDeg = 0): P
     rotationDeg,
     dims: { ...(names.length ? cat.states![names[0]].dims : cat.defaultDims) },
     ...(names.length ? { state: names[0] } : {}),
+    ...(cat.price !== undefined ? { price: cat.price } : {}),
   };
 }
 

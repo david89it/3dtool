@@ -11,6 +11,7 @@ import { formatLength } from '../model/units';
 import { noteLength, NOTE_KIND_LABEL } from '../model/notes';
 import { STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
 import { get3dSnapshot } from '../view3d/captureBridge';
+import { buildBudget, formatGBP, sizeText, STATUSES, STATUS_LABEL } from '../model/costs';
 import { buildFloors, buildStructuralRows, engineerChecklist, type StructuralRow } from './pack';
 import { usePrint } from './state';
 import './print.css';
@@ -53,13 +54,14 @@ function PackView() {
       project,
       units,
       floors: buildFloors(project, units),
+      budget: buildBudget(project),
       rows,
       checklist: engineerChecklist(rows, units),
       snapshot3d: get3dSnapshot(),
       date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
     };
   });
-  const { project, units, floors, rows } = data;
+  const { project, units, floors, rows, budget } = data;
   const [images, setImages] = useState<Record<string, string | null>>({});
   const printableFloors = useMemo(() => floors.filter((f) => f.hasWalls), [floors]);
   const ready = printableFloors.every((f) => f.levelId in images);
@@ -272,6 +274,81 @@ function PackView() {
               </div>
             ))
           )}
+        </section>
+        {/* 7. Budget */}
+        <section className="print-page flow" data-testid="print-budget">
+          <h2>Budget</h2>
+          <h3>Summary</h3>
+          <table className="print-table">
+            <tbody>
+              {STATUSES.map((st) => (
+                <tr key={st}>
+                  <td>
+                    Furniture: {STATUS_LABEL[st].toLowerCase()} ({budget.summary.byStatus[st].count})
+                  </td>
+                  <td className="num">{formatGBP(budget.summary.byStatus[st].total)}</td>
+                </tr>
+              ))}
+              <tr>
+                <td>Furniture total</td>
+                <td className="num">{formatGBP(budget.summary.furnitureTotal)}</td>
+              </tr>
+              <tr>
+                <td>Decorating: wall paint, ceiling paint and flooring</td>
+                <td className="num">{formatGBP(budget.summary.decoratingTotal)}</td>
+              </tr>
+              <tr>
+                <td>Spare money ({budget.summary.contingencyPct}%)</td>
+                <td className="num">{formatGBP(budget.summary.contingency)}</td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Grand total</strong>
+                </td>
+                <td className="num">
+                  <strong>{formatGBP(budget.summary.grandTotal)}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <h3>Furniture list</h3>
+          {budget.furniture.length === 0 ? (
+            <p>No furniture has been placed yet.</p>
+          ) : (
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Size</th>
+                  <th>Status</th>
+                  <th>Supplier</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {budget.furniture.flatMap((f) =>
+                  f.rooms.flatMap((g) => [
+                    <tr key={`${f.levelId}-${g.room}`}>
+                      <th colSpan={4}>
+                        {f.floor}: {g.room}
+                      </th>
+                      <th className="num">{formatGBP(g.total)}</th>
+                    </tr>,
+                    ...g.rows.map((r) => (
+                      <tr key={r.itemId}>
+                        <td>{r.name}</td>
+                        <td>{sizeText(r.dims, units)}</td>
+                        <td>{STATUS_LABEL[r.status]}</td>
+                        <td>{r.supplier ?? ''}</td>
+                        <td className="num">{r.price !== undefined ? formatGBP(r.price) : 'not set'}</td>
+                      </tr>
+                    )),
+                  ]),
+                )}
+              </tbody>
+            </table>
+          )}
+          <p className="print-small">Prices are in pounds. Paint and flooring are rough estimates from room sizes.</p>
         </section>
       </div>
     </div>

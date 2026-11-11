@@ -96,6 +96,11 @@ function download(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Save text as a file (a byte-order mark makes spreadsheets read UTF-8 correctly). */
+export function downloadText(text: string, filename: string, type = 'text/plain;charset=utf-8'): void {
+  download(new Blob(['\ufeff', text], { type }), filename);
+}
+
 export function safeFileName(name: string): string {
   return name.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') || 'flat-plan';
 }

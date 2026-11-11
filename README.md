@@ -113,6 +113,12 @@ in the right panel.
 | Point at something | **Arrow**, click two points. Add a comment in the right panel if you like |
 | Move, edit, delete a note | Click it (V). Drag it, or drag a round end of a measurement or arrow. Delete key or *Delete* in the panel. Each drag is one undo step |
 | Print or save as PDF | File → *Print or save as PDF…*, wait for the plans, then *Print / Save as PDF* and choose "Save as PDF" as the printer |
+| Price a piece | Click it in Furnish mode → right panel *Cost*: price in £, shop, link (opens in a new tab) and *Idea / Shortlisted / Bought*. Duplicating copies them. Your own items can carry a default price (*Add custom item…*) |
+| Open the budget | The **£** button in the top bar, or File → *Budget and shopping list…* |
+| Furniture costs | Budget → *Furniture*: every piece by floor and room with size, status, price and link, and totals per room and floor. Type a price in the table; it is one undo step |
+| Paint and flooring costs | Budget → *Decorating*: for each room the wall area (inside faces × ceiling height, minus doors and windows), litres for all coats, ceiling paint and flooring with extra for cuts. Change the paint price, coverage, coats, extra flooring and each floor's price per m² at the top |
+| Totals | Budget → *Summary*: furniture by status, decorating, spare money (a %) and the grand total |
+| Share the list | *Copy as a list* (pastes as tidy text; if the browser blocks copying, the text is shown selected) or *Download CSV* (opens in a spreadsheet). The print pack ends with a *Budget* page |
 
 The pack (A4 landscape) has: a cover with a plain summary of the new openings
 and *Prepared for*; one page per floor with room names, areas, every wall's

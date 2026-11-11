@@ -22,7 +22,23 @@ export interface Project {
   // woodwork finish, keyed by ROOM NAME so a scheme saved on one option can be
   // applied to any other option or floor with the same room names.
   schemes?: FinishScheme[];
+  // EXTENSION (costs): her own prices for the budget and shopping list. Any
+  // missing value uses a rough UK default from src/model/costs.ts.
+  costSettings?: Partial<CostSettings>;
 }
+
+// EXTENSION: see Project.costSettings. Money is in pounds.
+export interface CostSettings {
+  paintPerLitre: number; // £ per litre of paint
+  coverage: number; // m² one litre covers, for one coat
+  coats: number; // coats on walls and ceilings
+  flooringWastagePct: number; // extra flooring to buy for cuts, in %
+  contingencyPct: number; // spare money on top of the total, in %
+  floorPerM2: Record<string, number>; // £ per m² for each floor finish id
+}
+
+// EXTENSION: see PlacedItem.status.
+export type ItemStatus = 'idea' | 'shortlisted' | 'bought';
 
 // EXTENSION: see Project.schemes. A missing field means "the default", so
 // applying the scheme clears that override in the target room.
@@ -192,6 +208,12 @@ export interface PlacedItem {
   // EXTENSION: painted finish colour (hex) chosen for this piece; applies to
   // its painted/timber parts (tokens joinery, cabinet, wood, white).
   finish?: string;
+  // EXTENSION (costs): what it costs and where to get it, for the budget and
+  // shopping list. `price` is £ for one; `status` is missing while it is an idea.
+  price?: number;
+  supplier?: string;
+  link?: string;
+  status?: ItemStatus;
 }
 
 // Convention (not specified in the brief, recorded in DECISIONS.md):
@@ -241,6 +263,9 @@ export interface CatalogueItem {
   // EXTENSION: where an item made from a description or an image link came
   // from, so the item panel can show the link and say how sure the size is.
   source?: { kind: 'description' | 'image'; text?: string; url?: string; sizeConfidence: string };
+  // EXTENSION (costs): a default price in £ for her own items, copied onto a
+  // piece when she places it.
+  price?: number;
 }
 
 export interface PrimitivePart {

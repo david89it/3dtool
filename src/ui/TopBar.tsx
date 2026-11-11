@@ -11,6 +11,7 @@ import { canvasApi } from '../editor2d/canvasApi';
 import { activeLevels, groupOf } from '../model/schemes';
 import { OptionSwitcher } from './OptionSwitcher';
 import { usePrint } from '../print/state';
+import { useBudgetUi } from './budgetUi';
 
 export function TopBar() {
   const project = useStore((s) => s.project);
@@ -91,6 +92,15 @@ export function TopBar() {
             </svg>
           </button>
         </div>
+        <button
+          className="icon-btn"
+          onClick={() => useBudgetUi.getState().setOpen(true)}
+          aria-label="Budget and shopping list"
+          title="Budget and shopping list"
+          data-testid="budget-button"
+        >
+          £
+        </button>
         <div className="segmented small" role="radiogroup" aria-label="Units">
           <button role="radio" aria-checked={units === 'metric'} className={units === 'metric' ? 'on' : ''} onClick={() => setUnits('metric')}>
             m
@@ -174,6 +184,15 @@ export function TopBar() {
                 }}
               >
                 Export this floor as a picture (PNG)
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  useBudgetUi.getState().setOpen(true);
+                }}
+              >
+                Budget and shopping list…
               </button>
               <button
                 role="menuitem"
