@@ -77,6 +77,11 @@ behaves as before and opens on the seed.
 | Exact length | Click any measurement on the plan and type, e.g. `3.32`, `332cm`, `10' 11"` |
 | Delete | Select and press Delete |
 | Undo / redo | Buttons top right, Ctrl/⌘ Z, Ctrl/⌘ Shift Z |
+| Undo history | The small **▾** next to Undo (or press and hold Undo) lists the last 30 changes, newest first, with "you are here" marked. Pick one to go back, or forward, to just after it |
+| Hide a side panel | The **‹ ›** button at the top of the left (Tools) or right (Details) panel, or **[** and **]**. Collapsed, a panel is a 48 px strip and the plan grows. Kept in this browser. Under 1000 px wide both start collapsed and open over the plan |
+| Menu on the plan | Right-click, or press and hold for half a second on a finger or pen. A wall offers *Split here*, *Open up this wall*, *Delete*, *Properties…*; a door or window *Swap hinge* (doors), *Delete*; a piece of furniture *Turn 90°*, *Duplicate*, *Lock/Unlock*, *Delete*; a note *Edit*, *Delete*; a room *Rename…*, *Frame this room*; empty floor *Add a note here*, *Fit the plan*. Esc, a tap elsewhere or a choice closes it |
+| Frame a room | Menu on a room, or *Frame this room* in the Room panel: the plan zooms to it, and 3D looks into it from above the next time you open it |
+| Walk in here | Room panel → *Walk in here*: opens 3D in Walk, standing just inside the room's door (or in the middle if it has none) |
 | Save a copy | File → *Save a copy to my computer* (`.flatplan.json`); *Open a saved plan…* loads one |
 | Picture | File → *Export this floor as a picture (PNG)* |
 | Save a version | The clock button next to Undo, or File → *Versions…* → *Save this version…*. Give it a name such as "Kitchen open". Named versions are kept for good |

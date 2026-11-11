@@ -12,14 +12,13 @@ import { activeLevels, groupOf } from '../model/schemes';
 import { OptionSwitcher } from './OptionSwitcher';
 import { usePrint } from '../print/state';
 import { useBudgetUi } from './budgetUi';
+import { UndoButton } from './UndoHistory';
 
 export function TopBar() {
   const project = useStore((s) => s.project);
   const levelId = useStore((s) => s.levelId);
   const setLevel = useStore((s) => s.setLevel);
-  const past = useStore((s) => s.past);
   const future = useStore((s) => s.future);
-  const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const units = useStore((s) => s.units);
   const setUnits = useStore((s) => s.setUnits);
@@ -30,7 +29,6 @@ export function TopBar() {
 
   const current = project.levels.find((l) => l.id === levelId);
   const currentGroup = current ? groupOf(current) : '';
-  const lastUndo = past[past.length - 1];
   const lastRedo = future[future.length - 1];
 
   return (
@@ -62,15 +60,7 @@ export function TopBar() {
 
       <div className="topbar-right">
         <div className="undo-group">
-          <button
-            className="btn"
-            onClick={undo}
-            disabled={!lastUndo}
-            title={lastUndo ? `Undo: ${lastUndo.label} (Ctrl/⌘ Z)` : 'Nothing to undo'}
-            aria-label="Undo"
-          >
-            ↶ Undo
-          </button>
+          <UndoButton />
           <button
             className="btn"
             onClick={redo}

@@ -42,9 +42,11 @@ interface Props {
   startLevel: Level;
   touch: boolean;
   onLevelChange: (levelId: string) => void;
+  /** Stand here, facing there (plan mm), instead of in the biggest room. A new `n` moves the walker again. */
+  spawn?: { stand: Vec2; face: Vec2; n: number } | null;
 }
 
-export function WalkRig({ levels, project, startLevel, touch, onLevelChange }: Props) {
+export function WalkRig({ levels, project, startLevel, touch, onLevelChange, spawn }: Props) {
   const camera = useThree((s) => s.camera);
   const keys = useRef(new Set<string>());
   const look = useRef({ yaw: 0, pitch: 0 });
@@ -59,16 +61,18 @@ export function WalkRig({ levels, project, startLevel, touch, onLevelChange }: P
   // Start in the middle of the current floor's biggest room, looking along it.
   useEffect(() => {
     const room = biggestRoom(startLevel);
-    walkState.pos = room ? { ...room.label } : { x: 0, y: 0 };
+    walkState.pos = spawn ? { ...spawn.stand } : room ? { ...room.label } : { x: 0, y: 0 };
     walkState.feet = startLevel.elevation;
     walkState.levelId = startLevel.id;
     camera.rotation.order = 'YXZ';
-    camera.rotation.set(0, 0, 0);
-    look.current = { yaw: 0, pitch: 0 };
+    // Forward at yaw t is (-sin t, -cos t) on the plan.
+    const yaw = spawn ? Math.atan2(-(spawn.face.x - spawn.stand.x), -(spawn.face.y - spawn.stand.y)) : 0;
+    camera.rotation.set(0, yaw, 0);
+    look.current = { yaw, pitch: 0 };
     camera.position.set(walkState.pos.x * MM, (walkState.feet + EYE_HEIGHT) * MM, walkState.pos.y * MM);
-    // Only on entering Walk.
+    // On entering Walk, and again when "Walk in here" sends a new place to stand.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [spawn?.n]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {

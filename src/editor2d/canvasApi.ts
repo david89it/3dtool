@@ -38,5 +38,5 @@ export const canvasApi = {
     _opts: { width: number; height: number; pixelRatio?: number },
   ): Promise<string | null> => null,
   /** Zoom and pan so these plan points fill the view, with room around them. */
-  fitPoints: (_pts: Vec2[]) => {},
+  fitPoints: (_pts: Vec2[], _padMm?: number) => {},
 };

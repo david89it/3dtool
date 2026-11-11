@@ -706,3 +706,39 @@ challenged.
   only; the public build says "Real sun for this flat". The site coordinates
   are in the code of both builds (they are only good to about 100 m).
 
+
+## UI batch part A: panels, menu, history, room views
+
+- **Panels.** Each side panel sits in a `PanelSlot` with a 44 px chevron.
+  Collapsed, it is a 48 px rail with only the button and its name; the panel
+  itself is not drawn, so its state (typed text) is dropped. State lives in
+  `ui/layoutState.ts`, not the project store, and is saved per browser in
+  `localStorage` (try/catch). Under 1000 px the panels start closed and are
+  never remembered; opening one floats it over the plan (a scrim closes it) and
+  opening the other closes it. The plan keeps its middle in the middle when its
+  area changes size, rather than refitting, so her zoom is not lost.
+- **Menu.** One hit order for right-click and long press: notes, furniture,
+  openings, walls, rooms, empty floor (`editor2d/contextMenu.ts`, pure and
+  tested). The thing under the pointer is selected. The right button never
+  reaches the tools. A touch or pen press held 500 ms within 8 px cancels the
+  tool's pending action (and any half-made drag), and lifting the finger does
+  nothing more. Choices call the same functions as the panels
+  (`editor2d/contextActions.ts`; *Open up this wall* and *Delete wall* now
+  live there and the Inspector calls them). Touch menus ignore taps for the
+  first 350 ms so the finger that opened one cannot pick a row.
+  "Paste" is left out on purpose.
+- **Undo history.** Pure `historyRows` and `jumpPlan` in `model/history.ts`;
+  jumping calls `undo()` or `redo()` repeatedly, so the store is unchanged.
+  The list shows redoable (undone) entries above the current one, a window of 30
+  that always includes where she is, and a "Start" row when the whole history
+  fits. Labels were audited: only "Change structure" read technically (now
+  "Change load-bearing note"); the rest were already plain.
+- **Room views.** `ui/roomViews.ts` plus `roomViewBridge` in
+  `view3d/captureBridge.ts` (no three in the UI). A request made while 3D is
+  closed waits and is taken when 3D opens on that floor. Frame: orbit camera
+  from the front at 52 degrees, about 1.7 room-spans away. Walk: stand 700 mm
+  inside the room's first door, facing the middle of the room; no door means
+  the middle. Rooms with a stair or an odd shape may put the walker close to
+  furniture; collision still applies.
+- **CSS.** A missing `}` after `.item-source .source-link` had left all rules
+  after it (paint grid, budget, and anything new) unstyled; closed.

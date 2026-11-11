@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useStore, type Mode } from '../model/store';
+import { useLayout, watchWidth } from './layoutState';
+import { PanelSlot } from './PanelSlot';
 import { PlanCanvas } from '../editor2d/PlanCanvas';
 import { canvasApi } from '../editor2d/canvasApi';
 import { deleteWall } from '../geometry/wallGraph';
@@ -92,6 +94,11 @@ function useShortcuts() {
         return;
       }
       if (s.mode === '3d') return;
+      if (e.key === '[' || e.key === ']') {
+        e.preventDefault();
+        useLayout.getState().toggle(e.key === '[' ? 'left' : 'right');
+        return;
+      }
       if (e.key === 'Escape') {
         canvasApi.escape();
         s.setHighlight(null);
@@ -146,7 +153,11 @@ function useShortcuts() {
 export function App() {
   const ready = useStore((s) => s.ready);
   const mode = useStore((s) => s.mode);
+  const left = useLayout((s) => s.left);
+  const right = useLayout((s) => s.right);
+  const narrow = useLayout((s) => s.narrow);
   useShortcuts();
+  useEffect(() => watchWidth(), []);
   if (!ready) return <div className="loading">Opening your plan…</div>;
   return (
     <>
@@ -160,10 +171,15 @@ export function App() {
           </Suspense>
         </main>
       ) : (
-        <main className="workspace">
-          <LeftPanel />
+        <main className={`workspace${left ? '' : ' left-collapsed'}${right ? '' : ' right-collapsed'}${narrow ? ' narrow' : ''}`}>
+          <PanelSlot side="left">
+            <LeftPanel />
+          </PanelSlot>
           <PlanCanvas />
-          <Inspector />
+          <PanelSlot side="right">
+            <Inspector />
+          </PanelSlot>
+          {narrow && (left || right) && <div className="panel-scrim" data-testid="panel-scrim" onPointerDown={() => useLayout.getState().closeAll()} />}
         </main>
       )}
       <Toasts />

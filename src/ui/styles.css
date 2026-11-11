@@ -44,6 +44,7 @@ button {
 
 .app {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto 1fr;
   height: 100%;
 }
@@ -52,8 +53,8 @@ button {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 14px;
+  gap: 10px;
+  padding: 8px 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
   min-height: 60px;
@@ -95,11 +96,12 @@ button {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  flex: none;
 }
 .undo-group {
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 /* ---- mode bar ------------------------------------------------------ */
@@ -131,10 +133,218 @@ button {
 
 /* ---- layout -------------------------------------------------------- */
 .workspace {
+  --lw: 260px;
+  --rw: 320px;
   display: grid;
-  grid-template-columns: 260px 1fr 320px;
+  grid-template-columns: var(--lw) minmax(0, 1fr) var(--rw);
+  min-height: 0;
+  position: relative;
+}
+.workspace.left-collapsed {
+  --lw: 48px;
+}
+.workspace.right-collapsed {
+  --rw: 48px;
+}
+.workspace.narrow {
+  --lw: 48px;
+  --rw: 48px;
+}
+/* ---- collapsible side panels ---- */
+.panel-slot {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--panel);
+}
+.panel-slot > aside {
+  flex: 1;
   min-height: 0;
 }
+.panel-slot.left.closed {
+  border-right: 1px solid var(--line);
+}
+.panel-slot.right.closed {
+  border-left: 1px solid var(--line);
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 2px 4px 2px 16px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+.panel-slot.right .panel-head {
+  padding: 2px 16px 2px 4px;
+}
+.panel-head-name,
+.panel-rail-name {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, #6b675e);
+}
+.panel-toggle {
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  flex: none;
+}
+.panel-slot.closed .panel-head {
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 2px 2px;
+  gap: 12px;
+  border-bottom: 0;
+}
+.panel-slot.closed .panel-rail-name {
+  writing-mode: vertical-rl;
+  margin-top: 8px;
+}
+.panel-slot.right.closed .panel-head {
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+}
+.panel-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  background: rgba(30, 28, 24, 0.18);
+}
+.workspace > .panel-slot.left {
+  grid-column: 1;
+  grid-row: 1;
+}
+.workspace > .panel-slot.right {
+  grid-column: 3;
+  grid-row: 1;
+}
+.workspace > .canvas-wrap {
+  grid-column: 2;
+  grid-row: 1;
+}
+.workspace.narrow .panel-slot.open {
+  grid-column: 1 / -1 !important;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+  width: min(320px, 88vw);
+  box-shadow: 0 0 28px rgba(0, 0, 0, 0.28);
+}
+.workspace.narrow .panel-slot.left.open {
+  left: 0;
+}
+.workspace.narrow .panel-slot.right.open {
+  right: 0;
+}
+/* ---- plan context menu ---- */
+.context-menu {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+.context-menu button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.context-menu button:hover:not(:disabled),
+.context-menu button:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+.context-menu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.context-menu button.danger {
+  color: var(--amber, #b45309);
+}
+
+/* ---- undo history list ---- */
+.undo-wrap {
+  position: relative;
+  display: flex;
+  gap: 2px;
+}
+.undo-more {
+  min-width: 44px;
+  padding: 0 4px;
+}
+.history-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  width: 300px;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+}
+.history-hint {
+  margin: 4px 8px 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.history-row:hover,
+.history-row:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+.history-row.current {
+  font-weight: 600;
+}
+.history-row.undone .history-label {
+  color: var(--muted);
+}
+.history-mark {
+  width: 12px;
+  color: var(--accent);
+}
+.history-label {
+  flex: 1;
+}
+.history-now {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .leftpanel,
 .inspector {
   background: var(--panel);
@@ -651,7 +861,18 @@ button {
 
 @media (max-width: 1100px) {
   .workspace {
-    grid-template-columns: 220px 1fr 280px;
+    --lw: 220px;
+    --rw: 280px;
+  }
+  .workspace.left-collapsed {
+    --lw: 48px;
+  }
+  .workspace.right-collapsed {
+    --rw: 48px;
+  }
+  .workspace.narrow {
+    --lw: 48px;
+    --rw: 48px;
   }
 }
 
@@ -1374,6 +1595,7 @@ kbd {
   align-items: center;
   min-height: 44px;
   color: var(--accent);
+}
 /* ---- paint palette (3D finish panel and 2D wall panel) ---------------- */
 .paint-grid {
   display: flex;

@@ -4,23 +4,23 @@ import { useLevel, useStore } from '../model/store';
 import { detectRooms, matchDetected } from '../geometry/rooms';
 import { computeJoints } from '../geometry/joints';
 import { measureWallFace, setInternalLength, wallDimensions } from '../geometry/dimensions';
-import { DEFAULT_THICKNESS, deleteWall, splitWall, wallEnds } from '../geometry/wallGraph';
+import { DEFAULT_THICKNESS, splitWall, wallEnds } from '../geometry/wallGraph';
 import { lerp } from '../geometry/vec';
 import { formatArea } from '../model/units';
 import { EditableLength } from './EditableLength';
 import { AdvicePanel } from './AdvicePanel';
 import { OpeningPanel } from './OpeningPanel';
 import { ItemPanel } from './ItemPanel';
-import { isStructural, needsStructuralBadge, OPENING_LABEL, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
-import { openUpWall } from '../geometry/openingEdits';
+import { needsStructuralBadge, OPENING_LABEL, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
+import { deleteWallAction, openUpWallAction, STRUCTURAL_DELETE_WARNING } from '../editor2d/contextActions';
+import { frameRoom, walkIntoRoom } from './roomViews';
 import { formatLength } from '../model/units';
 import { PaintGrid, finishName } from './PaintGrid';
 import { faceRoomName, setWallFace, wallSideRooms } from '../model/faces';
 import { surfaceColor, wallFaceFinishId, WALL_FINISHES } from '../view3d/finishes';
 import { deleteNote, findNote, NOTE_COLORS, NOTE_KIND_LABEL, noteColor, noteLength, setNoteColor, setNoteText } from '../model/notes';
 
-export const STRUCTURAL_DELETE_WARNING =
-  'That wall may hold the building up. Removing it needs a structural engineer, steel, Building Control and the landlord’s licence. Undo puts it back.';
+export { STRUCTURAL_DELETE_WARNING };
 
 const KIND_LABEL: Record<WallKind, string> = {
   internal: 'Inside wall',
@@ -212,7 +212,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
             value: k,
             label: STRUCT_LABEL[k],
           }))}
-          onChange={(k) => edit('Change structure', (w) => void (w.structural = k))}
+          onChange={(k) => edit('Change load-bearing note', (w) => void (w.structural = k))}
         />
         <p className="note">
           Only a structural engineer can confirm this. Until then, treat “Don’t know” as load-bearing.
@@ -238,20 +238,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
         </ul>
         <button
           className="btn"
-          onClick={() => {
-            let id: string | null = null;
-            let error: string | null = null;
-            useStore.getState().snapshotBefore('opening up a wall');
-            editLevel('Open up wall', (L) => {
-              const r = openUpWall(L as Level, wall.id);
-              if ('id' in r) id = r.id;
-              else error = r.error;
-            });
-            if (id) {
-              useStore.getState().setMode('openings');
-              select({ kind: 'opening', id });
-            } else if (error) useStore.getState().toast(error, 'warn');
-          }}
+          onClick={() => openUpWallAction(wall.id)}
         >
           Open up this wall
         </button>
@@ -277,12 +264,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
         </button>
         <button
           className="btn danger"
-          onClick={() => {
-            useStore.getState().snapshotBefore('deleting a wall');
-            editLevel('Delete wall', (L) => deleteWall(L as Level, wall.id));
-            select(null);
-            if (isStructural(wall)) useStore.getState().toast(STRUCTURAL_DELETE_WARNING, 'warn');
-          }}
+          onClick={() => deleteWallAction(wall.id)}
         >
           Delete wall
         </button>
@@ -345,6 +327,16 @@ function RoomPanel({ level, roomId }: { level: Level; roomId: string }) {
         >
           Use the floor's ceiling height
         </button>
+      )}
+      {detected && (
+        <div className="actions">
+          <button className="btn" onClick={() => frameRoom(level, detected)}>
+            Frame this room
+          </button>
+          <button className="btn" onClick={() => walkIntoRoom(level, detected, () => useStore.getState().setMode('3d'))}>
+            Walk in here
+          </button>
+        </div>
       )}
       <p className="note">Rooms are found from closed loops of walls. Move or delete walls to change them.</p>
     </div>

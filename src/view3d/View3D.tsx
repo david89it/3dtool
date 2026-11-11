@@ -12,7 +12,7 @@ import { activeLevelsResolved } from '../model/schemes';
 import { FinishPanel, type FaceSel } from './FinishPanel';
 import { wallSideRooms } from '../model/faces';
 import { wallDir } from './wallProfile';
-import { view3dBridge } from './captureBridge';
+import { view3dBridge, roomViewBridge, type RoomView3D } from './captureBridge';
 import { SunRig, SunHeatmap } from './SunRig';
 import { SunPanel } from './SunPanel';
 import './view3d.css';
@@ -43,16 +43,33 @@ function levelCentre(level: Level): THREE.Vector3 {
   return new THREE.Vector3(cx * MM, level.elevation * MM, cy * MM);
 }
 
-function OrbitRig({ level }: { level: Level }) {
+/** A room to look into from above (plan mm), with a counter so asking twice moves the camera twice. */
+interface RoomFrame {
+  levelId: string;
+  polygon: { x: number; y: number }[];
+  n: number;
+}
+
+function OrbitRig({ level, frame }: { level: Level; frame: RoomFrame | null }) {
   const controls = useRef<OrbitControlsImpl>(null);
   const camera = useThree((s) => s.camera);
   useEffect(() => {
-    // A steep three-quarter view from the front (street) side, framing the floor.
-    const c = levelCentre(level);
-    const b = levelBoundsMm(level);
-    const span = b ? Math.max(b.max.x - b.min.x, b.max.y - b.min.y) * MM : 8;
-    const dist = Math.max(8, span * 1.55);
-    const pitch = (58 * Math.PI) / 180;
+    // A steep three-quarter view from the front (street) side, framing the floor,
+    // or just the one room when she asked to frame it.
+    const room = frame && frame.levelId === level.id && frame.polygon.length > 0 ? frame.polygon : null;
+    let c = levelCentre(level);
+    let span: number;
+    if (room) {
+      const xs = room.map((p) => p.x);
+      const ys = room.map((p) => p.y);
+      c = new THREE.Vector3(((Math.min(...xs) + Math.max(...xs)) / 2) * MM, (level.elevation + 600) * MM, ((Math.min(...ys) + Math.max(...ys)) / 2) * MM);
+      span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * MM;
+    } else {
+      const b = levelBoundsMm(level);
+      span = b ? Math.max(b.max.x - b.min.x, b.max.y - b.min.y) * MM : 8;
+    }
+    const dist = room ? Math.max(3.5, span * 1.7) : Math.max(8, span * 1.55);
+    const pitch = ((room ? 52 : 58) * Math.PI) / 180;
     const yaw = (20 * Math.PI) / 180; // a little from the right so walls read in depth
     camera.position.set(
       c.x + Math.sin(yaw) * Math.cos(pitch) * dist,
@@ -64,7 +81,7 @@ function OrbitRig({ level }: { level: Level }) {
       controls.current.target.copy(c);
       controls.current.update();
     }
-  }, [level.id, camera]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [level.id, camera, frame?.n]); // eslint-disable-line react-hooks/exhaustive-deps
   return <OrbitControls ref={controls} makeDefault maxPolarAngle={Math.PI / 2.02} minDistance={1.5} maxDistance={60} enableDamping />;
 }
 
@@ -222,6 +239,8 @@ export function View3D() {
   const [face, setFace] = useState<FaceSel | null>(null);
   const [locked, setLocked] = useState(false);
   const [cutaway, setCutaway] = useState(true);
+  const [frame, setFrame] = useState<RoomFrame | null>(null);
+  const [spawn, setSpawn] = useState<{ stand: { x: number; y: number }; face: { x: number; y: number }; n: number } | null>(null);
   const touch = useMemo(() => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches, []);
 
   useEffect(() => {
@@ -231,6 +250,27 @@ export function View3D() {
   }, []);
 
   useEffect(() => () => void (window.__flatplan3d = undefined), []);
+
+  // "Frame this room" and "Walk in here" from the plan arrive through the bridge.
+  useEffect(() => {
+    const take = (r: RoomView3D) => {
+      if (r.levelId !== level.id) return;
+      if (r.kind === 'walk' && r.stand && r.face) {
+        setSpawn({ stand: r.stand, face: r.face, n: Date.now() });
+        setView('walk');
+      } else if (r.kind === 'frame') {
+        setFrame({ levelId: r.levelId, polygon: r.polygon, n: Date.now() });
+        setView('orbit');
+      }
+    };
+    roomViewBridge.handler = take;
+    const waiting = roomViewBridge.pending;
+    roomViewBridge.pending = null;
+    if (waiting) take(waiting);
+    return () => {
+      if (roomViewBridge.handler === take) roomViewBridge.handler = null;
+    };
+  }, [level.id]);
 
   // In the overview, hide floors above the one she is looking at so she can see in.
   // Only the active option of each floor is built (compare mode).
@@ -299,12 +339,13 @@ export function View3D() {
             <meshStandardMaterial color="#d9dccf" roughness={1} />
           </mesh>
           {view === 'orbit' ? (
-            <OrbitRig level={level} />
+            <OrbitRig level={level} frame={frame} />
           ) : (
             <WalkRig
               levels={shown}
               project={project}
               startLevel={level}
+              spawn={spawn}
               touch={!!touch}
               onLevelChange={(id) => useStore.getState().setLevel(id)}
             />
@@ -347,7 +388,7 @@ export function View3D() {
             <button role="radio" aria-checked={view === 'orbit'} className={view === 'orbit' ? 'on' : ''} onClick={() => setView('orbit')}>
               Overview
             </button>
-            <button role="radio" aria-checked={view === 'walk'} className={view === 'walk' ? 'on' : ''} onClick={() => setView('walk')}>
+            <button role="radio" aria-checked={view === 'walk'} className={view === 'walk' ? 'on' : ''} onClick={() => { setSpawn(null); setView('walk'); }}>
               Walk
             </button>
           </div>

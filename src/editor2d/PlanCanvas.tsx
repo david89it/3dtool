@@ -32,6 +32,9 @@ import { openingLabels, type OpeningLabel } from './openingLabels';
 import { editOpening } from '../geometry/openingEdits';
 import { COLORS } from './theme';
 import { canvasApi } from './canvasApi';
+import { ContextMenu } from './ContextMenu';
+import { hitForContext, type ContextHit } from './contextMenu';
+import { selectHit } from './contextActions';
 
 const TOOLS: Record<string, ToolHandler> = {
   select: selectTool,
@@ -47,6 +50,10 @@ const TOOLS: Record<string, ToolHandler> = {
 
 /** Tools where a click places something: on touch, a drag pans instead. */
 const TAP_TOOLS = new Set<Tool>(['draw', 'calibrate', 'placeOpening', 'placeItem', 'placeNote', 'placeMeasure', 'placeArrow']);
+
+/** Press and hold this long, without moving, to open the menu on touch and pen. */
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_SLOP_PX = 8;
 
 const ALL_TOOLS = [...Object.values(TOOLS), openingSelectTool, furnishSelectTool];
 
@@ -96,13 +103,27 @@ export function PlanCanvas() {
   const [labelEdit, setLabelEdit] = useState<LabelEdit | null>(null);
   const [calib, setCalib] = useState<{ p1: Vec2; p2: Vec2; text: string; error?: string } | null>(null);
   const fittedFor = useRef<string>('');
+  const [menu, setMenu] = useState<{ hit: ContextHit; at: Vec2; touch: boolean } | null>(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
 
   // Size of the drawing area.
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
+    let prev = { w: 0, h: 0 };
+    const ro = new ResizeObserver(() => {
+      const next = { w: el.clientWidth, h: el.clientHeight };
+      // The area grew or shrank (a side panel opened or closed): keep what is in the middle in the middle.
+      if (prev.w > 0 && prev.h > 0 && (next.w !== prev.w || next.h !== prev.h)) {
+        const dx = (next.w - prev.w) / 2;
+        const dy = (next.h - prev.h) / 2;
+        setView((v) => ({ ...v, x: v.x + dx, y: v.y + dy }));
+      }
+      prev = next;
+      setSize(next);
+    });
     ro.observe(el);
+    prev = { w: el.clientWidth, h: el.clientHeight };
     setSize({ w: el.clientWidth, h: el.clientHeight });
     return () => ro.disconnect();
   }, []);
@@ -120,6 +141,7 @@ export function PlanCanvas() {
     ALL_TOOLS.forEach((t) => t.reset?.());
     setOverlay({});
     setLabelEdit(null);
+    setMenu(null);
   }, [tool, levelId, mode]);
 
   const derived = useMemo(() => {
@@ -186,12 +208,12 @@ export function PlanCanvas() {
       const L = useStore.getState().project.levels.find((l) => l.id === useStore.getState().levelId);
       setView(fitView(L, wrapRef.current?.clientWidth ?? 800, wrapRef.current?.clientHeight ?? 600));
     };
-    canvasApi.fitPoints = (pts) => {
+    canvasApi.fitPoints = (pts, padMm) => {
       const el = wrapRef.current;
       if (!el || pts.length === 0) return;
       const xs = pts.map((p) => p.x);
       const ys = pts.map((p) => p.y);
-      const pad = 1200; // mm of context around the problem
+      const pad = padMm ?? 1200; // mm of context around the problem
       const min = { x: Math.min(...xs) - pad, y: Math.min(...ys) - pad };
       const max = { x: Math.max(...xs) + pad, y: Math.max(...ys) + pad };
       const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.min(el.clientWidth / (max.x - min.x), el.clientHeight / (max.y - min.y))));
@@ -268,6 +290,24 @@ export function PlanCanvas() {
   const spaceDown = useRef(false);
   const fingerTap = useRef<{ start: Vec2; last: Vec2; panning: boolean } | null>(null);
   const afterPinch = useRef(false);
+  const longPress = useRef<{ id: number; start: Vec2; timer: ReturnType<typeof setTimeout>; fired: boolean } | null>(null);
+  const lastPointerType = useRef('mouse');
+
+  const cancelLongPress = () => {
+    if (longPress.current) clearTimeout(longPress.current.timer);
+    longPress.current = null;
+  };
+
+  /** Open the menu for whatever is at this point of the plan area, and select it. */
+  const openMenu = (screen: Vec2, touch: boolean) => {
+    const c = ctxRef.current;
+    if (!c) return;
+    const world = toWorld(viewRef.current, screen);
+    const hit = hitForContext(c.level, useStore.getState().project, c.derived, viewRef.current, screen, world);
+    selectHit(hit);
+    setOverlay({});
+    setMenu({ hit, at: screen, touch });
+  };
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -299,9 +339,30 @@ export function PlanCanvas() {
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!ctx || labelEdit || calib) return;
+    lastPointerType.current = e.pointerType;
+    // Right button: the menu opens on the contextmenu event; the tools never see it.
+    if (e.button === 2) return;
     wrapRef.current?.setPointerCapture(e.pointerId);
     const p = info(e);
     pointers.current.set(e.pointerId, p.screen);
+    cancelLongPress();
+    if (pointers.current.size === 1 && (e.pointerType === 'touch' || e.pointerType === 'pen') && e.button === 0) {
+      const id = e.pointerId;
+      const start = p.screen;
+      const timer = setTimeout(() => {
+        const lp = longPress.current;
+        if (!lp || lp.id !== id) return;
+        lp.fired = true;
+        // Stop the press from also being a drag, a pan or a tap.
+        fingerTap.current = null;
+        pan.current = null;
+        const st = useStore.getState();
+        currentTool().reset?.();
+        if (st.gesture) st.cancelGesture();
+        openMenu(start, true);
+      }, LONG_PRESS_MS);
+      longPress.current = { id, start, timer, fired: false };
+    }
     if (pointers.current.size === 2) {
       // Two fingers: pinch to zoom and pan; abandon whatever the tool started.
       toolFor(mode, tool).escape?.(ctx);
@@ -326,6 +387,11 @@ export function PlanCanvas() {
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!ctx || labelEdit || calib) return;
     const p = info(e);
+    const lp = longPress.current;
+    if (lp && lp.id === e.pointerId) {
+      if (lp.fired) return;
+      if (dist(lp.start, p.screen) > LONG_PRESS_SLOP_PX) cancelLongPress();
+    }
     if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, p.screen);
     if (pinch.current && pointers.current.size >= 2) {
       const [a, b] = [...pointers.current.values()];
@@ -361,6 +427,14 @@ export function PlanCanvas() {
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     pointers.current.delete(e.pointerId);
+    const lp = longPress.current;
+    if (lp && lp.id === e.pointerId) {
+      const fired = lp.fired;
+      cancelLongPress();
+      // The press became the menu: lifting the finger is not a click on the plan.
+      if (fired) return;
+    }
+    if (e.button === 2) return;
     if (!ctx) return;
     if (pinch.current) {
       if (pointers.current.size < 2) pinch.current = null;
@@ -516,7 +590,13 @@ export function PlanCanvas() {
         if (useStore.getState().tool === 'placeItem') useStore.getState().setItemGhost(null);
       }}
       onDoubleClick={onDoubleClick}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        // On touch and pen the long press has already opened it (or will).
+        if (lastPointerType.current !== 'mouse' || !ctx || labelEdit || calib) return;
+        const r = wrapRef.current!.getBoundingClientRect();
+        openMenu({ x: e.clientX - r.left, y: e.clientY - r.top }, false);
+      }}
     >
       {size.w > 0 && (
         <Stage width={size.w} height={size.h} ref={stageRef} listening={false}>
@@ -650,6 +730,8 @@ export function PlanCanvas() {
           </form>
         </div>
       )}
+
+      {menu && <ContextMenu hit={menu.hit} at={menu.at} bounds={size} touch={menu.touch} onClose={closeMenu} />}
 
       <div className="zoom-controls" onPointerDown={(e) => e.stopPropagation()}>
         <button className="icon-btn" aria-label="Zoom in" title="Zoom in" onClick={() => canvasApi.zoom(1.25)}>

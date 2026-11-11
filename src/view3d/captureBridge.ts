@@ -18,3 +18,28 @@ export function get3dSnapshot(): { dataUrl: string; floor: string } | null {
   }
   return view3dBridge.snapshot;
 }
+
+// ---- room views -----------------------------------------------------------
+// The plan UI asks the 3D view to look into one room, or to walk in. It goes
+// through here so the UI never imports three. When 3D is not open yet the
+// request waits and the view takes it when it opens.
+
+export interface RoomView3D {
+  kind: 'frame' | 'walk';
+  levelId: string;
+  /** The room's inside outline, plan mm. */
+  polygon: { x: number; y: number }[];
+  /** Walk only: where to stand and what to face, plan mm. */
+  stand?: { x: number; y: number };
+  face?: { x: number; y: number };
+}
+
+export const roomViewBridge: {
+  handler: ((r: RoomView3D) => void) | null;
+  pending: RoomView3D | null;
+} = { handler: null, pending: null };
+
+export function requestRoomView(r: RoomView3D): void {
+  if (roomViewBridge.handler) roomViewBridge.handler(r);
+  else roomViewBridge.pending = r;
+}

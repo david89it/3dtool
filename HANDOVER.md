@@ -4,8 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-11, after the costs and shopping list work.
-Last updated: 2026-11-11, after the real sun work.
+Last updated: 2026-11-11, after UI batch part A (panels, menu, history, room views).
 
 ## 1. What this is
 
@@ -158,6 +157,13 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   dates, and an optional floor heatmap. `PLAN_UP_BEARING` in `sun.ts` is the
   one number to correct with a compass at the flat. Neighbours are not modelled.
 
+- UI batch part A: collapsible side panels (`[` and `]`, remembered, overlays
+  under 1000 px: `ui/layoutState.ts`, `PanelSlot.tsx`), right-click and
+  long-press menu on the plan (`editor2d/contextMenu.ts`, `contextActions.ts`,
+  `ContextMenu.tsx`), undo history list (`ui/UndoHistory.tsx`, `historyRows` in
+  `model/history.ts`), room views (frame in 2D and 3D, walk in here:
+  `ui/roomViews.ts`, `roomViewBridge`). No store changes.
+
 **In flight:** none.
 
 **Blocked:**
@@ -174,8 +180,7 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 1. Pack follow-ups: detect removed walls by comparing with a version, before
    and after 3D, 3D views per floor.
 2. Sloped loft ceiling and chimney-breast objects (after the site visit).
-3. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
-   room views, undo history list.
+3. UI batch part B: multi-select and groups, ⌘K.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
 side-by-side compare, live Pinterest sync, fps meter.
@@ -218,6 +223,9 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-11 · ui-a · Collapsible panels, plan context menu (right-click and
+  500 ms long press), undo history list, room views (frame, walk in here),
+  `e2e/uibatch.spec.ts`; closed a missing `}` in `styles.css`.
 - 2026-11-11 · costs · Budget and shopping list: `PlacedItem.price/supplier/link/status`,
   `Project.costSettings`, `CatalogueItem.price`, `src/model/costs.ts` (paint,
   flooring, totals, CSV, text), Budget panel, Cost section in the item panel,
