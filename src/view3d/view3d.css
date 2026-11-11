@@ -120,3 +120,79 @@
   width: 55%;
   touch-action: none;
 }
+
+/* Daylight: real sun, sun hours table and floor map. */
+.radio-list {
+  display: flex;
+  flex-direction: column;
+}
+.sun-hours {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.sun-hours h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.sun-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sun-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.sun-progress progress {
+  width: 100%;
+}
+.sun-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.sun-table th,
+.sun-table td {
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  font-weight: 400;
+}
+.sun-table thead th {
+  font-weight: 600;
+  font-size: 11px;
+}
+.sun-table th:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+.sun-table tfoot th,
+.sun-table tfoot td {
+  color: var(--muted);
+}
+.sun-floor {
+  display: block;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--muted);
+}
+.sun-ramp {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.sun-ramp-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}

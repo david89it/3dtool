@@ -142,7 +142,9 @@ floor.
 | Paint just one wall | Click the wall in the overview: the Walls tab says *This wall face, facing Reception*. Pick a colour. *Back to the room colour* undoes it for that face. In the plan, select a wall, open *Side facing Reception* (or the other room) under *Paint*. Painted faces get a thin coloured line on the plan |
 | Woodwork | The *Woodwork* tab colours the skirting (120 mm), door leaves and frames, and window frames of that room. *Back to white* resets it |
 | Save and reuse a colour scheme | Under *Schemes* in the 3D panel, name it and press *Save these finishes as a scheme* (every room on this floor, by room name). *Apply scheme…* → *This floor* or *All floors*. It works on any option whose rooms have the same names |
-| See the daylight | Move the sun's direction and height. The bay faces south-south-east |
+| See the real sun | *Daylight* in the right panel starts on *Real sun at 18B Balmore Street*. Pick *Today*, *Midwinter 21 Dec*, *Equinox 20 Mar*, *Midsummer 21 Jun* or any date, then drag the time slider (it runs sunrise to sunset in London time, BST or GMT). *Play the day* runs sunrise to sunset in about 12 seconds; press *Pause* to stop. The light, the sun's shadows and the sky follow. Below the horizon it turns to dusk or night |
+| Move the sun by hand | *Manual* gives two sliders: direction and height (below 0 is night). The bay faces south-south-east |
+| Sun hours per room | *Sun hours: First floor* (or *All floors*) works out, for each room, the average hours of direct sun on its floor on 21 Dec, 20 Mar, 21 Jun and today, with a progress bar. Read the table as *Room / Midwinter / Equinox / Midsummer / Today*. It ignores neighbouring buildings and trees, so real sun will be less. Tick *Show on the floor* for a map in 3D (pale for no sun to warm yellow for the most) and pick the date |
 | Evening light | Tick *Ceiling lights on* |
 
 Numbers marked **≈** come from the agent's not-to-scale plan. Amber **?** pins

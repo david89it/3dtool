@@ -5,7 +5,6 @@ import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { Level } from '../model/types';
 import { useStore } from '../model/store';
-import { rotate } from '../geometry/vec';
 import { LevelMesh } from './LevelMesh';
 import { WalkRig, touchInput, walkState } from './WalkRig';
 import { CUTAWAY_HEIGHT, levelBoundsMm, MM } from './sceneBuild';
@@ -14,10 +13,12 @@ import { FinishPanel, type FaceSel } from './FinishPanel';
 import { wallSideRooms } from '../model/faces';
 import { wallDir } from './wallProfile';
 import { view3dBridge } from './captureBridge';
+import { SunRig, SunHeatmap } from './SunRig';
+import { SunPanel } from './SunPanel';
 import './view3d.css';
 
-/** Plan "up" (towards the garden) points roughly north-north-west (from the agent's north arrow). */
-export const PLAN_UP_BEARING = 330;
+// The plan's north offset lives in sun.ts (PLAN_UP_BEARING); re-exported here for older imports.
+export { PLAN_UP_BEARING } from './sun';
 
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 export const compassName = (deg: number) => COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
@@ -40,42 +41,6 @@ function levelCentre(level: Level): THREE.Vector3 {
   const cx = b ? (b.min.x + b.max.x) / 2 : 0;
   const cy = b ? (b.min.y + b.max.y) / 2 : 0;
   return new THREE.Vector3(cx * MM, level.elevation * MM, cy * MM);
-}
-
-function Sun({ azimuth, elevation, centre }: { azimuth: number; elevation: number; centre: THREE.Vector3 }) {
-  const ref = useRef<THREE.DirectionalLight>(null);
-  const dir = rotate({ x: 0, y: -1 }, azimuth - PLAN_UP_BEARING);
-  const el = (elevation * Math.PI) / 180;
-  const dist = 30;
-  const pos: [number, number, number] = [
-    centre.x + dir.x * Math.cos(el) * dist,
-    centre.y + Math.sin(el) * dist,
-    centre.z + dir.y * Math.cos(el) * dist,
-  ];
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.target.position.copy(centre);
-    ref.current.target.updateMatrixWorld();
-  }, [centre]);
-  return (
-    <directionalLight
-      ref={ref}
-      position={pos}
-      intensity={2.6}
-      color="#fff4e2"
-      castShadow
-      shadow-mapSize-width={2048}
-      shadow-mapSize-height={2048}
-      shadow-camera-left={-12}
-      shadow-camera-right={12}
-      shadow-camera-top={12}
-      shadow-camera-bottom={-12}
-      shadow-camera-near={1}
-      shadow-camera-far={80}
-      shadow-bias={-0.0004}
-      shadow-normalBias={0.02}
-    />
-  );
 }
 
 function OrbitRig({ level }: { level: Level }) {
@@ -252,8 +217,6 @@ export function View3D() {
   const levelId = useStore((s) => s.levelId);
   const level = project.levels.find((l) => l.id === levelId) ?? project.levels[0];
   const [view, setView] = useState<'orbit' | 'walk'>('orbit');
-  const [azimuth, setAzimuth] = useState(200);
-  const [elevation, setElevation] = useState(35);
   const [lightsOn, setLightsOn] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [face, setFace] = useState<FaceSel | null>(null);
@@ -279,6 +242,16 @@ export function View3D() {
   // Cut-away: in the overview, walls stop at 1.2 m so rooms and furniture read clearly.
   const cut = view === 'orbit' && cutaway ? CUTAWAY_HEIGHT : undefined;
   const centre = useMemo(() => levelCentre(level), [level]);
+  // What the sun's shadow camera must cover: the floors in view, in world metres.
+  const shadowBox = useMemo(() => {
+    const b = levelBoundsMm(level);
+    const lo = Math.min(...visible.map((l) => l.elevation), level.elevation);
+    const pad = 500;
+    return new THREE.Box3(
+      new THREE.Vector3(((b?.min.x ?? 0) - pad) * MM, lo * MM, ((b?.min.y ?? 0) - pad) * MM),
+      new THREE.Vector3(((b?.max.x ?? 0) + pad) * MM, (level.elevation + level.ceilingHeight) * MM, ((b?.max.y ?? 0) + pad) * MM),
+    );
+  }, [level, visible]);
 
   if (!level) return null;
 
@@ -295,11 +268,8 @@ export function View3D() {
             gl.toneMapping = THREE.NeutralToneMapping;
           }}
         >
-          <color attach="background" args={['#e9eef2']} />
-          {/* Soft daylight bouncing around the rooms; the ground colour is a pale floor tone so ceilings stay white. */}
-          <hemisphereLight args={['#f4f7fb', '#e6dfd3', 1.7]} />
-          <ambientLight intensity={0.35} />
-          <Sun azimuth={azimuth} elevation={elevation} centre={centre} />
+          <SunRig box={shadowBox} />
+          <SunHeatmap levelId={level.id} />
           {visible.map((L) => (
             <LevelMesh
               key={L.id}
@@ -394,24 +364,7 @@ export function View3D() {
           )}
         </section>
 
-        <section className="panel-section">
-          <h2>Daylight</h2>
-          <label className="slider">
-            <span className="field-label">
-              Sun from the {compassName(azimuth)} ({Math.round(azimuth)}°)
-            </span>
-            <input type="range" min={0} max={359} value={azimuth} aria-label="Sun direction" onChange={(e) => setAzimuth(+e.target.value)} />
-          </label>
-          <label className="slider">
-            <span className="field-label">Sun height {Math.round(elevation)}°</span>
-            <input type="range" min={5} max={75} value={elevation} aria-label="Sun height" onChange={(e) => setElevation(+e.target.value)} />
-          </label>
-          <p className="note">The front (bay window) faces south-south-east. Low winter sun is about 15°, midsummer noon about 62°.</p>
-          <label className="toggle">
-            <input type="checkbox" checked={lightsOn} onChange={(e) => setLightsOn(e.target.checked)} />
-            Ceiling lights on
-          </label>
-        </section>
+        <SunPanel project={project} level={level} lightsOn={lightsOn} onLights={setLightsOn} />
 
         <FinishPanel
           level={level}

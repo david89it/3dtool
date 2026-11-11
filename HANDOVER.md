@@ -5,6 +5,7 @@ purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
 Last updated: 2026-11-11, after the costs and shopping list work.
+Last updated: 2026-11-11, after the real sun work.
 
 ## 1. What this is
 
@@ -151,6 +152,11 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   copy as a list, CSV, and a Budget page in the print pack
   (`src/model/costs.ts`, `costEdits.ts`, `src/ui/BudgetPanel.tsx`,
   `Project.costSettings`).
+- Real sun and sun hours (`src/view3d/sun.ts`, `sunHours.ts`, `sunState.ts`,
+  `SunRig.tsx`, `SunPanel.tsx`): real sun for N19 by date and time in London
+  time, play the day, dusk and night, a sun-hours table per room for four
+  dates, and an optional floor heatmap. `PLAN_UP_BEARING` in `sun.ts` is the
+  one number to correct with a compass at the flat. Neighbours are not modelled.
 
 **In flight:** none.
 
@@ -165,12 +171,10 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 
 **Next, in order:**
 
-1. Real sun for N19: date and time, sun hours per room (changes
-   `src/view3d`).
-2. Pack follow-ups: detect removed walls by comparing with a version, before
+1. Pack follow-ups: detect removed walls by comparing with a version, before
    and after 3D, 3D views per floor.
-3. Sloped loft ceiling and chimney-breast objects (after the site visit).
-4. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
+2. Sloped loft ceiling and chimney-breast objects (after the site visit).
+3. UI batch: collapsible panels, context menu, multi-select and groups, ⌘K,
    room views, undo history list.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
@@ -219,6 +223,11 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
   flooring, totals, CSV, text), Budget panel, Cost section in the item panel,
   Budget page in the print pack, `e2e/budget.spec.ts`. Defaults are rough UK
   figures.
+- 2026-11-11 · sun · Real sun for N19 (`sun.ts` NOAA maths, London time via
+  Intl, `PLAN_UP_BEARING`), Daylight panel with dates, time slider and play,
+  dusk and night, shadow camera fitted to the floors in view, sun hours per
+  room (`sunHours.ts`, raycasts in time slices) and floor heatmap, `sun.test.ts`,
+  `sunHours.test.ts`, `e2e/sun.spec.ts`.
 - 2026-11-10 · describe · Add a piece by description or image link
   (structured outputs, `describeModel.ts` pure half, `DescribeItemBox`,
   `tint` and `source` on `CatalogueItem`, "Your items" group, `e2e/describe.spec.ts`

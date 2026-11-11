@@ -668,4 +668,41 @@ challenged.
 - **Editing.** Prices and settings are saved when the box loses focus or
   Enter is pressed (one undo step each), not on every key. The Budget panel
   is derived from the project on every change; it stores nothing of its own.
+## Real sun and sun hours
+
+- **Sun position** (`src/view3d/sun.ts`) is the NOAA approximation
+  (declination, equation of time, hour angle) for 51.565 N, 0.137 W. It is
+  geometric (no refraction) except sunrise and sunset, which use the usual
+  90.833 degree zenith. Times use Europe/London through `Intl`, so BST and GMT
+  read right. Unit tests check noon heights (about 62 and 15 degrees, due
+  south) and sunrise and sunset against published London times within 5 minutes.
+- **Orientation.** The one number that ties the plan to the compass is
+  `PLAN_UP_BEARING` (330 degrees: plan "up", towards the garden, points north-
+  north-west, so the front bay faces south-south-east). It is read off the
+  agent's north arrow, so it is a guess. After a site visit, set it from a
+  compass in `src/view3d/sun.ts`; the light, shadows and sun-hours table all use
+  it. The old direction slider used the same mapping, which is kept.
+- **Sun hours.** For each room, points are sampled on the inside floor polygon
+  (grid 50 cm, coarser if that would give more than 200 points). Every 15
+  minutes between sunrise and sunset, a three.js `Raycaster` fires from 2 cm above
+  the floor towards the sun at the built walls, solid masses, floor slabs and
+  ceilings of every floor from the one measured upwards. Window panes are left out
+  (transparent); furniture and stairs are left out too (the question is the
+  room, not the sofa). A point is sunlit if nothing is hit. A room's hours are
+  the average over its points of (lit samples x 0.25 h). The geometry is cut
+  into small chunks, so a ray only tests the ones near it. The work runs in
+  12 ms slices with a progress bar. If the plan is edited afterwards the table
+  says so.
+- **Neighbours are not modelled** (no terrain, no buildings, no trees, no
+  roof overhang, no reveal depth beyond the wall thickness), so real sun will be
+  less, most of all in winter when the sun is low. This is said under the table.
+- **Light.** The time slider only changes light properties (position, colour,
+  intensity), never geometry. Sun state lives in a small zustand store
+  (`sunState.ts`), not the project store, so it is not saved or undone. Below
+  the horizon the sun goes out, the sky light dims and the background turns
+  dark blue. The shadow camera is refitted every frame to the box of the floors
+  in view, as seen from the sun.
+- **Privacy.** The real-sun label names the address in the private build
+  only; the public build says "Real sun for this flat". The site coordinates
+  are in the code of both builds (they are only good to about 100 m).
 
