@@ -1,5 +1,7 @@
+import { countRender } from '../../perf';
 // Outlines the furniture and walls an advice issue is about.
 
+import { memo } from 'react';
 import { Line } from 'react-konva';
 import type { Level, Project, Vec2 } from '../../model/types';
 import type { Highlight } from '../../model/store';
@@ -9,7 +11,7 @@ import { findCatalogueItem, footprint } from '../../catalogue/catalogue';
 const flat = (pts: Vec2[]) => pts.flatMap((p) => [p.x, p.y]);
 export const HIGHLIGHT_COLOR = '#e11d48';
 
-export function HighlightShapes({
+function HighlightShapesImpl({
   level,
   project,
   joints,
@@ -20,6 +22,7 @@ export function HighlightShapes({
   joints: JointData;
   highlight: Highlight | null;
 }) {
+  countRender('HighlightShapes');
   if (!highlight) return null;
   const shapes = [];
   for (const id of highlight.itemIds) {
@@ -48,6 +51,12 @@ export function HighlightShapes({
   }
   return <>{shapes}</>;
 }
+
+/** Nothing to draw (and nothing to compare) while no issue is highlighted. */
+export const HighlightShapes = memo(
+  HighlightShapesImpl,
+  (a, b) => (!a.highlight && !b.highlight) || (a.highlight === b.highlight && a.level.items === b.level.items && a.joints === b.joints && a.project.catalogueOverrides === b.project.catalogueOverrides),
+);
 
 /** Every plan point the highlight covers (for zooming to it). */
 export function highlightPoints(level: Level, project: Project, joints: JointData, h: Highlight): Vec2[] {

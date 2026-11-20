@@ -1,3 +1,5 @@
+import { countRender } from '../../perf';
+import { memo } from 'react';
 import { Circle, Group, Label, Line, Rect, Tag, Text } from 'react-konva';
 import type { CatalogueItem, Level, PlacedItem, Project, Vec2 } from '../../model/types';
 import type { ItemGhost } from '../../model/store';
@@ -21,7 +23,8 @@ function circlePoly(item: PlacedItem, cat: CatalogueItem, cx: number, cz: number
 }
 
 /** Top-down drawing of one item from its parts, lowest parts first. */
-export function ItemShape({ item, cat, opacity = 1, highlight }: { item: PlacedItem; cat: CatalogueItem; opacity?: number; highlight?: 'selected' | 'hover' }) {
+function ItemShapeImpl({ item, cat, opacity = 1, highlight }: { item: PlacedItem; cat: CatalogueItem; opacity?: number; highlight?: 'selected' | 'hover' }) {
+  countRender('ItemShape');
   const parts = [...itemParts(item, cat)].sort((a, b) => a.pos[1] + a.size[1] / 2 - (b.pos[1] + b.size[1] / 2));
   return (
     <Group opacity={opacity} listening={false}>
@@ -60,8 +63,9 @@ export function ItemShape({ item, cat, opacity = 1, highlight }: { item: PlacedI
     </Group>
   );
 }
+export const ItemShape = memo(ItemShapeImpl);
 
-function Clearances({ item, cat }: { item: PlacedItem; cat: CatalogueItem }) {
+function ClearancesImpl({ item, cat }: { item: PlacedItem; cat: CatalogueItem }) {
   return (
     <Group listening={false}>
       {clearanceShapes(item, cat).map((s, i) => {
@@ -87,8 +91,9 @@ function Clearances({ item, cat }: { item: PlacedItem; cat: CatalogueItem }) {
     </Group>
   );
 }
+const Clearances = memo(ClearancesImpl);
 
-export function ItemShapes({
+function ItemShapesImpl({
   level,
   project,
   selectedIds,
@@ -105,6 +110,7 @@ export function ItemShapes({
   showAllClearances: boolean;
   ghost: ItemGhost | null;
 }) {
+  countRender('ItemShapes');
   const withCat = level.items
     .map((item) => ({ item, cat: findCatalogueItem(project, item.catalogueId) }))
     .filter((x): x is { item: PlacedItem; cat: CatalogueItem } => !!x.cat);
@@ -138,8 +144,21 @@ export function ItemShapes({
   );
 }
 
+/** Draws only what changed: the pieces, her selection and hover, and the ghost. Other edits (a wall, a note) leave it alone. */
+export const ItemShapes = memo(
+  ItemShapesImpl,
+  (a, b) =>
+    a.level.items === b.level.items &&
+    a.project.catalogueOverrides === b.project.catalogueOverrides &&
+    a.selectedIds === b.selectedIds &&
+    a.hoverId === b.hoverId &&
+    a.showClearances === b.showClearances &&
+    a.showAllClearances === b.showAllClearances &&
+    a.ghost === b.ghost,
+);
+
 /** Screen-space: name tag and handles of the selected / hovered item. */
-export function ItemOverlay({
+function ItemOverlayImpl({
   level,
   project,
   view,
@@ -157,6 +176,7 @@ export function ItemOverlay({
   /** A selection box being dragged, in plan points. */
   marquee?: { from: Vec2; to: Vec2 };
 }) {
+  countRender('ItemOverlay');
   const sel = selectedIds.length === 1 ? level.items.find((i) => i.id === selectedIds[0]) : undefined;
   const hov = level.items.find((i) => i.id === hoverId && !selectedIds.includes(i.id));
   // Several selected: one dashed box round them all, named after the group when it is one.
@@ -235,3 +255,16 @@ export function ItemOverlay({
     </Group>
   );
 }
+
+export const ItemOverlay = memo(
+  ItemOverlayImpl,
+  (a, b) =>
+    a.level.items === b.level.items &&
+    a.level.groups === b.level.groups &&
+    a.project.catalogueOverrides === b.project.catalogueOverrides &&
+    a.view === b.view &&
+    a.selectedIds === b.selectedIds &&
+    a.hoverId === b.hoverId &&
+    a.ghost === b.ghost &&
+    a.marquee === b.marquee,
+);

@@ -1,3 +1,4 @@
+import { countRender } from '../perf';
 import { useStore, type Mode } from '../model/store';
 import { countBySeverity } from '../rules/engine';
 import { useLevelIssues } from './useIssues';
@@ -25,6 +26,7 @@ const MODES: { id: Mode; label: string; ready: boolean }[] = [
 ];
 
 export function ModeBar() {
+  countRender('ModeBar');
   const mode = useStore((s) => s.mode);
   const setMode = useStore((s) => s.setMode);
   return (
