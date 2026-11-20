@@ -5,6 +5,8 @@ import { EditableLength } from './EditableLength';
 import { forgetApiKey, saveAdviceEnabled, saveApiKey } from '../advice/keyStore';
 import { useSiteMeasure } from '../sitemeasure/state';
 import { useDialogEsc } from './useDialogEsc';
+import { useReportUi, saveReportTo } from '../report/state';
+import { isValidEmail } from '../report/address';
 
 /** Params that are ratios, not lengths (e.g. 1.5 × the screen size). */
 const isFactor = (key: string) => /factor/i.test(key);
@@ -186,6 +188,62 @@ function ClaudeSettings() {
   );
 }
 
+function ReportSettings() {
+  const saved = useReportUi((s) => s.address);
+  const setAddress = useReportUi((s) => s.setAddress);
+  const [text, setText] = useState<string | null>(null);
+  const [bad, setBad] = useState(false);
+  const shown = text ?? saved;
+  const commit = async () => {
+    if (text === null) return;
+    const v = text.trim();
+    if (v && !isValidEmail(v)) {
+      setBad(true);
+      return;
+    }
+    setBad(false);
+    setText(null);
+    await saveReportTo(v);
+    setAddress(v);
+    useStore.getState().toast(v ? 'Problem reports will go to that address.' : 'That address was removed from this browser.');
+  };
+  return (
+    <section className="settings-section" aria-label="Problem reports">
+      <h3>Problem reports</h3>
+      <p className="note">
+        “Report a problem” opens an email to this address. Leave it empty to use the address that came with your plan, if it has one.
+        It is kept in this browser only.
+      </p>
+      <label className="field column">
+        <span className="field-label">Problem reports go to</span>
+        <input
+          className="text-field"
+          type="email"
+          autoComplete="off"
+          aria-label="Problem reports go to"
+          aria-invalid={bad}
+          placeholder="name@example.com"
+          value={shown}
+          onChange={(e) => {
+            setText(e.target.value);
+            setBad(false);
+          }}
+          onBlur={() => void commit()}
+          onKeyDown={(e) => {
+            if (e.key !== 'Escape') e.stopPropagation();
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
+        />
+      </label>
+      {bad && (
+        <p role="alert" className="field-error">
+          That does not look like an email address.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function SettingsDialog() {
   const open = useStore((s) => s.settingsOpen);
   const setOpen = useStore((s) => s.setSettingsOpen);
@@ -212,6 +270,7 @@ export function SettingsDialog() {
         </div>
         <OnSiteSettings />
         <ClaudeSettings />
+        <ReportSettings />
         <RuleSettings />
       </div>
     </div>

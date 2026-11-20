@@ -39,7 +39,7 @@ empty: no address, no seed plan, no floorplan picture. Our own flat is
 published only as an encrypted file (`seed.enc`) and opens with a password:
 *File → Open our flat…*, or the button on the empty first screen.
 
-Two steps for the owner, once:
+Steps for the owner, once (the third is optional):
 
 1. Repository **Settings → Secrets and variables → Actions → New repository
    secret**: name `SEED_PASSWORD`, value your password. Choose a long
@@ -51,6 +51,12 @@ Then every push to `claude/flat-planner-brief-o4stwd` (or *Actions → Publish
 site → Run workflow*) rebuilds and publishes. Without the secret the site
 still publishes, just without "Open our flat". To change the password, change
 the secret and run the workflow again.
+
+3. Optional, for **Report a problem** (below): **New repository secret**
+   named `REPORT_EMAIL`, value the email address reports should go to. It is
+   written only inside the encrypted `seed.enc`, so the address is never in
+   the public code or the site. Without it, reports can still be copied, or
+   an address can be typed into Settings on each device.
 
 Plans live in each visitor's own browser (autosaved there); nothing is sent
 to a server. Use *File → Save a copy to my computer* for backups.
@@ -190,6 +196,26 @@ place corners, press and drag to move walls and furniture. Long-press doesn't
 pop up the copy menu. Add the page to the Home Screen for full-screen use.
 
 `?notour` in the address skips the tour (used by the tests).
+
+## Using it: report a problem
+
+If something looks wrong or breaks, press the speech-bubble button in the top
+bar (tooltip *Report a problem*), or File → *Report a problem…*, or Ctrl/⌘ K
+and type "report". It is also on the "Something went wrong" screen.
+
+| Do this | How |
+| --- | --- |
+| Say what went wrong | *What happened?* (needed) and *What did you expect?* (optional) |
+| See what is added for you | Open *What gets sent*: app version, date and time, floor and mode, what is selected (in words), your last 10 changes, recent errors, browser and screen. Never the shape or sizes of your plan, and never your API key |
+| Send it | *Send email* opens your own email app with the message ready. Press send there. If nothing opens, use *Copy everything* and paste it into an email |
+| Add a picture | Leave *Include a picture of the plan* ticked, then *Copy picture* (paste it into the email) or *Download picture* (attach it). A picture cannot ride inside the email link |
+| No address set | *Copy everything* is the main button; paste it into a message to David |
+
+Where it goes: Settings → *Problem reports go to* (kept in this browser only)
+wins; otherwise the address that came with the plan (`REPORT_EMAIL`, see
+Hosting). The email link is kept under about 1800 characters so iPad and
+macOS Mail open it; her words come first and the details are trimmed to fit
+(device first, then the change list, then the oldest errors).
 
 ## Using it: on site and scans
 

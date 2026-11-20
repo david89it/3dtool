@@ -4,7 +4,8 @@
 # encrypted with the repository secret SEED_PASSWORD; without the secret the
 # site is published without it. One-time setup: Settings > Pages > Source:
 # GitHub Actions, and Settings > Secrets and variables > Actions > New
-# repository secret named SEED_PASSWORD.
+# repository secret named SEED_PASSWORD. Optionally add REPORT_EMAIL (the address
+# "Report a problem" sends to); it ends up only inside the encrypted seed.
 
 name: Publish site
 
@@ -49,6 +50,8 @@ jobs:
         run: node scripts/encrypt-seed.mjs dist
         env:
           SEED_PASSWORD: ${{ secrets.SEED_PASSWORD }}
+          # Where "Report a problem" emails go. Optional; stored only inside the encrypted seed.
+          REPORT_EMAIL: ${{ secrets.REPORT_EMAIL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

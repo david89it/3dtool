@@ -5,6 +5,9 @@
 //
 //   SEED_PASSWORD='a long passphrase' node scripts/encrypt-seed.mjs [distDir]
 //
+// Optional: REPORT_EMAIL is where "Report a problem" emails go. It is added to the project
+// before encryption (never logged), so it exists only inside seed.enc.
+//
 // No new dependencies and no browser: the project is built by the app's own
 // buildSeedProject() / applySeedUnderlays() (loaded through Vite), and the
 // crops are cut from assets/floorplan-bleuplan.png with node:zlib.
@@ -141,6 +144,13 @@ async function buildSeedJson() {
     const project = seed.buildSeedProject();
     const img = readPng(readFileSync(resolve(root, 'assets/floorplan-bleuplan.png')));
     seed.applySeedUnderlays(project, (spec) => cropToDataUrl(img, spec.crop));
+    // Where "Report a problem" emails go. It lives only inside the encrypted seed, never in the repo.
+    const reportTo = (process.env.REPORT_EMAIL ?? '').trim();
+    if (reportTo) {
+      const { isValidEmail } = await server.ssrLoadModule('/src/report/address.ts');
+      if (isValidEmail(reportTo)) project.reportTo = reportTo;
+      else console.warn('encrypt-seed: REPORT_EMAIL is set but is not a valid email address, so reports will have no default address.');
+    }
     return JSON.stringify(project);
   } finally {
     await server.close();

@@ -25,6 +25,10 @@ export interface Project {
   // EXTENSION (costs): her own prices for the budget and shopping list. Any
   // missing value uses a rough UK default from src/model/costs.ts.
   costSettings?: Partial<CostSettings>;
+  // EXTENSION (report a problem): the email address problem reports go to. Set ONLY by the
+  // encrypted seed (scripts/encrypt-seed.mjs, from the REPORT_EMAIL secret), so it never appears
+  // in the public code. Settings -> "Problem reports go to" overrides it per browser.
+  reportTo?: string;
 }
 
 // EXTENSION: see Project.costSettings. Money is in pounds.

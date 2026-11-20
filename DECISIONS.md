@@ -873,3 +873,37 @@ challenged.
   the side or is clipped. At 900 px and under "Undo" and "Redo" show only
   their arrows (tooltip and name keep the words).
 - **Focus.** All keyboard focus shows a 2 px blue ring (`:focus-visible`).
+
+## Report a problem
+
+- **Email, not a server.** The app has no back end (plans stay in the browser), so a report is an
+  email link (`mailto:`) that opens her own mail app. Nothing is sent by the app itself; she presses
+  send. A hosted form or a service would need a server or a key, and would collect data
+  centrally, which the app has avoided so far.
+- **The address is a secret that never enters the repo.** The repo and the site are public. The
+  address is `Project.reportTo` (an EXTENSION), set only by `scripts/encrypt-seed.mjs` from the
+  `REPORT_EMAIL` repository secret and so present only inside the encrypted `seed.enc` (it is read
+  after she opens our flat). `src/report/noAddress.test.ts` fails if anything shaped like an email
+  address (other than example.com, noreply@anthropic.com and similar placeholders) appears in
+  `src/`, `scripts/`, `.github/` or `e2e/`. A per-browser address in Settings (IndexedDB key
+  `flatplan:report-to`) wins over it. Because `reportTo` is part of the plan, a saved copy of the
+  plan (File, Save a copy) and a saved version contain it; do not post those publicly.
+- **What is sent, and what never is.** Version (git short SHA and build date, set at build time with
+  Vite `define`: `GITHUB_SHA`, else `git rev-parse --short HEAD`, else `dev`), date and time,
+  floor and mode, the selection in words ("a piece of furniture: Sofa", never positions), the last 10
+  undo labels, the last 20 console errors and warnings plus `window.onerror` and unhandled
+  rejections (a ring buffer installed first in `main.tsx`; keys, picture data and email-shaped text
+  are scrubbed), browser, screen and window size, touch yes or no, and whether saving is paused.
+  No walls, sizes, positions, plan image or API key. She sees all of it under *What gets sent*
+  before anything goes.
+- **Length cap.** Many mail apps (iPad Mail, macOS Mail) drop `mailto:` links longer than about 2000
+  characters, so the link is built to at most 1800. Her words go first and are kept (cut only if
+  they alone exceed the cap); the details are added by priority (summary, errors, changes, device)
+  and trimmed from the bottom, with one line saying that more was left out. *Copy everything*
+  always has the full text.
+- **Pictures.** A `mailto:` cannot carry an attachment, so the picture is a separate step: *Copy
+  picture* (a `ClipboardItem` of `image/png`, to paste into the email) or *Download picture*. If the
+  browser refuses the clipboard, *Copy everything* shows the text selected in a box to copy by hand.
+- **Works on the error screen.** The dialog is also mounted inside the crash fallback and reads the
+  store defensively, so a broken plan still gives a report (the crash is in the error list).
+- **A tap outside does not close it** (she may have typed a lot); Esc and Close do.

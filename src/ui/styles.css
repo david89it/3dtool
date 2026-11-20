@@ -2046,3 +2046,70 @@ kbd {
   color: var(--muted);
   font-size: 13px;
 }
+
+/* ---- report a problem ---------------------------------------------- */
+.modal.report {
+  width: min(560px, 94vw);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.modal.report textarea.text-field.area {
+  min-height: 88px;
+}
+.modal.report textarea.report-copybox {
+  min-height: 140px;
+  font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+}
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
+}
+a.btn.primary {
+  color: #fff;
+}
+.report-picture-toggle {
+  min-height: 44px;
+}
+.report-thumb {
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  align-self: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.report-details summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.report-details pre {
+  margin: 0;
+  padding: 10px;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace;
+  background: #f7f5f0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.report-details summary::before {
+  content: '▸';
+  margin-right: 8px;
+}
+.report-details[open] summary::before {
+  content: '▾';
+}

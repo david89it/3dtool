@@ -18,6 +18,7 @@ import { useBudgetUi } from './budgetUi';
 import { UndoButton } from './UndoHistory';
 import { usePalette } from './paletteState';
 import { useDismiss } from './useDialogEsc';
+import { useReportUi } from '../report/state';
 
 /** Everything the floor tabs show, as one string, so a drag that changes nothing there changes nothing here. */
 function tabsSignature(p: Project): string {
@@ -150,6 +151,19 @@ export function TopBar() {
         </div>
         <button
           className="icon-btn"
+          onClick={() => useReportUi.getState().setOpen(true)}
+          aria-label="Report a problem"
+          title="Report a problem"
+          data-testid="report-button"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M3 4.5h14v9H9l-3.5 3v-3H3z" />
+            <path d="M10 7.2v3" />
+            <path d="M10 12.2v.1" />
+          </svg>
+        </button>
+        <button
+          className="icon-btn"
           aria-label="Keyboard shortcuts"
           title="Keyboard shortcuts (?)"
           onClick={() => useStore.getState().setShortcutsOpen(true)}
@@ -248,6 +262,15 @@ export function TopBar() {
                 }}
               >
                 Show the tour again
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  useReportUi.getState().setOpen(true);
+                }}
+              >
+                Report a problem…
               </button>
               <hr />
               <button

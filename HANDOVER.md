@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-11, after the pack follow-ups (compare with a version, 3D per floor).
+Last updated: 2026-11-20, after Report a problem.
 
 ## 1. What this is
 
@@ -52,6 +52,7 @@ beats feature count.
 | `src/rules` | 22 layout rules (one registry file), engine, fixers | `registry.ts`, `engine.ts` |
 | `src/view3d` | 3D scene, wall profiles with holes, walk physics, materials and finishes | `View3D.tsx`, `sceneBuild.ts` |
 | `src/advice` | Optional Claude API client (`claude-opus-5-5`, key kept in the browser): advice and describe-a-piece | `claudeAdvice.ts`, `describeItem.ts` |
+| `src/report` | Report a problem: address priority, console ring buffer, details, mailto builder | `report.ts`, `address.ts` |
 | `src/ui` | Panels, mode bar, inspector, dialogs, tour, shortcuts, options | `App.tsx`, `Inspector.tsx` |
 | `e2e` | One Playwright spec per phase or feature | Load the app with `?notour` |
 | `assets` | Agent's floorplan, brochure, listing photos (**private**, see §5) | |
@@ -104,7 +105,8 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   *File → Open our flat…* (`src/model/seedCrypto.ts`, `src/ui/UnlockDialog.tsx`).
   **Owner steps:** add the secret `SEED_PASSWORD` (a long passphrase) and set
   Settings → Pages → Source to GitHub Actions. Without the secret the site
-  publishes with no unlock option.
+  publishes with no unlock option. Optional third step: add the secret `REPORT_EMAIL`
+  (where *Report a problem* emails go); it is written only inside `seed.enc`.
 - **Privacy:** `assets/` and the seed contain the flat's address, plan and
   photos. They must never reach a public build: the seed is loaded only
   through `createStartProject()` in `src/model/firstRun.ts`, behind the build
@@ -178,6 +180,11 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   after for changed floors, from an off-screen renderer
   (`src/view3d/Offscreen3D.tsx`, `renderOverview3D` in `captureBridge.ts`).
 
+- Report a problem (`src/report/*`, `src/ui/ReportDialog.tsx`): top bar button, File menu, Ctrl/⌘ K
+  and the error screen; email link under 1800 characters plus *Copy everything* and picture copy or
+  download; the address comes from Settings (per browser) or `Project.reportTo`, set only by the
+  encrypted seed from the `REPORT_EMAIL` secret. `noAddress.test.ts` keeps addresses out of the repo.
+
 **In flight:** none.
 
 **Blocked:**
@@ -193,6 +200,21 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 
 1. Sloped loft and chimney breasts after site visit (sloped loft ceiling and
    chimney-breast objects).
+**Backlog (tracked, not scheduled):**
+
+- From `UX_REVIEW.md`:
+  - The right panel should open on selection on narrow screens (under 1000 px).
+  - Focus should start inside a window, and Tab should stay in it.
+  - Make the remaining numbers typeable: item rotation, a measure note's length, the plan
+    image rotation, and the height of one-size items.
+  - Esc closing a window should not also deselect on the plan.
+  - On an iPad upright there are three rows of chrome, and the hint text overlaps labels.
+- From `CODE_REVIEW.md`:
+  - A periodic "Save a copy" reminder (everything lives in one browser's storage).
+  - `nodePos` (`geometry/wallGraph.ts`) throws on a missing corner.
+  - No screen for backups of unreadable records (`flatplan:unreadable:*`).
+  - A second tab stops saving and needs a reload.
+
 **Parked:** path-traced photo render, dark mode, electrics layer,
 side-by-side compare, live Pinterest sync, fps meter.
 
@@ -244,6 +266,11 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-20 · report · Report a problem by email: `src/report` (address priority, console ring buffer
+  installed first in `main.tsx`, details, `buildMailto` capped at 1800 characters), `ReportDialog`,
+  Settings → Problem reports go to, `Project.reportTo` from the `REPORT_EMAIL` secret via
+  `encrypt-seed.mjs`, version injected by Vite `define`, `report.test.ts`, `noAddress.test.ts`,
+  `e2e/report.spec.ts`.
 - 2026-11-20 · ux-review · UX pass over every mode and window at 1440, 1024 and
   768 wide: top bar wraps, File menu closes on a tap outside, Esc closes every
   window (`ui/useDialogEsc.ts`), 44 px everywhere, about 80 tooltips, one word

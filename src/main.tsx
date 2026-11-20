@@ -1,3 +1,4 @@
+import './report/captureEarly';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
@@ -7,6 +8,7 @@ import { flushSave, loadForBoot, loadSettings, markTourSeen, startAutosave } fro
 import { createEmptyProject, createStartProject } from './model/firstRun';
 import { loadAdviceEnabled, loadApiKey } from './advice/keyStore';
 import { canvasApi } from './editor2d/canvasApi';
+import { loadReportTo, useReportUi } from './report/state';
 import './ui/styles.css';
 
 async function boot() {
@@ -19,6 +21,11 @@ async function boot() {
     useStore.getState().setAdviceState({ enabled: adviceOn, keySaved: !!key });
   } catch {
     // Ask Claude is optional; the plan opens without it.
+  }
+  try {
+    useReportUi.getState().setAddress(await loadReportTo());
+  } catch {
+    // Reports then use the address that came with the plan, if any.
   }
   // A start that fails (the seed cannot load) still opens an empty plan rather than the loading message forever.
   const { project, notices } = await loadForBoot(() => createStartProject().catch(() => createEmptyProject()));

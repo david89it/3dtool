@@ -7,6 +7,7 @@ import { useBudgetUi } from './budgetUi';
 import { usePrint } from '../print/state';
 import { useSiteMeasure } from '../sitemeasure/state';
 import { toggleThreeD } from './modeToggle';
+import { useReportUi } from '../report/state';
 
 export interface PaletteCommand {
   id: string;
@@ -35,6 +36,7 @@ export function paletteCommands(): PaletteCommand[] {
     { id: 'cmd:measure', label: 'Measure on site', keywords: ['checklist', 'visit', 'tape'], run: () => useSiteMeasure.getState().setOpen(true) },
     { id: 'cmd:scan', label: 'Import a scan', keywords: ['lidar', 'roomplan', 'dxf', 'usdz'], run: () => useSiteMeasure.getState().setImportOpen(true) },
     { id: 'cmd:settings', label: 'Settings', keywords: ['preferences', 'rules', 'api key', 'advice'], run: () => s().setSettingsOpen(true) },
+    { id: 'cmd:report', label: 'Report a problem', keywords: ['bug', 'broken', 'something wrong', 'feedback', 'email', 'help'], run: () => useReportUi.getState().setOpen(true) },
     { id: 'cmd:shortcuts', label: 'Show shortcuts', keywords: ['keyboard', 'keys', 'help'], run: () => s().setShortcutsOpen(true) },
     { id: 'cmd:3d', label: 'Toggle 3D', keywords: ['switch', 'plan', 'walk'], run: () => toggleThreeD() },
     ...MODE_COMMANDS.map((m) => ({ id: `cmd:mode-${m.mode}`, label: m.label, keywords: m.keywords, run: () => s().setMode(m.mode) })),

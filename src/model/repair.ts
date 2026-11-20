@@ -16,6 +16,7 @@ import type { CatalogueItem, Level, Opening, PlacedItem, Project, Stair, Wall } 
 import { uid } from './ids';
 import { DEFAULT_THICKNESS } from '../geometry/wallGraph';
 import { findCatalogueItem } from '../catalogue/catalogue';
+import { isValidEmail } from '../report/address';
 
 export interface RepairResult {
   project: Project;
@@ -268,6 +269,7 @@ export function repairProject(x: unknown): RepairResult {
   }
   if (p.schemes !== undefined && !Array.isArray(p.schemes)) delete p.schemes;
   if (p.costSettings !== undefined && !isObj(p.costSettings)) delete p.costSettings;
+  if (p.reportTo !== undefined && !isValidEmail(p.reportTo)) delete p.reportTo;
   if (p.ruleOverrides !== undefined) {
     if (!isObj(p.ruleOverrides)) delete p.ruleOverrides;
     else {

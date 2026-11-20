@@ -27,6 +27,7 @@ import { useSiteMeasure } from '../sitemeasure/state';
 import { useVersionsUi } from './versionsUi';
 import { useBudgetUi } from './budgetUi';
 import { EmptyStart, UnlockDialog } from './UnlockDialog';
+import { ReportDialog } from './ReportDialog';
 import { usePrint } from '../print/state';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
@@ -246,6 +247,7 @@ export function App() {
       <Shortcuts />
       <EmptyStart />
       <UnlockDialog />
+      <ReportDialog />
       <DeferredPanels />
       <DeferredPalette />
     </div>

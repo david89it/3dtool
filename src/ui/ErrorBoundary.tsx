@@ -7,6 +7,8 @@
 import { Component, useState, useSyncExternalStore, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
 import { useStore } from '../model/store';
 import { pauseSaving, resumeSaving, saveRescueCopy } from '../model/persistence';
+import { useReportUi } from '../report/state';
+import { ReportDialog } from './ReportDialog';
 
 // The plan is drawn by react-konva, which has its own React root: an error while drawing there never
 // reaches the boundary around the page. A `canvas` boundary inside the drawing reports it here instead,
@@ -126,6 +128,9 @@ function AppFallback({ onRetry }: { onRetry: () => void }) {
           >
             Save a copy of my plan
           </button>
+          <button type="button" style={btn} onClick={() => useReportUi.getState().setOpen(true, 'crash')}>
+            Report a problem
+          </button>
           {canUndo && (
             <button
               type="button"
@@ -145,6 +150,7 @@ function AppFallback({ onRetry }: { onRetry: () => void }) {
         {copy === 'saved' && <p style={{ margin: '14px 0 0' }}>A copy was saved to your downloads.</p>}
         {copy === 'failed' && <p style={{ margin: '14px 0 0' }}>A copy could not be made. Reload, then use File, Save a copy.</p>}
       </div>
+      <ReportDialog />
     </div>
   );
 }
