@@ -103,6 +103,8 @@ export interface AppState {
   future: HistoryEntry[];
   gesture: Gesture | null;
   toasts: Toast[];
+  /** Counts deliberate loads (open a file, restore a version, start again), so autosave knows she chose to replace the plan. */
+  loadSeq: number;
 
   loadProject: (p: Project, opts?: { keepLevel?: boolean }) => void;
   commit: (label: string, recipe: (draft: Draft<Project>) => void) => void;
@@ -175,6 +177,28 @@ function selectionStillValid(p: Project, levelId: Id, s: Selection): Selection {
 
 let toastSeq = 0;
 
+/** A floor id that exists in `p`: the preferred one, else the one she is on, else the first floor showing. */
+function validLevelId(p: Project, preferred: Id, current: Id): Id {
+  if (p.levels.some((l) => l.id === preferred)) return preferred;
+  if (p.levels.some((l) => l.id === current)) return current;
+  return activeLevels(p)[0]?.id ?? p.levels[0]?.id ?? '';
+}
+
+/** Apply patches, or return undefined if they no longer fit the plan (never throws). */
+function tryApply(project: Project, patches: Patch[]): Project | undefined {
+  try {
+    return applyPatches(project, patches);
+  } catch {
+    return undefined;
+  }
+}
+
+/** History that cannot be applied is dropped rather than crashing; the plan itself is untouched. */
+function dropHistory(set: (p: Partial<AppState>) => void, get: () => AppState): void {
+  set({ past: [], future: [] });
+  get().toast('That step could not be undone, so the undo list was cleared. Your plan is unchanged.', 'warn');
+}
+
 export const useStore = create<AppState>()((set, get) => ({
   ready: false,
   project: emptyProject,
@@ -200,6 +224,7 @@ export const useStore = create<AppState>()((set, get) => ({
   future: [],
   gesture: null,
   toasts: [],
+  loadSeq: 0,
 
   loadProject: (p, opts) => {
     const keep = opts?.keepLevel && p.levels.some((l) => l.id === get().levelId);
@@ -216,6 +241,7 @@ export const useStore = create<AppState>()((set, get) => ({
       past: [],
       future: [],
       gesture: null,
+      loadSeq: get().loadSeq + 1,
     });
   },
 
@@ -263,10 +289,14 @@ export const useStore = create<AppState>()((set, get) => ({
     const before = get().gesture;
     if (before && finish) {
       const last = before.recipe;
-      get().updateGesture((L) => {
-        last?.(L);
-        finish(L);
-      });
+      try {
+        get().updateGesture((L) => {
+          last?.(L);
+          finish(L);
+        });
+      } catch {
+        // The finishing touch (joining a dropped corner) failed: keep the drag as it last was.
+      }
     }
     const g = get().gesture;
     if (!g) return;
@@ -292,8 +322,9 @@ export const useStore = create<AppState>()((set, get) => ({
     const { past, future, project, gesture } = get();
     if (gesture || past.length === 0) return;
     const entry = past[past.length - 1];
-    const next = applyPatches(project, entry.inverse);
-    const levelId = next.levels.some((l) => l.id === entry.levelId) ? entry.levelId : get().levelId;
+    const next = tryApply(project, entry.inverse);
+    if (!next) return dropHistory(set, get);
+    const levelId = validLevelId(next, entry.levelId, get().levelId);
     set({
       project: withActive(next, levelId),
       levelId,
@@ -307,8 +338,9 @@ export const useStore = create<AppState>()((set, get) => ({
     const { past, future, project, gesture } = get();
     if (gesture || future.length === 0) return;
     const entry = future[future.length - 1];
-    const next = applyPatches(project, entry.patches);
-    const levelId = next.levels.some((l) => l.id === entry.levelId) ? entry.levelId : get().levelId;
+    const next = tryApply(project, entry.patches);
+    if (!next) return dropHistory(set, get);
+    const levelId = validLevelId(next, entry.levelId, get().levelId);
     set({
       project: withActive(next, levelId),
       levelId,

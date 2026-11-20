@@ -141,6 +141,8 @@ export function deleteOption(project: Project, levelId: Id): Id | null {
   const active = project.activeSchemes?.[group] === levelId || !project.activeSchemes?.[group] ? rest[0].id : project.activeSchemes[group];
   project.activeSchemes = { ...(project.activeSchemes ?? {}), [group]: active };
   if (rest.length === 1) delete project.activeSchemes[group];
+  // Stairs that led to the deleted option now lead to the one that is left.
+  for (const lv of project.levels) for (const st of lv.stairs) if (st.toLevelId === levelId) st.toLevelId = active;
   return active;
 }
 

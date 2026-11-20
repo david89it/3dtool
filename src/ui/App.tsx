@@ -20,6 +20,7 @@ import { ModeBar } from './ModeBar';
 import { LeftPanel } from './LeftPanel';
 import { Inspector } from './Inspector';
 import { Toasts } from './Toasts';
+import { ErrorBoundary, SelectionBoundary } from './ErrorBoundary';
 import { Tour } from './Tour';
 import { Shortcuts } from './Shortcuts';
 import { markTourSeen } from '../model/persistence';
@@ -155,18 +156,24 @@ export function App() {
       <ModeBar />
       {mode === '3d' ? (
         <main className="workspace three">
-          <Suspense fallback={<div className="loading">Building the 3D view…</div>}>
-            <View3D />
-          </Suspense>
+          <ErrorBoundary scope="view">
+            <Suspense fallback={<div className="loading">Building the 3D view…</div>}>
+              <View3D />
+            </Suspense>
+          </ErrorBoundary>
         </main>
       ) : (
         <main className={`workspace${left ? '' : ' left-collapsed'}${right ? '' : ' right-collapsed'}${narrow ? ' narrow' : ''}`}>
           <PanelSlot side="left">
-            <LeftPanel />
+            <ErrorBoundary scope="panel">
+              <LeftPanel />
+            </ErrorBoundary>
           </PanelSlot>
           <PlanCanvas />
           <PanelSlot side="right">
-            <Inspector />
+            <SelectionBoundary>
+              <Inspector />
+            </SelectionBoundary>
           </PanelSlot>
           {narrow && (left || right) && <div className="panel-scrim" data-testid="panel-scrim" onPointerDown={() => useLayout.getState().closeAll()} />}
         </main>

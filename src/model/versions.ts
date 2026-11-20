@@ -12,6 +12,7 @@
 import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval';
 import type { Project } from './types';
 import { uid } from './ids';
+import { repairProject } from './repair';
 
 export interface Version {
   id: string;
@@ -308,9 +309,16 @@ export async function exportHistory(kv: KV): Promise<HistoryFile> {
 export function parseHistory(x: unknown): HistoryFile | undefined {
   const h = x as HistoryFile | undefined;
   if (!h || typeof h !== 'object' || !Array.isArray(h.versions) || h.versions.length === 0) return undefined;
-  const versions = h.versions.filter(
-    (v) => v && typeof v.id === 'string' && typeof v.name === 'string' && typeof v.createdAt === 'string' && v.project && Array.isArray(v.project.levels),
-  );
+  const versions = h.versions.filter((v) => {
+    if (!v || typeof v.id !== 'string' || typeof v.name !== 'string' || typeof v.createdAt !== 'string' || !v.project) return false;
+    // A damaged plan inside a version must not crash the versions list later (diffs, compare, restore).
+    try {
+      repairProject(v.project);
+      return true;
+    } catch {
+      return false;
+    }
+  });
   if (versions.length === 0) return undefined;
   return { format: 1, versions, images: h.images && typeof h.images === 'object' ? h.images : {} };
 }
