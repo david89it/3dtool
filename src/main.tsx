@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
-import { ErrorBoundary, installGlobalErrorToasts } from './ui/ErrorBoundary';
+import { CrashGate, ErrorBoundary, installGlobalErrorToasts } from './ui/ErrorBoundary';
 import { useStore } from './model/store';
 import { flushSave, loadForBoot, loadSettings, markTourSeen, startAutosave } from './model/persistence';
 import { createEmptyProject, createStartProject } from './model/firstRun';
@@ -48,7 +48,9 @@ installGlobalErrorToasts();
 createRoot(document.getElementById('root') ?? document.body).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <CrashGate>
+        <App />
+      </CrashGate>
     </ErrorBoundary>
   </StrictMode>,
 );

@@ -4,14 +4,37 @@
 // over the good copy), and "Save a copy of my plan" writes a file straight
 // from the store or, failing that, from storage.
 
-import { Component, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
+import { Component, useState, useSyncExternalStore, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
 import { useStore } from '../model/store';
 import { pauseSaving, resumeSaving, saveRescueCopy } from '../model/persistence';
 
+// The plan is drawn by react-konva, which has its own React root: an error while drawing there never
+// reaches the boundary around the page. A `canvas` boundary inside the drawing reports it here instead,
+// and CrashGate (just inside the top boundary) swaps the page for the error screen.
+let crashed = false;
+const crashListeners = new Set<() => void>();
+function setCrashed(v: boolean) {
+  if (crashed === v) return;
+  crashed = v;
+  crashListeners.forEach((f) => f());
+}
+
+/** Shows the error screen when the drawing area reported a crash. */
+export function CrashGate({ children }: { children: ReactNode }) {
+  const bad = useSyncExternalStore(
+    (f) => {
+      crashListeners.add(f);
+      return () => crashListeners.delete(f);
+    },
+    () => crashed,
+  );
+  return bad ? <AppFallback onRetry={() => setCrashed(false)} /> : children;
+}
+
 interface Props {
   children: ReactNode;
-  /** `app`: the whole screen. `view`: the 3D view only. `panel`: one side panel. */
-  scope?: 'app' | 'view' | 'panel';
+  /** `app`: the whole screen. `view`: the 3D view only. `panel`: one side panel. `canvas`: inside the plan drawing. */
+  scope?: 'app' | 'view' | 'panel' | 'canvas';
   /** When this changes, a shown error is cleared and the children try again (e.g. the selection changed). */
   resetKey?: unknown;
 }
@@ -30,7 +53,9 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('Flat Planner crashed while drawing', error, info.componentStack);
     // The state that crashed must not replace the saved copy. Whatever was saved before is kept.
-    if ((this.props.scope ?? 'app') === 'app') pauseSaving();
+    const scope = this.props.scope ?? 'app';
+    if (scope === 'app' || scope === 'canvas') pauseSaving();
+    if (scope === 'canvas') setCrashed(true);
   }
 
   componentDidUpdate(prev: Props): void {
@@ -42,6 +67,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (!this.state.error) return this.props.children;
     const scope = this.props.scope ?? 'app';
+    if (scope === 'canvas') return null;
     if (scope === 'panel') return <PanelFallback onRetry={this.reset} />;
     if (scope === 'view') return <ViewFallback onRetry={this.reset} />;
     return <AppFallback onRetry={this.reset} />;

@@ -134,7 +134,8 @@ export const openingSelectTool: ToolHandler = {
     const hit = hitOpening(ctx.level, ctx.derived.joints, p.world, tol);
     if (hit) {
       useStore.getState().select({ kind: 'opening', id: hit.opening.id });
-      const o = ctx.derived.joints.outlines.get(hit.wall.id)!;
+      const o = ctx.derived.joints.outlines.get(hit.wall.id);
+      if (!o) return; // a wall with no length has no outline to measure along
       const along = (p.world.x - o.a.x) * o.dir.x + (p.world.y - o.a.y) * o.dir.y;
       pending = {
         kind: 'opening',
@@ -183,7 +184,8 @@ export const openingSelectTool: ToolHandler = {
     if (!from) return;
     const near = nearestWall(pend.base, J, p.world, 30 / ctx.view.scale);
     const targetId = near && near.wall.id !== from.wall.id && near.dist < 4 / ctx.view.scale ? near.wall.id : from.wall.id;
-    const o = J.outlines.get(targetId)!;
+    const o = J.outlines.get(targetId);
+    if (!o) return;
     const along = (p.world.x - o.a.x) * o.dir.x + (p.world.y - o.a.y) * o.dir.y;
     const centre = targetId === from.wall.id ? along - pend.grabOffset : along;
     const rounded = p.alt ? centre : Math.round(centre / 10) * 10;

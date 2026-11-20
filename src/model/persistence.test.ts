@@ -204,6 +204,52 @@ describe('autosave', () => {
   });
 });
 
+describe('two windows on one plan', () => {
+  class FakeChannel {
+    static all = new Set<FakeChannel>();
+    onmessage: ((e: MessageEvent) => void) | null = null;
+    constructor(public name: string) {
+      FakeChannel.all.add(this);
+    }
+    postMessage(data: unknown) {
+      for (const c of FakeChannel.all) if (c !== this) c.onmessage?.({ data } as MessageEvent);
+    }
+    close() {
+      FakeChannel.all.delete(this);
+    }
+  }
+
+  it('stops saving when another window has saved, and says so', async () => {
+    vi.stubGlobal('BroadcastChannel', FakeChannel);
+    useStore.getState().loadProject(buildSeedProject());
+    await flushSave();
+    startAutosave();
+    // The other window writes.
+    const other = new FakeChannel('flatplan:saves');
+    other.postMessage({ tab: 'someone-else' });
+    expect(savingPaused()).toBe(true);
+    expect(useStore.getState().toasts.some((t) => /another window/.test(t.text))).toBe(true);
+    setCalls.length = 0;
+    useStore.getState().editLevel('Rename', (L) => void (L.name = 'Renamed'));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(setCalls).toEqual([]);
+    // Opening a file is a deliberate choice: saving resumes.
+    useStore.getState().loadProject(createEmptyProject());
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(setCalls).toEqual([PROJECT_KEY]);
+  });
+
+  it('does not stop for its own saves', async () => {
+    vi.stubGlobal('BroadcastChannel', FakeChannel);
+    useStore.getState().loadProject(buildSeedProject());
+    await flushSave();
+    startAutosave();
+    useStore.getState().editLevel('Rename', (L) => void (L.name = 'Renamed'));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(savingPaused()).toBe(false);
+  });
+});
+
 describe('opening damaged plans', () => {
   it('rejects things that are not plans', () => {
     expect(() => validateProject(null)).toThrow(/not a Flat Planner/);
