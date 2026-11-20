@@ -172,7 +172,7 @@ export function ItemOverlay({
       const x = Math.min(...pts.map((p) => p.x)) - 6;
       const y = Math.min(...pts.map((p) => p.y)) - 6;
       const g = groupMatching(level, selectedIds);
-      multi = { x, y, w: Math.max(...pts.map((p) => p.x)) + 6 - x, h: Math.max(...pts.map((p) => p.y)) + 6 - y, text: g ? `${g.name} · ${selectedIds.length} pieces` : `${selectedIds.length} pieces` };
+      multi = { x, y, w: Math.max(...pts.map((p) => p.x)) + 6 - x, h: Math.max(...pts.map((p) => p.y)) + 6 - y, text: g ? `${g.name} · ${selectedIds.length} items` : `${selectedIds.length} items` };
     }
   }
   const box = marquee && { a: toScreen(view, marquee.from), b: toScreen(view, marquee.to) };

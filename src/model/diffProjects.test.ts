@@ -124,10 +124,10 @@ describe('diffProjects', () => {
     const b = clone(a);
     b.levels[0].underlay = { imageDataUrl: 'img:abc', scaleMmPerPx: 10, offset: { x: 0, y: 0 }, rotationDeg: 0, opacity: 0.5, locked: false };
     b.name = 'Our flat';
-    expect(diffProjects(a, b)).toEqual(["Plan renamed from 'Flat' to 'Our flat'", 'First floor: Plan picture added']);
+    expect(diffProjects(a, b)).toEqual(["Plan renamed from 'Flat' to 'Our flat'", 'First floor: Plan image added']);
     const c = clone(b);
     c.levels[0].underlay!.imageDataUrl = 'img:def';
-    expect(diffProjects(b, c)).toEqual(['First floor: Plan picture replaced']);
+    expect(diffProjects(b, c)).toEqual(['First floor: Plan image replaced']);
   });
 
   it('cuts long lists to 8 lines plus "and N more changes"', () => {

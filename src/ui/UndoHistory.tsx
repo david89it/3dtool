@@ -74,7 +74,7 @@ export function UndoButton() {
         title={lastUndo ? `Undo: ${lastUndo.label} (Ctrl/⌘ Z). Hold to see the list` : 'Nothing to undo'}
         aria-label="Undo"
       >
-        ↶ Undo
+        ↶ <span className="btn-text">Undo</span>
       </button>
       <button
         className="btn undo-more"

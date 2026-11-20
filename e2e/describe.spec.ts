@@ -92,7 +92,7 @@ test('describe a piece: preview, edit a size, add, find under Your items, place,
   await expect(page.getByTestId('describe-hint')).toHaveCount(0);
 
   // Describe it. A link pasted into the text is picked up as the image.
-  await page.getByLabel('Describe a piece').fill('tan leather lounge chair https://example.com/chair.jpg');
+  await page.getByLabel('Describe an item').fill('tan leather lounge chair https://example.com/chair.jpg');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByTestId('describe-loading')).toBeVisible();
   const card = page.getByTestId('describe-preview');
@@ -196,10 +196,10 @@ test('describe a piece: an empty request is refused, an odd answer is repaired, 
   await dialog.getByRole('button', { name: 'Done' }).click();
 
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Describe the piece');
+  await expect(page.getByRole('alert')).toContainText('Describe the item');
   expect(calls).toBe(0);
 
-  await page.getByLabel('Describe a piece').fill('a very odd sofa');
+  await page.getByLabel('Describe an item').fill('a very odd sofa');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   const card = page.getByTestId('describe-preview');
   await expect(card.getByTestId('describe-base')).toContainText('plain box');

@@ -66,7 +66,7 @@ export async function describeItem(apiKey: string, input: DescribeInput): Promis
     if (err instanceof Anthropic.RateLimitError) throw new Error('Too many requests just now. Wait a minute and try again.');
     if (err instanceof Anthropic.APIConnectionError) throw new Error('Could not reach Claude. Check your internet connection.');
     if (err instanceof Anthropic.BadRequestError && imageUrl) {
-      throw new Error('Claude could not open that image link. Use the address of the picture itself (it usually ends in .jpg or .png), or describe the piece in words.');
+      throw new Error('Claude could not open that image link. Use the address of the picture itself (it usually ends in .jpg or .png), or describe the item in words.');
     }
     if (err instanceof Anthropic.APIError) throw new Error(`Claude returned an error (${err.status}). Try again in a moment.`);
     throw err;

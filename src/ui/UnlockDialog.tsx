@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useDialogEsc } from './useDialogEsc';
 import { create } from 'zustand';
 import { useStore } from '../model/store';
 import { flushSave, validateProject } from '../model/persistence';
@@ -49,6 +50,10 @@ export function UnlockDialog() {
     }
   }, [open]);
 
+  useDialogEsc(open, () => {
+    setPassword('');
+    setOpen(false);
+  });
   if (!open) return null;
 
   const close = () => {
@@ -101,7 +106,7 @@ export function UnlockDialog() {
           </p>
         )}
         <div className="modal-actions">
-          <button type="button" className="btn" onClick={close}>
+          <button title="Close without opening (Esc)" type="button" className="btn" onClick={close}>
             Cancel
           </button>
           <button type="submit" className="btn primary" disabled={busy || !password}>

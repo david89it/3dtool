@@ -229,7 +229,7 @@ export const furnishSelectTool: ToolHandler = {
       if (pend.locked) {
         if (!warnedLocked) {
           warnedLocked = true;
-          store.toast('These pieces are locked. Unlock them in the panel to move them.');
+          store.toast('These items are locked. Unlock them in the panel to move them.');
         }
         return;
       }
@@ -308,7 +308,7 @@ export const furnishSelectTool: ToolHandler = {
     if (dragging) {
       dragging = false;
       if (pend.kind === 'move') store.endGesture(`Move ${pend.cat.name.toLowerCase()}`);
-      else if (pend.kind === 'moveMany') store.endGesture(`Move ${pend.ids.length} pieces`);
+      else if (pend.kind === 'moveMany') store.endGesture(`Move ${pend.ids.length} items`);
       else if (pend.kind === 'resize') store.endGesture(`Resize ${pend.cat.name.toLowerCase()}`);
       else if (pend.kind === 'rotate') store.endGesture(`Turn ${pend.cat.name.toLowerCase()}`);
       else if (pend.kind === 'marquee') selectInBox(ctx.level, store.project, pend.from, p.world, true);

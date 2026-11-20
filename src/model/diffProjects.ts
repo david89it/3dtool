@@ -209,11 +209,11 @@ function diffLevel(a: Level, b: Level, fmt: (mm: number) => string): string[] {
   diffGroups(a, b, out);
   diffSimple(a.stairs, b.stairs, 'stair', out);
   diffSimple(a.markers, b.markers, 'note pin', out);
-  if (!a.underlay && b.underlay) out.push('Plan picture added');
-  else if (a.underlay && !b.underlay) out.push('Plan picture removed');
+  if (!a.underlay && b.underlay) out.push('Plan image added');
+  else if (a.underlay && !b.underlay) out.push('Plan image removed');
   else if (a.underlay && b.underlay) {
-    if (a.underlay.imageDataUrl !== b.underlay.imageDataUrl) out.push('Plan picture replaced');
-    else if (!sameJson({ ...a.underlay, opacity: 0, locked: false }, { ...b.underlay, opacity: 0, locked: false })) out.push('Plan picture moved or rescaled');
+    if (a.underlay.imageDataUrl !== b.underlay.imageDataUrl) out.push('Plan image replaced');
+    else if (!sameJson({ ...a.underlay, opacity: 0, locked: false }, { ...b.underlay, opacity: 0, locked: false })) out.push('Plan image moved or rescaled');
   }
   if (!a.vectorUnderlay && b.vectorUnderlay) out.push('Drawing added under the plan');
   else if (a.vectorUnderlay && !b.vectorUnderlay) out.push('Drawing under the plan removed');

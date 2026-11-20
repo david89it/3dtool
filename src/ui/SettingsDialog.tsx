@@ -4,6 +4,7 @@ import { RULES } from '../rules/registry';
 import { EditableLength } from './EditableLength';
 import { forgetApiKey, saveAdviceEnabled, saveApiKey } from '../advice/keyStore';
 import { useSiteMeasure } from '../sitemeasure/state';
+import { useDialogEsc } from './useDialogEsc';
 
 /** Params that are ratios, not lengths (e.g. 1.5 × the screen size). */
 const isFactor = (key: string) => /factor/i.test(key);
@@ -108,7 +109,7 @@ function OnSiteSettings() {
         <button className="btn" onClick={open(() => sm.setGuideOpen(true))}>
           Scan with an iPhone or iPad Pro (LiDAR)
         </button>
-        <button className="btn" onClick={open(() => sm.setImportOpen(true))}>
+        <button title="Bring in a scan from an iPhone or iPad Pro" className="btn" onClick={open(() => sm.setImportOpen(true))}>
           Import a scan…
         </button>
       </div>
@@ -154,7 +155,7 @@ function ClaudeSettings() {
               onChange={(e) => setKey(e.target.value)}
               onKeyDown={(e) => e.stopPropagation()}
             />
-            <button
+            <button title="Keep the key in this browser only"
               className="btn primary"
               disabled={!key.trim()}
               onClick={async () => {
@@ -168,7 +169,7 @@ function ClaudeSettings() {
             </button>
           </div>
           {keySaved && (
-            <button
+            <button title="Remove the key from this browser"
               className="btn small danger-text"
               onClick={async () => {
                 await forgetApiKey();
@@ -188,6 +189,7 @@ function ClaudeSettings() {
 export function SettingsDialog() {
   const open = useStore((s) => s.settingsOpen);
   const setOpen = useStore((s) => s.setSettingsOpen);
+  useDialogEsc(open, () => setOpen(false));
   if (!open) return null;
   return (
     <div
@@ -200,13 +202,11 @@ export function SettingsDialog() {
         className="modal settings"
         role="dialog"
         aria-label="Settings"
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') setOpen(false);
-        }}
+        aria-modal="true"
       >
         <div className="row">
           <h2>Settings</h2>
-          <button className="btn" onClick={() => setOpen(false)}>
+          <button title="Close Settings (Esc)" className="btn" onClick={() => setOpen(false)}>
             Done
           </button>
         </div>

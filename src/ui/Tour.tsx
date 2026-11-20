@@ -17,7 +17,7 @@ export const TOUR_STEPS: Step[] = [
     target: '[aria-label="Plan image"]',
     title: '1 · Set the scale',
     body: PUBLIC_BUILD
-      ? 'Import a floorplan picture, then click “Set scale” and click two points whose real distance you know, such as a room width printed on the plan.'
+      ? 'Import a plan image, then click “Set scale” and click two points whose real distance you know, such as a room width printed on the plan.'
       : 'Your floorplan is already underneath. If you import a new one, click “Set scale”, then click two points whose real distance you know, such as a room width printed on the plan.',
   },
   {
@@ -113,16 +113,17 @@ export function Tour() {
         <h2>{s.title}</h2>
         <p>{s.body}</p>
         <div className="modal-actions">
-          <button className="btn" onClick={close}>
+          <button title="Close the tour. It stays in the File menu" className="btn" onClick={close}>
             Skip tour
           </button>
           {step > 0 && (
-            <button className="btn" onClick={() => useStore.getState().setTourStep(step - 1)}>
+            <button title="Go back one step" className="btn" onClick={() => useStore.getState().setTourStep(step - 1)}>
               Back
             </button>
           )}
           <button
             className="btn primary"
+            title={last ? 'Close the tour and start tracing' : 'Next step of the tour'}
             onClick={() => {
               if (last) {
                 close();

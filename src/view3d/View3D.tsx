@@ -354,10 +354,10 @@ export function View3D() {
         <section className="panel-section">
           <h2>View</h2>
           <div className="segmented" role="radiogroup" aria-label="Camera">
-            <button role="radio" aria-checked={view === 'orbit'} className={view === 'orbit' ? 'on' : ''} onClick={() => setView('orbit')}>
+            <button title="Look at the flat from outside" role="radio" aria-checked={view === 'orbit'} className={view === 'orbit' ? 'on' : ''} onClick={() => setView('orbit')}>
               Overview
             </button>
-            <button role="radio" aria-checked={view === 'walk'} className={view === 'walk' ? 'on' : ''} onClick={() => { setSpawn(null); setView('walk'); }}>
+            <button title="Walk through the flat at eye height" role="radio" aria-checked={view === 'walk'} className={view === 'walk' ? 'on' : ''} onClick={() => { setSpawn(null); setView('walk'); }}>
               Walk
             </button>
           </div>

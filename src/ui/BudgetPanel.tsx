@@ -77,7 +77,7 @@ function PanelBody() {
       <div className="modal budget" role="dialog" aria-label="Budget and shopping list" data-testid="budget-panel">
         <div className="versions-head">
           <h2>Budget and shopping list</h2>
-          <button className="btn" onClick={() => setOpen(false)}>
+          <button title="Close the budget (Esc)" className="btn" onClick={() => setOpen(false)}>
             Close
           </button>
         </div>
@@ -92,11 +92,11 @@ function PanelBody() {
               </button>
             ))}
           </div>
-          <button className="btn" onClick={copy}>
+          <button title="Copy the shopping list so you can paste it into a message" className="btn" onClick={copy}>
             Copy as a list
           </button>
-          <button className="btn" onClick={download}>
-            Download CSV
+          <button title="Save the list as a spreadsheet file (CSV)" className="btn" onClick={download}>
+            Download as spreadsheet (CSV)
           </button>
         </div>
         {fallback !== null && (

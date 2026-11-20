@@ -828,3 +828,48 @@ challenged.
   "after"). The old "last overview" snapshot (`SnapshotRig`) is gone. Pictures
   use simple lights (no sun shadows). Printing never waits for 3D: the button
   works once the plans are drawn; a missing 3D picture shows a short note.
+
+## UX review: names, targets, windows
+
+- **One word for each thing.** The words she sees were counted across the UI
+  and the most used one kept:
+  - **item** for one thing she places (sofa, bath, light, rug). "Piece" is
+    gone from the UI; "furniture" stays only as the name of the group of
+    things (the Furnish mode, the Furniture tab and list), never for one
+    thing. So: "3 items selected", "Add an item by description", "Group
+    items".
+  - **plan image** for the picture she traces over (14 places against 7 for
+    "plan picture"), including the Versions change list ("Plan image
+    added"), the scan import and the tour.
+  - **Options** are alternative layouts of a floor (`Level.scheme` in the
+    code). Saved paint and floor sets are **colour schemes** everywhere in
+    the 3D Colour panel, so "scheme" never stands alone and cannot be
+    mistaken for an Option.
+  - **pin** for the amber "measure me" markers and the note pins (the code
+    says marker).
+  - Words from the code that stay out of the UI: node, edge, vertex, mesh,
+    underlay (the UI says wall corner, plan image, drawing).
+- **Hit targets.** Every button, tab, chip, slider, date field and pop-up
+  list is at least 44 px high (`--hit`); the 36 and 40 px sizes were raised.
+  `e2e/ux-audit.spec.ts` measures this in the browser in every mode, in the
+  main windows and menus, at 1440x900, 1024x768 and 768x1024.
+- **Names.** A button that is only a symbol or a short word (m, ft, ?, £, ×,
+  3D, the mode buttons, Fix, Close, Duplicate...) has a tooltip (`title`) that
+  says what happens and the shortcut if there is one. A button whose only
+  content is a symbol (?, £, ×) also has an `aria-label`; the m and ft units
+  buttons are named "Metres and millimetres" and "Feet and inches". A button
+  with visible words keeps those words as its name (no `aria-label` that
+  differs from them).
+- **Esc and click outside.** Every window closes with Esc, wherever the focus
+  is (`ui/useDialogEsc.ts`; only the one on top reacts, and a field that uses
+  Esc for itself, such as typing a length, keeps it). Menus (File, Options)
+  also close on a tap or click outside (`useDismiss`): the File menu used to
+  close only when the mouse left, which never happens on an iPad. Windows
+  where she may have typed something (Add your own item, Open our flat, Add
+  saved versions) do not close on a tap outside, so nothing is lost by
+  accident.
+- **Top bar.** At 1500 px and under it gets tighter; at 1400 px and under the
+  floor tabs and the Options menu move to a second row, so nothing runs off
+  the side or is clipped. At 900 px and under "Undo" and "Redo" show only
+  their arrows (tooltip and name keep the words).
+- **Focus.** All keyboard focus shows a 2 px blue ring (`:focus-visible`).

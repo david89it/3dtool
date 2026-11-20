@@ -172,18 +172,18 @@ export function FurnishPanel() {
         data-tour="furnish-search"
         className="text-field"
         type="search"
-        placeholder="Search: sofa, wall bed, utility…"
+        placeholder="Search, e.g. sofa or desk"
         aria-label="Search furniture"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => e.stopPropagation()}
       />
       <div className="cat-tabs" role="tablist" aria-label="Categories">
-        <button role="tab" aria-selected={category === 'all'} className={category === 'all' ? 'on' : ''} onClick={() => setCategory('all')}>
+        <button title="Show every kind of item" aria-label="All kinds of item" role="tab" aria-selected={category === 'all'} className={category === 'all' ? 'on' : ''} onClick={() => setCategory('all')}>
           All
         </button>
         {CATEGORIES.map((c) => (
-          <button key={c} role="tab" aria-selected={category === c} className={category === c ? 'on' : ''} onClick={() => setCategory(c)}>
+          <button key={c} role="tab" aria-selected={category === c} className={category === c ? 'on' : ''} title={`Show ${CATEGORY_LABEL[c].toLowerCase()}`} onClick={() => setCategory(c)}>
             {CATEGORY_LABEL[c]}
           </button>
         ))}

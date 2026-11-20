@@ -147,7 +147,7 @@ test('print pack: structural page, opening width, note text, a picture on every 
   }
 
   // The print button works once the plans are drawn.
-  const printBtn = page.getByRole('button', { name: 'Print / Save as PDF' });
+  const printBtn = page.getByRole('button', { name: 'Print or save as PDF' });
   await expect(printBtn).toBeEnabled();
   await printBtn.click();
   expect(await page.evaluate(() => (window as any).__printed)).toBe(1);

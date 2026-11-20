@@ -32,7 +32,7 @@ export function selectedItemIds(): Id[] {
 function nameFor(ids: Id[]): string {
   const L = currentLevel();
   const s = useStore.getState();
-  if (ids.length !== 1 || !L) return `${ids.length} pieces`;
+  if (ids.length !== 1 || !L) return `${ids.length} items`;
   const it = L.items.find((i) => i.id === ids[0]);
   return (it && findCatalogueItem(s.project, it.catalogueId)?.name.toLowerCase()) || 'item';
 }
@@ -80,7 +80,7 @@ export function groupSelected(name: string): boolean {
   const ids = selectedItemIds();
   if (ids.length < 2) return false;
   const label = name.trim();
-  useStore.getState().editLevel(label ? `Group “${label}”` : 'Group pieces', (draft) => void makeGroup(draft as Level, ids, name));
+  useStore.getState().editLevel(label ? `Group “${label}”` : 'Group items', (draft) => void makeGroup(draft as Level, ids, name));
   return true;
 }
 

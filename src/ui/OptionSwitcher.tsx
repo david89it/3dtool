@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useDismiss } from './useDialogEsc';
 import type { Project } from '../model/types';
 import { useStore } from '../model/store';
 import { deleteOption, duplicateAsOption, groupOf, optionsOf } from '../model/schemes';
@@ -16,18 +17,11 @@ export function OptionSwitcher() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) {
-        setOpen(false);
-        setRenaming(null);
-        setConfirmDelete(false);
-      }
-    };
-    window.addEventListener('pointerdown', close);
-    return () => window.removeEventListener('pointerdown', close);
-  }, [open]);
+  useDismiss(open, ref, () => {
+    setOpen(false);
+    setRenaming(null);
+    setConfirmDelete(false);
+  });
 
   if (!level) return null;
   const opts = optionsOf(project, groupOf(level));

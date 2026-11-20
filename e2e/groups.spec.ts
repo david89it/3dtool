@@ -72,7 +72,7 @@ test('select several, move together, group, duplicate, ungroup, and search', asy
   await page.mouse.move(b.x, b.y, { steps: 4 });
   await page.mouse.up();
   await page.keyboard.up('Shift');
-  await expect(page.getByTestId('multi-panel')).toContainText('3 pieces selected');
+  await expect(page.getByTestId('multi-panel')).toContainText('3 items selected');
   expect(await state(page, (s) => s.selection.ids.length)).toBe(3);
 
   // Shift-click takes one out and puts it back.
@@ -81,11 +81,11 @@ test('select several, move together, group, duplicate, ungroup, and search', asy
   await page.mouse.move(first.x, first.y);
   await page.mouse.click(first.x, first.y);
   await page.keyboard.up('Shift');
-  await expect(page.getByTestId('multi-panel')).toContainText('2 pieces selected');
+  await expect(page.getByTestId('multi-panel')).toContainText('2 items selected');
   await page.keyboard.down('Shift');
   await page.mouse.click(first.x, first.y);
   await page.keyboard.up('Shift');
-  await expect(page.getByTestId('multi-panel')).toContainText('3 pieces selected');
+  await expect(page.getByTestId('multi-panel')).toContainText('3 items selected');
 
   // Drag one of them: all three move, as one undo step.
   const before = await state(page, (_s, L) => L.items.map((i: any) => ({ ...i.pos })));

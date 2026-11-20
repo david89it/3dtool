@@ -1,11 +1,13 @@
 import { useSiteMeasure } from './state';
 import './sitemeasure.css';
+import { useDialogEsc } from '../ui/useDialogEsc';
 
 /** How to scan the flat with a LiDAR phone or tablet and bring it in. */
 export function ScanGuide() {
   const open = useSiteMeasure((s) => s.guideOpen);
   const setOpen = useSiteMeasure((s) => s.setGuideOpen);
   const setImportOpen = useSiteMeasure((s) => s.setImportOpen);
+  useDialogEsc(open, () => setOpen(false));
   if (!open) return null;
   return (
     <div className="modal-backdrop fixed sm-front" onPointerDown={(e) => e.target === e.currentTarget && setOpen(false)}>
@@ -39,13 +41,13 @@ export function ScanGuide() {
         </ol>
         <p className="note">
           A USDZ scan becomes walls, doors and windows. A DXF is drawn under your plan for tracing. An image or PDF becomes the plan
-          picture, ready to set its scale.
+          image, ready to set its scale.
         </p>
         <div className="modal-actions">
-          <button className="btn" onClick={() => setOpen(false)}>
+          <button title="Close this guide (Esc)" className="btn" onClick={() => setOpen(false)}>
             Close
           </button>
-          <button
+          <button title="Choose a scan file to bring in"
             className="btn primary"
             onClick={() => {
               setOpen(false);

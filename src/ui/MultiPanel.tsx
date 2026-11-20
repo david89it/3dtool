@@ -41,7 +41,7 @@ export function MultiPanel({ level, ids }: { level: Level; ids: Id[] }) {
 
   return (
     <div className="panel-section multi-panel" data-testid="multi-panel">
-      <h2>{items.length} pieces selected</h2>
+      <h2>{items.length} items selected</h2>
       <ul className="piece-list">
         {[...counts].map(([n, c]) => (
           <li key={n}>
@@ -52,7 +52,7 @@ export function MultiPanel({ level, ids }: { level: Level; ids: Id[] }) {
       </ul>
       {locked > 0 && (
         <p className="note" data-testid="multi-locked-note">
-          {allLocked ? 'These pieces are locked, so they will not move or turn. Unlock them to change them.' : `${locked} of these ${locked === 1 ? 'is' : 'are'} locked and will stay where ${locked === 1 ? 'it is' : 'they are'}.`}
+          {allLocked ? 'These items are locked, so they will not move or turn. Unlock them to change them.' : `${locked} of these ${locked === 1 ? 'is' : 'are'} locked and will stay where ${locked === 1 ? 'it is' : 'they are'}.`}
         </p>
       )}
 
@@ -71,8 +71,8 @@ export function MultiPanel({ level, ids }: { level: Level; ids: Id[] }) {
                 }}
               />
             </div>
-            <p className="note">Click any piece to select the whole group. Alt-click picks just one piece.</p>
-            <button className="btn" onClick={() => ungroupSelected()}>
+            <p className="note">Click any item to select the whole group. Alt-click picks just one item.</p>
+            <button title="Break the group into separate items" className="btn" onClick={() => ungroupSelected()}>
               Ungroup
             </button>
           </>
@@ -89,7 +89,7 @@ export function MultiPanel({ level, ids }: { level: Level; ids: Id[] }) {
                 }}
               />
             </div>
-            <button
+            <button title="Make these items one group, so they move together"
               className="btn"
               onClick={() => {
                 if (groupSelected(name)) setName('');
@@ -103,21 +103,26 @@ export function MultiPanel({ level, ids }: { level: Level; ids: Id[] }) {
       </div>
 
       <div className="actions">
-        <button className="btn" disabled={allLocked} onClick={() => turnSelected(-90)} aria-label="Turn all 90° anticlockwise">
-          ↺ Turn 90°
+        <button title="Turn all selected items 90° left (Shift R)" className="btn" disabled={allLocked} onClick={() => turnSelected(-90)} aria-label="Turn all 90° anticlockwise">
+          ↺ 90° left
         </button>
-        <button className="btn" disabled={allLocked} onClick={() => turnSelected(90)} aria-label="Turn all 90° clockwise">
-          ↻ Turn 90°
+        <button title="Turn all selected items 90° right (R)" className="btn" disabled={allLocked} onClick={() => turnSelected(90)} aria-label="Turn all 90° clockwise">
+          ↻ 90° right
         </button>
       </div>
       <div className="actions">
-        <button className="btn" onClick={() => duplicateSelected()}>
+        <button title="Make a copy of the selected items (Ctrl/⌘ D)" className="btn" onClick={() => duplicateSelected()}>
           Duplicate
         </button>
-        <button className={allLocked ? 'btn on' : 'btn'} aria-pressed={allLocked} onClick={() => lockSelected()}>
+        <button
+          className={allLocked ? 'btn on' : 'btn'}
+          aria-pressed={allLocked}
+          title={allLocked ? 'Let the selected items move again' : 'Lock the selected items so they cannot move by accident'}
+          onClick={() => lockSelected()}
+        >
           {allLocked ? 'Unlock' : 'Lock'}
         </button>
-        <button className="btn danger" onClick={() => deleteSelected()}>
+        <button title="Remove the selected items from the plan (Delete)" className="btn danger" onClick={() => deleteSelected()}>
           Remove
         </button>
       </div>
@@ -135,14 +140,14 @@ export function MultiPanel({ level, ids }: { level: Level; ids: Id[] }) {
       <div className="field column">
         <span className="field-label">Space evenly</span>
         <div className="actions">
-          <button className="btn" disabled={items.length < 3} onClick={() => spaceSelected('x')} aria-label="Space evenly across">
+          <button title="Space the items evenly from left to right" className="btn" disabled={items.length < 3} onClick={() => spaceSelected('x')} aria-label="Space evenly across">
             Across
           </button>
-          <button className="btn" disabled={items.length < 3} onClick={() => spaceSelected('y')} aria-label="Space evenly down">
+          <button title="Space the items evenly from top to bottom" className="btn" disabled={items.length < 3} onClick={() => spaceSelected('y')} aria-label="Space evenly down">
             Down
           </button>
         </div>
-        {items.length < 3 && <p className="note">Needs 3 or more pieces.</p>}
+        {items.length < 3 && <p className="note">Needs 3 or more items.</p>}
       </div>
     </div>
   );

@@ -132,9 +132,9 @@ test('phase 1: trace, edit, undo, reload, calibrate', async ({ page }) => {
 
 test('phase 1: units toggle and PDF import', async ({ page }) => {
   await freshStart(page);
-  await page.getByRole('radio', { name: 'ft' }).click();
+  await page.getByRole('radio', { name: 'Feet and inches' }).click();
   await expect(page.getByTestId('room-list')).toContainText('sq ft');
-  await page.getByRole('radio', { name: 'm', exact: true }).click();
+  await page.getByRole('radio', { name: 'Metres and millimetres' }).click();
   await expect(page.getByTestId('room-list')).toContainText('m²');
 
   await page.getByRole('button', { name: 'Loft', exact: true }).click();

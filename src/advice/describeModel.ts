@@ -109,7 +109,7 @@ export function validateDescription(raw: unknown): ItemDescription {
   const r = raw as Record<string, unknown>;
   const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
   const name = str(r.name, 80);
-  if (!name) throw new Error('Claude did not give the piece a name. Try again with a few more words.');
+  if (!name) throw new Error('Claude did not give the item a name. Try again with a few more words.');
 
   const baseItemId = typeof r.baseItemId === 'string' && CATALOGUE.some((c) => c.id === r.baseItemId) ? r.baseItemId : 'custom';
   const base = CATALOGUE.find((c) => c.id === baseItemId);

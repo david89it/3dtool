@@ -42,9 +42,9 @@ const ROWS: { title: string; keys: [string, string][] }[] = [
     keys: [
       ['R / Shift R', 'Turn the selected item (or all selected) 90° right / left'],
       ['Ctrl/⌘ D', 'Duplicate the selected item or items'],
-      ['Shift + click', 'Add a piece to the selection, or take it out'],
+      ['Shift + click', 'Add an item to the selection, or take it out'],
       ['Shift + drag on empty floor', 'Draw a box to select what is inside it'],
-      ['Alt + click', 'Pick one piece of a group'],
+      ['Alt + click', 'Pick one item of a group'],
       ['Alt + rotate handle', 'Turn freely instead of in 90° steps'],
     ],
   },
@@ -67,7 +67,7 @@ export function Shortcuts() {
       <div className="modal shortcuts" role="dialog" aria-label="Keyboard shortcuts" onPointerDown={(e) => e.stopPropagation()}>
         <div className="row">
           <h2>Keyboard shortcuts</h2>
-          <button className="btn" onClick={close} aria-label="Close shortcuts">
+          <button title="Close the list (Esc or ?)" className="btn" onClick={close} aria-label="Close shortcuts">
             Close
           </button>
         </div>

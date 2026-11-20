@@ -220,6 +220,8 @@ side-by-side compare, live Pinterest sync, fps meter.
 - Seed stairs are rough.
 - A painted item's white parts (pillows) take its finish.
 - Not tested on a real MacBook or iPad.
+- UX review leftovers (details panel does not open on selection under 1000 px,
+  no focus trap in windows, a few numbers not click-to-edit): `UX_REVIEW.md`.
 - Ask Claude (advice and describe-a-piece) was tested only with a mock; the structured-output reply and URL image blocks have not met the real API. A tinted item has one colour for all its body materials.
 - Scan import has not been tried on a real RoomPlan export. Scans line up
   only by their top-left corner. The site-measure checklist is long (192
@@ -242,6 +244,11 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-20 · ux-review · UX pass over every mode and window at 1440, 1024 and
+  768 wide: top bar wraps, File menu closes on a tap outside, Esc closes every
+  window (`ui/useDialogEsc.ts`), 44 px everywhere, about 80 tooltips, one word
+  per thing (item, plan image, colour scheme: see DECISIONS), focus ring,
+  `e2e/ux-audit.spec.ts`. Remaining issues in `UX_REVIEW.md`.
 - 2026-11-11 · pack-2 · Compare with a version in the print view
   (`print/compare.ts`, `compare.test.ts`, `state.ts` remembers the choice),
   removed walls on cover and structural page, ghost walls in `renderLevel.tsx`,

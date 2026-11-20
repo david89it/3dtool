@@ -105,7 +105,7 @@ test('materials: wall colour in 3D, one painted wall face in 2D, schemes, undo',
   // --- Schemes: save, duplicate the floor as an option, apply -------------
   await goTo3D(page);
   await page.getByRole('textbox', { name: 'Scheme name' }).fill('Plum and sage');
-  await page.getByRole('button', { name: 'Save these finishes as a scheme' }).click();
+  await page.getByRole('button', { name: 'Save these finishes as a colour scheme' }).click();
   const schemes = await page.evaluate(() => (window as any).__flatplan.store.getState().project.schemes);
   expect(schemes).toHaveLength(1);
   expect(schemes[0].rooms.Reception).toMatchObject({ walls: 'paint-sage', ceiling: 'paint-blush', woodwork: '#5a2a3a' });

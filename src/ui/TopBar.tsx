@@ -14,6 +14,7 @@ import { usePrint } from '../print/state';
 import { useBudgetUi } from './budgetUi';
 import { UndoButton } from './UndoHistory';
 import { usePalette } from './paletteState';
+import { useDismiss } from './useDialogEsc';
 
 export function TopBar() {
   const project = useStore((s) => s.project);
@@ -27,6 +28,11 @@ export function TopBar() {
   const [confirmReset, setConfirmReset] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const hasFlat = useSeedAvailable();
+  const menuRef = useRef<HTMLDivElement>(null);
+  useDismiss(menu, menuRef, () => {
+    setMenu(false);
+    setConfirmReset(false);
+  });
 
   const current = project.levels.find((l) => l.id === levelId);
   const currentGroup = current ? groupOf(current) : '';
@@ -41,6 +47,7 @@ export function TopBar() {
         <span className="project-name">{project.name}</span>
       </div>
 
+      <div className="topbar-floors">
       <nav className="levels" aria-label="Floors">
         {activeLevels(project).map((l) => {
           const on = groupOf(l) === currentGroup;
@@ -49,6 +56,7 @@ export function TopBar() {
               key={groupOf(l)}
               className={on ? 'level-tab on' : 'level-tab'}
               aria-pressed={on}
+              title={`Show ${l.name}`}
               onClick={() => setLevel(l.id)}
             >
               {l.name}
@@ -58,6 +66,7 @@ export function TopBar() {
         })}
       </nav>
       <OptionSwitcher />
+      </div>
 
       <div className="topbar-right">
         <button
@@ -81,7 +90,7 @@ export function TopBar() {
             title={lastRedo ? `Redo: ${lastRedo.label} (Ctrl/⌘ Shift Z)` : 'Nothing to redo'}
             aria-label="Redo"
           >
-            ↷ Redo
+            ↷ <span className="btn-text">Redo</span>
           </button>
           <button
             className="icon-btn"
@@ -105,10 +114,24 @@ export function TopBar() {
           £
         </button>
         <div className="segmented small" role="radiogroup" aria-label="Units">
-          <button role="radio" aria-checked={units === 'metric'} className={units === 'metric' ? 'on' : ''} onClick={() => setUnits('metric')}>
+          <button
+            role="radio"
+            aria-checked={units === 'metric'}
+            aria-label="Metres and millimetres"
+            title="Show lengths in metres and millimetres"
+            className={units === 'metric' ? 'on' : ''}
+            onClick={() => setUnits('metric')}
+          >
             m
           </button>
-          <button role="radio" aria-checked={units === 'imperial'} className={units === 'imperial' ? 'on' : ''} onClick={() => setUnits('imperial')}>
+          <button
+            role="radio"
+            aria-checked={units === 'imperial'}
+            aria-label="Feet and inches"
+            title="Show lengths in feet and inches"
+            className={units === 'imperial' ? 'on' : ''}
+            onClick={() => setUnits('imperial')}
+          >
             ft
           </button>
         </div>
@@ -120,22 +143,19 @@ export function TopBar() {
         >
           ?
         </button>
-        <button className="btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
+        <button className="btn" title="Settings: on-site measuring, Ask Claude and layout rules" onClick={() => useStore.getState().setSettingsOpen(true)}>
           Settings
         </button>
         <SettingsDialog />
-        <div className="menu-wrap">
-          <button className="btn" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
+        <div className="menu-wrap" ref={menuRef}>
+          <button className="btn" aria-haspopup="menu" aria-expanded={menu} title="File: save, open, print and measure" onClick={() => setMenu(!menu)}>
             File ▾
           </button>
           {menu && (
             <div
               className="menu"
               role="menu"
-              onMouseLeave={() => {
-                setMenu(false);
-                setConfirmReset(false);
-              }}
+              aria-label="File"
             >
               <button
                 role="menuitem"

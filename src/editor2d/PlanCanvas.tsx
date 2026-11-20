@@ -754,10 +754,10 @@ export function PlanCanvas() {
             />
             {calib.error && <p className="error">{calib.error}</p>}
             <div className="modal-actions">
-              <button type="button" className="btn" onClick={() => setCalib(null)}>
+              <button title="Cancel setting the scale (Esc)" type="button" className="btn" onClick={() => setCalib(null)}>
                 Cancel
               </button>
-              <button type="submit" className="btn primary">
+              <button title="Use this distance to set the scale" type="submit" className="btn primary">
                 Set scale
               </button>
             </div>
@@ -791,6 +791,8 @@ function ToolHint() {
       ? 'Click to place it. Near a wall it turns to back onto the wall. Alt: no snapping. Esc to cancel.'
       : mode === 'furnish'
         ? 'Click an item to edit it. Drag to move, drag the dots to resize, the round handle to turn (Alt: any angle). R turns 90°, Ctrl/⌘ D duplicates. Shift-click or Shift-drag selects several.'
+        : mode === 'advice' && tool === 'select'
+        ? 'Click a problem in the list on the right to see where it is on the plan. The plan is checked as you change it.'
         : tool === 'placeOpening'
       ? 'Move over a wall and click to place it. Esc to cancel.'
       : mode === 'openings'

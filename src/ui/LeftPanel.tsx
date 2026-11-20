@@ -98,7 +98,7 @@ function UnderlayPanel() {
             <span className="field-label">Scale</span>
             <span className="value small">{formatScale(u.scaleMmPerPx)}</span>
           </div>
-          <button className={tool === 'calibrate' ? 'btn wide on' : 'btn wide'} onClick={() => setTool('calibrate')}>
+          <button className={tool === 'calibrate' ? 'btn wide on' : 'btn wide'} title="Click two points on the image whose real distance you know" onClick={() => setTool('calibrate')}>
             {tool === 'calibrate' ? 'Click two points on the image…' : 'Set scale (redo)'}
           </button>
           <label className="slider">
@@ -145,7 +145,7 @@ function UnderlayPanel() {
               />
               Locked
             </label>
-            <button
+            <button title="Drag the plan image to line it up"
               className={tool === 'moveImage' ? 'btn small on' : 'btn small'}
               disabled={u.locked}
               onClick={() => setTool(tool === 'moveImage' ? 'select' : 'moveImage')}
@@ -175,7 +175,7 @@ function UnderlayPanel() {
           <span className="field-label">
             Drawing: {level.vectorUnderlay.name} ({level.vectorUnderlay.segments.length} lines). Wall corners snap to its line ends.
           </span>
-          <button
+          <button title="Remove the drawing under the plan"
             className="btn small danger-text"
             onClick={() => editLevel('Remove drawing', (L) => void delete L.vectorUnderlay)}
           >

@@ -16,12 +16,12 @@ function AdviceBadge() {
   );
 }
 
-const MODES: { id: Mode; label: string; ready: boolean }[] = [
-  { id: 'trace', label: 'Trace', ready: true },
-  { id: 'openings', label: 'Openings', ready: true },
-  { id: 'furnish', label: 'Furnish', ready: true },
-  { id: 'advice', label: 'Advice', ready: true },
-  { id: '3d', label: '3D', ready: true },
+const MODES: { id: Mode; label: string; ready: boolean; hint: string }[] = [
+  { id: 'trace', label: 'Trace', ready: true, hint: 'Trace: draw the walls and rooms' },
+  { id: 'openings', label: 'Openings', ready: true, hint: 'Openings: place doors and windows' },
+  { id: 'furnish', label: 'Furnish', ready: true, hint: 'Furnish: add and move furniture' },
+  { id: 'advice', label: 'Advice', ready: true, hint: 'Advice: check the layout and get tips' },
+  { id: '3d', label: '3D', ready: true, hint: 'Look around and walk through in 3D (Tab)' },
 ];
 
 export function ModeBar() {
@@ -35,7 +35,7 @@ export function ModeBar() {
           className={mode === m.id ? 'mode on' : 'mode'}
           aria-pressed={mode === m.id}
           disabled={!m.ready}
-          title={m.ready ? undefined : 'Coming in a later phase'}
+          title={m.ready ? m.hint : 'Coming in a later phase'}
           onClick={() => setMode(m.id)}
           data-tour={`mode-${m.id}`}
         >

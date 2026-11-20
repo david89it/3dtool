@@ -254,7 +254,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
         </div>
       )}
       <div className="actions">
-        <button
+        <button title="Split this wall into two walls where you click next"
           className="btn"
           onClick={() => {
             const [a, b] = wallEnds(level, wall);
@@ -263,7 +263,7 @@ function WallPanel({ level, wall }: { level: Level; wall: Wall }) {
         >
           Split in two
         </button>
-        <button
+        <button title="Delete this wall (Delete)"
           className="btn danger"
           onClick={() => deleteWallAction(wall.id)}
         >
@@ -334,7 +334,7 @@ function RoomPanel({ level, roomId }: { level: Level; roomId: string }) {
           <button className="btn" onClick={() => frameRoom(level, detected)}>
             Frame this room
           </button>
-          <button className="btn" onClick={() => walkIntoRoom(level, detected, () => useStore.getState().setMode('3d'))}>
+          <button title="Look around this room in 3D" className="btn" onClick={() => walkIntoRoom(level, detected, () => useStore.getState().setMode('3d'))}>
             Walk in here
           </button>
         </div>
@@ -440,6 +440,7 @@ function NotePanel({ level, noteId }: { level: Level; noteId: string }) {
       <div className="actions">
         <button
           className="btn danger"
+          title="Remove this note (Delete)"
           onClick={() => {
             editLevel('Remove note', (L) => deleteNote(L as Level, n.id));
             select(null);

@@ -160,7 +160,7 @@ test('budget: price two items, mark one bought, check the totals and the decorat
   }
 
   // Download CSV.
-  const [download] = await Promise.all([page.waitForEvent('download'), panel.getByRole('button', { name: 'Download CSV' }).click()]);
+  const [download] = await Promise.all([page.waitForEvent('download'), panel.getByRole('button', { name: 'Download as spreadsheet' }).click()]);
   expect(download.suggestedFilename()).toMatch(/budget\.csv$/);
 
   expect(errors).toEqual([]);

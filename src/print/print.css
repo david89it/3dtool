@@ -220,6 +220,12 @@
 .print-compare select {
   min-height: 44px;
   max-width: 320px;
+  font: inherit;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: inherit;
 }
 .print-pair {
   display: grid;

@@ -5,6 +5,7 @@ import { formatLength, parseLength } from '../model/units';
 import { applyStep, buildSteps, parseStepId, viewStep, type StepView } from './steps';
 import { countStatus, loadSession, useSiteMeasure, type Session, type StepStatus } from './state';
 import { MiniPlan } from './MiniPlan';
+import { useDialogEsc } from '../ui/useDialogEsc';
 import './sitemeasure.css';
 
 /** Start a session, or carry on the saved one with anything new added at the end. */
@@ -61,6 +62,7 @@ export function SiteMeasure() {
     if (view && view.kind !== 'pin') inputRef.current?.focus();
   }, [view?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useDialogEsc(open, () => setOpen(false));
   if (!open) return null;
   const fmt = (mm: number) => formatLength(mm, units);
   const total = session?.stepIds.length ?? 0;
@@ -107,7 +109,7 @@ export function SiteMeasure() {
   return (
     <div className="sm-overlay" role="dialog" aria-label="Measure on site">
       <header className="sm-head">
-        <button className="btn" onClick={() => setOpen(false)}>
+        <button title="Leave the checklist. Your progress is saved (Esc)" className="btn" onClick={() => setOpen(false)}>
           Close
         </button>
         <div className="sm-progress" aria-live="polite">
@@ -118,7 +120,7 @@ export function SiteMeasure() {
             <span style={{ width: `${total ? (measured / total) * 100 : 0}%` }} />
           </div>
         </div>
-        <button className="btn" aria-label="Undo last change" onClick={() => useStore.getState().undo()} disabled={!canUndo}>
+        <button title="Undo the last change" className="btn" aria-label="Undo last change" onClick={() => useStore.getState().undo()} disabled={!canUndo}>
           Undo
         </button>
       </header>
@@ -158,22 +160,22 @@ export function SiteMeasure() {
                   setText(e.target.value);
                   setError(null);
                 }}
-                onKeyDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.key !== 'Escape' && e.stopPropagation()}
               />
               {error && <p className="error">{error}</p>}
-              <button type="submit" className="btn primary big">
+              <button title="Save this measurement and go to the next one" type="submit" className="btn primary big">
                 Save
               </button>
             </form>
           )}
           <div className="sm-nav">
-            <button className="btn" onClick={back} disabled={!session || session.stepIds.indexOf(view.id) === 0}>
+            <button title="Go back to the previous step" className="btn" onClick={back} disabled={!session || session.stepIds.indexOf(view.id) === 0}>
               Back
             </button>
-            <button className="btn" onClick={() => go('skipped')}>
+            <button title="Come back to this one later" className="btn" onClick={() => go('skipped')}>
               Skip
             </button>
-            <button className="btn" onClick={() => go('cant')}>
+            <button title="Mark it as one you could not measure" className="btn" onClick={() => go('cant')}>
               Can’t measure
             </button>
           </div>
@@ -195,7 +197,7 @@ export function SiteMeasure() {
             <button className="btn" onClick={() => setSession({ stepIds: buildSteps(useStore.getState().project).map((s) => s.id), status: {}, index: 0 })}>
               Start again with what is still estimated
             </button>
-            <button className="btn primary" onClick={() => setOpen(false)}>
+            <button title="Leave the checklist. Your progress is saved (Esc)" className="btn primary" onClick={() => setOpen(false)}>
               Close
             </button>
           </div>

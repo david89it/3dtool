@@ -186,7 +186,7 @@ export function FinishPanel({
             value={room.ceilingFinish ?? WHITE_PAINT_ID}
             onPick={(id) => editRoom(`Ceiling: ${finishName(id)}`, (r) => void (r.ceilingFinish = id))}
           />
-          <button
+          <button title="Take the colour off and go back to white"
             className="btn small"
             disabled={!room.ceilingFinish}
             onClick={() => editRoom('Ceiling back to white', (r) => void delete r.ceilingFinish)}
@@ -203,7 +203,7 @@ export function FinishPanel({
             value={room.woodworkColor}
             onPick={(id) => editRoom(`Woodwork: ${finishName(id)}`, (r) => void (r.woodworkColor = id))}
           />
-          <button
+          <button title="Take the colour off and go back to white"
             className="btn small"
             disabled={!room.woodworkColor}
             onClick={() => editRoom('Woodwork back to white', (r) => void delete r.woodworkColor)}
@@ -229,11 +229,11 @@ function Schemes({ level }: { level: Level }) {
 
   const save = () => {
     const scheme = makeScheme(level, name);
-    commit(`Save scheme: ${scheme.name}`, (d) => {
+    commit(`Save colour scheme: ${scheme.name}`, (d) => {
       d.schemes = [...(d.schemes ?? []), scheme];
     });
     setName('');
-    toast(`Saved the scheme “${scheme.name}”.`);
+    toast(`Saved the colour scheme “${scheme.name}”.`);
   };
 
   const apply = (scheme: FinishScheme, all: boolean) => {
@@ -241,28 +241,28 @@ function Schemes({ level }: { level: Level }) {
     const targets = all ? activeLevels(project) : [level];
     const matched = targets.reduce((n, L) => n + L.rooms.filter((r) => scheme.rooms[r.name]).length, 0);
     if (matched === 0) {
-      toast('No room here has the same name as a room in that scheme.', 'warn');
+      toast('No room here has the same name as a room in that colour scheme.', 'warn');
       return;
     }
     if (all) {
-      useStore.getState().commit(`Apply scheme: ${scheme.name}`, (d) => {
+      useStore.getState().commit(`Apply colour scheme: ${scheme.name}`, (d) => {
         for (const L of activeLevels(d as Project)) applyScheme(L, scheme);
       });
     } else {
-      editLevel(`Apply scheme: ${scheme.name}`, (L) => void applyScheme(L, scheme));
+      editLevel(`Apply colour scheme: ${scheme.name}`, (L) => void applyScheme(L, scheme));
     }
     toast(`Applied “${scheme.name}” to ${matched} ${matched === 1 ? 'room' : 'rooms'}.`);
   };
 
   return (
     <div className="field column" data-testid="schemes">
-      <span className="field-label">Schemes</span>
-      <p className="note">A scheme remembers every room's floor, wall, ceiling and woodwork finish by room name, so you can try it on another option.</p>
+      <span className="field-label">Colour schemes</span>
+      <p className="note">A colour scheme remembers every room's floor, wall, ceiling and woodwork finish by room name, so you can try it on another option.</p>
       <div className="paint-hex-row">
         <input
           className="paint-hex-input"
           style={{ width: 'auto', flex: 1 }}
-          aria-label="Scheme name"
+          aria-label="Colour scheme name"
           placeholder="Name, e.g. Calm and pale"
           value={name}
           maxLength={60}
@@ -274,25 +274,25 @@ function Schemes({ level }: { level: Level }) {
         />
       </div>
       <button className="btn" disabled={level.rooms.length === 0} onClick={save}>
-        Save these finishes as a scheme
+        Save these finishes as a colour scheme
       </button>
-      {schemes.length > 0 && <span className="field-label">Apply scheme…</span>}
+      {schemes.length > 0 && <span className="field-label">Apply a colour scheme…</span>}
       {schemes.map((s) => (
         <div key={s.id} className="scheme-row" data-testid="scheme-row">
           <span className="scheme-name" title={schemeRoomNames(s)}>
             {s.name}
           </span>
-          <button className="btn small" onClick={() => apply(s, false)} aria-label={`Apply ${s.name} to this floor`}>
+          <button title="Use this colour scheme on this floor" className="btn small" onClick={() => apply(s, false)} aria-label={`Apply ${s.name} to this floor`}>
             This floor
           </button>
-          <button className="btn small" onClick={() => apply(s, true)} aria-label={`Apply ${s.name} to all floors`}>
+          <button title="Use this colour scheme on every floor" className="btn small" onClick={() => apply(s, true)} aria-label={`Apply ${s.name} to all floors`}>
             All floors
           </button>
-          <button
+          <button title="Delete this colour scheme"
             className="btn small"
-            aria-label={`Delete scheme ${s.name}`}
+            aria-label={`Delete colour scheme ${s.name}`}
             onClick={() =>
-              useStore.getState().commit(`Delete scheme: ${s.name}`, (d) => {
+              useStore.getState().commit(`Delete colour scheme: ${s.name}`, (d) => {
                 d.schemes = (d.schemes ?? []).filter((x) => x.id !== s.id);
               })
             }

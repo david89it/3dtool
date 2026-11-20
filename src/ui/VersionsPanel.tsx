@@ -17,6 +17,7 @@ import {
 } from '../model/versions';
 import type { Project } from '../model/types';
 import { useVersionsUi } from './versionsUi';
+import { useDialogEsc } from './useDialogEsc';
 
 interface Row {
   meta: VersionMeta;
@@ -119,7 +120,7 @@ function PanelBody() {
     s.loadProject(validateProject(got.version.project), { keepLevel: true });
     await flushSave();
     s.toast(`Restored ${label}. Your previous plan was saved as a version.`);
-    if (got.missingImages > 0) s.toast('A plan picture from that version could not be found, so it was left out.', 'warn');
+    if (got.missingImages > 0) s.toast('A plan image from that version could not be found, so it was left out.', 'warn');
     setBusy(false);
     close();
   };
@@ -162,7 +163,7 @@ function PanelBody() {
       <div className="modal versions" role="dialog" aria-label="Versions">
         <div className="versions-head">
           <h2>Versions</h2>
-          <button className="btn" onClick={close}>
+          <button title="Close the versions list (Esc)" className="btn" onClick={close}>
             Close
           </button>
         </div>
@@ -175,10 +176,10 @@ function PanelBody() {
               <input className="text-field" autoFocus value={name} onChange={(e) => setName(e.target.value)} aria-label="Version name" />
             </label>
             <div className="modal-actions">
-              <button type="button" className="btn" onClick={() => setSaving(false)}>
+              <button title="Do not save a version" type="button" className="btn" onClick={() => setSaving(false)}>
                 Cancel
               </button>
-              <button type="submit" className="btn primary" disabled={!name.trim() || busy}>
+              <button title="Save the plan under this name" type="submit" className="btn primary" disabled={!name.trim() || busy}>
                 Save
               </button>
             </div>
@@ -242,14 +243,14 @@ function PanelBody() {
                   )}
                 </div>
                 <div className="version-actions">
-                  <button className="btn" disabled={busy} onClick={() => void restore(row)}>
+                  <button title="Go back to this version. Your current plan is saved first" className="btn" disabled={busy} onClick={() => void restore(row)}>
                     Restore
                   </button>
                   <button className="btn" onClick={() => void toggleCompare(row)}>
                     {compare?.id === m.id ? 'Hide comparison' : 'Compare with now'}
                   </button>
                   {m.kind === 'named' && (
-                    <button className="btn" onClick={() => setRenaming({ id: m.id, text: m.name })}>
+                    <button title="Change the name of this version" className="btn" onClick={() => setRenaming({ id: m.id, text: m.name })}>
                       Rename
                     </button>
                   )}
@@ -277,6 +278,7 @@ export function VersionImportPrompt() {
   const offer = useVersionsUi((s) => s.offer);
   const setOffer = useVersionsUi((s) => s.setOffer);
   const [busy, setBusy] = useState(false);
+  useDialogEsc(!!offer, () => setOffer(null));
   if (!offer) return null;
   const n = offer.history.versions.length;
   const add = async () => {
@@ -296,10 +298,10 @@ export function VersionImportPrompt() {
           “{offer.planName}” came with {n} {n === 1 ? 'version' : 'versions'} of its history. Add {n === 1 ? 'it' : 'them'} to the Versions list in this browser?
         </p>
         <div className="modal-actions">
-          <button className="btn" onClick={() => setOffer(null)}>
+          <button title="Leave the versions out" className="btn" onClick={() => setOffer(null)}>
             Not now
           </button>
-          <button className="btn primary" disabled={busy} onClick={() => void add()} autoFocus>
+          <button title="Add these versions to the list in this browser" className="btn primary" disabled={busy} onClick={() => void add()} autoFocus>
             Add them
           </button>
         </div>

@@ -1,5 +1,5 @@
 // The engineer and landlord pack: a full-screen view laid out as A4
-// landscape pages, with print styles so "Print / Save as PDF" gives a clean
+// landscape pages, with print styles so "Print or save as PDF" gives a clean
 // document. It sits outside the editor layout and shares nothing with the
 // canvas except canvasApi.renderLevelImage (the plan pictures).
 
@@ -246,9 +246,9 @@ function PackView() {
             </select>
           </label>
           <button className="btn primary" disabled={!ready} onClick={() => window.print()}>
-            Print / Save as PDF
+            Print or save as PDF
           </button>
-          <button className="btn" onClick={() => setOpen(false)}>
+          <button title="Close and go back to the plan (Esc)" className="btn" onClick={() => setOpen(false)}>
             Close
           </button>
         </div>

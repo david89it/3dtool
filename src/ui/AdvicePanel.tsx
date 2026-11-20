@@ -17,7 +17,7 @@ export function IssueCard({ issue, compact }: { issue: Issue; compact?: boolean 
         {!compact && <span className="issue-rule">{issue.ruleTitle}</span>}
       </button>
       {issue.fixable && (
-        <button className="btn small fix-btn" onClick={() => fixIssueNow(issue)}>
+        <button title="Move it to the nearest spot that works. Undo puts it back" className="btn small fix-btn" onClick={() => fixIssueNow(issue)}>
           Fix
         </button>
       )}
@@ -132,7 +132,7 @@ export function AdviceLeftPanel() {
         <section className="panel-section">
           <h2>Ask Claude (optional)</h2>
           <p className="note">Turn this on in Settings with your own Anthropic API key to get written suggestions. The checks above work without it.</p>
-          <button className="btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
+          <button title="Open Settings to turn on Ask Claude" className="btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
             Open Settings
           </button>
         </section>

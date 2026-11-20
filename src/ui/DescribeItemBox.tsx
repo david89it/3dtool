@@ -8,7 +8,7 @@ import { ItemPreview } from './FurnishPanel';
 
 const CONFIDENCE_LABEL = {
   stated: 'Size as you described it',
-  typical: 'A typical size for this kind of piece',
+  typical: 'A typical size for this kind of item',
   guess: 'A rough guess. Check it against the real thing',
 } as const;
 
@@ -26,8 +26,8 @@ export function DescribeItemBox() {
   if (!enabled || !keySaved) {
     return (
       <p className="note describe-hint" data-testid="describe-hint">
-        To add a piece by describing it or pasting an image link, turn on Ask Claude in{' '}
-        <button className="link-btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
+        To add an item by describing it or pasting an image link, turn on Ask Claude in{' '}
+        <button title="Open Settings to turn on Ask Claude" className="link-btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
           Settings
         </button>
         .
@@ -45,7 +45,7 @@ export function DescribeItemBox() {
     }
     const description = typedUrl ? text.trim() : split.text;
     if (!description && !imageUrl) {
-      setPhase({ kind: 'error', message: 'Describe the piece, for example “tan leather lounge chair”, or paste an image link.' });
+      setPhase({ kind: 'error', message: 'Describe the item, for example “tan leather lounge chair”, or paste an image link.' });
       return;
     }
     setPhase({ kind: 'loading' });
@@ -61,12 +61,12 @@ export function DescribeItemBox() {
   };
 
   return (
-    <section className="describe-box" aria-label="Add a piece by description" data-testid="describe-box">
+    <section className="describe-box" aria-label="Add an item by description" data-testid="describe-box">
       <label className="field column">
-        <span className="field-label">Describe a piece or paste an image link…</span>
+        <span className="field-label">Describe an item or paste an image link…</span>
         <textarea
           className="text-field describe-text"
-          aria-label="Describe a piece"
+          aria-label="Describe an item"
           rows={2}
           placeholder="Vitra-style lounge chair in tan leather"
           value={text}
@@ -188,7 +188,7 @@ function PreviewCard({
         <button className="btn primary" disabled={!desc.name.trim()} onClick={add}>
           Add to my items
         </button>
-        <button className="btn" onClick={onRetry}>
+        <button title="Ask Claude again" className="btn" onClick={onRetry}>
           Try again
         </button>
       </div>

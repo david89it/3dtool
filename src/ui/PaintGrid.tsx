@@ -174,7 +174,7 @@ function HexInput({ value, onPick, label }: { value: string | undefined; onPick:
             e.stopPropagation(); // typing must not trigger plan shortcuts
           }}
         />
-        <button type="button" className="btn small" onClick={commit}>
+        <button title="Use this colour" aria-label="Use this colour" type="button" className="btn small" onClick={commit}>
           Use
         </button>
       </div>

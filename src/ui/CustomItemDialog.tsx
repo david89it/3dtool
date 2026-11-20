@@ -151,7 +151,7 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
         </label>
         {error && <p className="error">{error}</p>}
         <div className="modal-actions">
-          <button type="button" className="btn" onClick={onClose}>
+          <button title="Close without adding (Esc)" type="button" className="btn" onClick={onClose}>
             Cancel
           </button>
           <button type="submit" className="btn primary">

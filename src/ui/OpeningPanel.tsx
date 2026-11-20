@@ -193,10 +193,10 @@ export function OpeningPanel({ level, openingId }: { level: Level; openingId: st
       )}
 
       <div className="actions">
-        <button className="btn" onClick={() => select({ kind: 'wall', id: wall.id })}>
+        <button title="Select the wall it is in" className="btn" onClick={() => select({ kind: 'wall', id: wall.id })}>
           Select its wall
         </button>
-        <button
+        <button title="Remove it from the wall (Delete)"
           className="btn danger"
           onClick={() => {
             editLevel(`Remove ${OPENING_LABEL[opening.type].toLowerCase()}`, (L) => deleteOpening(L as Level, openingId));

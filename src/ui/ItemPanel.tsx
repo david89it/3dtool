@@ -96,7 +96,7 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
       {states.length > 0 && (
         <div className="field column">
           <span className="field-label">Position</span>
-          <div className="segmented" role="radiogroup" aria-label="Item state">
+          <div className="segmented" role="radiogroup" aria-label="Position">
             {states.map((st) => (
               <button
                 key={st}
@@ -119,11 +119,11 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
         <span className="value">{Math.round(item.rotationDeg)}°</span>
       </div>
       <div className="actions">
-        <button className="btn" disabled={item.locked} onClick={() => turnSelected(-90)} aria-label="Turn 90° anticlockwise">
-          ↺ Turn 90°
+        <button title="Turn 90° left (Shift R)" className="btn" disabled={item.locked} onClick={() => turnSelected(-90)} aria-label="Turn 90° anticlockwise">
+          ↺ 90° left
         </button>
-        <button className="btn" disabled={item.locked} onClick={() => turnSelected(90)} aria-label="Turn 90° clockwise">
-          ↻ Turn 90°
+        <button title="Turn 90° right (R)" className="btn" disabled={item.locked} onClick={() => turnSelected(90)} aria-label="Turn 90° clockwise">
+          ↻ 90° right
         </button>
       </div>
 
@@ -147,16 +147,21 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
       <ItemIssues itemId={itemId} />
 
       <div className="actions">
-        <button
+        <button title="Make a copy of this item (Ctrl/⌘ D)"
           className="btn"
           onClick={() => duplicateSelected()}
         >
           Duplicate
         </button>
-        <button className={item.locked ? 'btn on' : 'btn'} aria-pressed={!!item.locked} onClick={() => lockSelected()}>
+        <button
+          className={item.locked ? 'btn on' : 'btn'}
+          aria-pressed={!!item.locked}
+          title={item.locked ? 'Let this item move again' : 'Lock this item so it cannot move by accident'}
+          onClick={() => lockSelected()}
+        >
           {item.locked ? 'Unlock' : 'Lock'}
         </button>
-        <button
+        <button title="Remove this item from the plan (Delete)"
           className="btn danger"
           onClick={() => deleteSelected()}
         >
@@ -219,7 +224,7 @@ function SurroundFields({ level, item, change, locked }: { level: Level; item: P
       {field('Shelving each side', side, (mm) => set('Change surround towers', { side: mm }), SURROUND.minSide, 1500)}
       {field('Depth', item.dims.d, (mm) => set('Change surround depth', { d: mm }), 250, 500)}
       {field('Total height', item.dims.h, (mm) => set('Change surround height', { h: mm }), 2200, 3500)}
-      <button
+      <button title="Resize it to fit the nearest door or opening"
         className="btn"
         disabled={locked}
         onClick={() => {
@@ -292,7 +297,7 @@ function FinishPicker({ item, change, name, hasFinish }: { item: PlacedItem; cha
 
 const SOURCE_NOTE = {
   stated: 'The size is as described.',
-  typical: 'The size is a typical one for this kind of piece.',
+  typical: 'The size is a typical one for this kind of item.',
   guess: 'The size is a rough guess, so check it against the real thing.',
 } as const;
 

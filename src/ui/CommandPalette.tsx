@@ -64,7 +64,7 @@ function PaletteBody() {
           role="combobox"
           aria-expanded="true"
           aria-controls="palette-list"
-          aria-label="Search rooms, pieces, things to add and actions"
+          aria-label="Search rooms, items, things to add and actions"
           placeholder="Search rooms, furniture and actions…"
           value={query}
           onChange={(e) => {

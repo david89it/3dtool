@@ -25,6 +25,7 @@ function placeDxf(level: Level, segments: [number, number, number, number][]): [
   return segments.map(([a, b, c, d]) => [Math.round(a + dx), Math.round(b + dy), Math.round(c + dx), Math.round(d + dy)]);
 }
 
+import { useDialogEsc } from '../ui/useDialogEsc';
 export function ScanImport() {
   const open = useSiteMeasure((s) => s.importOpen);
   const setOpen = useSiteMeasure((s) => s.setImportOpen);
@@ -33,6 +34,12 @@ export function ScanImport() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  useDialogEsc(open && !!level, () => {
+    setOpen(false);
+    setPending(null);
+    setResult(null);
+    setError(null);
+  });
   if (!open || !level) return null;
 
   const close = () => {
@@ -67,7 +74,7 @@ export function ScanImport() {
         const el = document.querySelector('[data-testid="plan-canvas"]') as HTMLElement | null;
         const centre = toWorld(v, { x: (el?.clientWidth ?? 800) / 2, y: (el?.clientHeight ?? 600) / 2 });
         const scale = 10;
-        useStore.getState().snapshotBefore('importing a plan picture');
+        useStore.getState().snapshotBefore('importing a plan image');
         useStore.getState().editLevel('Import plan image', (L) => {
           L.underlay = {
             imageDataUrl: img.dataUrl,
@@ -129,7 +136,7 @@ export function ScanImport() {
         <h2>Import a scan into {level.name}</h2>
         <p className="note">
           A RoomPlan scan (.usdz) becomes walls, doors and windows. A drawing (.dxf) goes under the plan for tracing. An image or PDF
-          becomes the plan picture.
+          becomes the plan image.
         </p>
         <label className="btn wide sm-file">
           {busy ? 'Reading…' : 'Choose a file…'}
@@ -158,7 +165,7 @@ export function ScanImport() {
               Replace this floor’s walls
             </button>
             <p className="note">
-              The scan is squared up and placed over your plan’s top-left corner. Furniture, pins and the plan picture stay. Undo puts
+              The scan is squared up and placed over your plan’s top-left corner. Furniture, pins and the plan image stay. Undo puts
               everything back.
             </p>
           </div>
@@ -169,10 +176,10 @@ export function ScanImport() {
           </p>
         )}
         <div className="modal-actions">
-          <button className="btn" onClick={() => useSiteMeasure.getState().setGuideOpen(true)}>
+          <button title="How to scan a room with an iPhone or iPad Pro" className="btn" onClick={() => useSiteMeasure.getState().setGuideOpen(true)}>
             How to scan
           </button>
-          <button className="btn primary" onClick={close}>
+          <button title="Close (Esc)" className="btn primary" onClick={close}>
             Done
           </button>
         </div>

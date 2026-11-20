@@ -153,7 +153,7 @@ export function SunPanel({
           <p className="note">
             Sunrise {info.sunrise ? formatLondonTime(info.sunrise) : '—'} · sunset {info.sunset ? formatLondonTime(info.sunset) : '—'}.
           </p>
-          <button className="btn" onClick={togglePlay} data-testid="sun-play">
+          <button className="btn" onClick={togglePlay} data-testid="sun-play" title={ui.playing ? 'Pause the sun' : 'Watch the sun move through the day'}>
             {ui.playing ? 'Pause' : 'Play the day'}
           </button>
         </>
@@ -224,7 +224,7 @@ function SunHours({ project, level }: { project: Project; level: Level }) {
         <button className="btn" disabled={calc.status === 'running'} onClick={() => run('floor')} data-testid="sun-hours">
           Sun hours: {level.name}
         </button>
-        <button className="btn" disabled={calc.status === 'running'} onClick={() => run('all')} data-testid="sun-hours-all">
+        <button title="Work out the sun hours for every floor" className="btn" disabled={calc.status === 'running'} onClick={() => run('all')} data-testid="sun-hours-all">
           All floors
         </button>
       </div>
@@ -232,7 +232,7 @@ function SunHours({ project, level }: { project: Project; level: Level }) {
         <div className="sun-progress" role="status">
           <progress value={calc.progress} max={1} aria-label="Working out sun hours" />
           <span>Working it out… {Math.round(calc.progress * 100)}%</span>
-          <button className="btn small" onClick={() => { stop(); set({ calc: { status: 'idle', progress: 0, scope: calc.scope, result: null } }); }}>
+          <button title="Stop working out the sun hours" className="btn small" onClick={() => { stop(); set({ calc: { status: 'idle', progress: 0, scope: calc.scope, result: null } }); }}>
             Stop
           </button>
         </div>
