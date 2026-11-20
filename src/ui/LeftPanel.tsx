@@ -1,3 +1,4 @@
+import { countRender } from '../perf';
 import { AdviceLeftPanel } from './AdvicePanel';
 import { useRef, useState } from 'react';
 import type { WallKind } from '../model/types';
@@ -188,6 +189,7 @@ function UnderlayPanel() {
 }
 
 export function LeftPanel() {
+  countRender('LeftPanel');
   const mode = useStore((s) => s.mode);
   if (mode === 'advice') return <AdviceLeftPanel />;
   if (mode === 'furnish') {

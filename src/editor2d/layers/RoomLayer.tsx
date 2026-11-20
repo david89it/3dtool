@@ -1,3 +1,5 @@
+import { countRender } from '../../perf';
+import { memo } from 'react';
 import { Line } from 'react-konva';
 import type { Level } from '../../model/types';
 import type { DetectedRoom } from '../../geometry/rooms';
@@ -5,7 +7,7 @@ import { COLORS, roomFill } from '../theme';
 
 const flat = (pts: { x: number; y: number }[]) => pts.flatMap((p) => [p.x, p.y]);
 
-export function RoomFills({
+function RoomFillsImpl({
   level,
   rooms,
   selectedRoomId,
@@ -16,6 +18,7 @@ export function RoomFills({
   selectedRoomId?: string;
   translucent: boolean;
 }) {
+  countRender('RoomFills');
   return (
     <>
       {rooms.map((r) => {
@@ -38,3 +41,8 @@ export function RoomFills({
     </>
   );
 }
+
+export const RoomFills = memo(
+  RoomFillsImpl,
+  (a, b) => a.level.rooms === b.level.rooms && a.rooms === b.rooms && a.selectedRoomId === b.selectedRoomId && a.translucent === b.translucent,
+);

@@ -22,6 +22,12 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  # GitHub warned that configure-pages and the artifact actions run on Node 20, which is
+  # deprecated. This runs them on Node 24 now. No newer major versions of these actions
+  # could be checked from here; bump them if the warning stays.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build:
     runs-on: ubuntu-latest

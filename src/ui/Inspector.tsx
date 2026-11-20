@@ -1,3 +1,4 @@
+import { countRender } from '../perf';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Level, Wall, WallKind, Structural } from '../model/types';
 import { useLevel, useStore } from '../model/store';
@@ -573,6 +574,7 @@ function LevelPanel({ level }: { level: Level }) {
 }
 
 export function Inspector() {
+  countRender('Inspector');
   const level = useLevel();
   const selection = useStore((s) => s.selection);
   const mode = useStore((s) => s.mode);

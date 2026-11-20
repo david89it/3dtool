@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import { Arrow, Group, Line, Rect, Text } from 'react-konva';
 import type { Project, Stair } from '../../model/types';
 import { COLORS, FONT } from '../theme';
 
-export function StairShapes({ stairs, project }: { stairs: Stair[]; project: Project }) {
+function StairShapesImpl({ stairs, project }: { stairs: Stair[]; project: Project }) {
   return (
     <>
       {stairs.map((s) => {
@@ -39,3 +40,8 @@ export function StairShapes({ stairs, project }: { stairs: Stair[]; project: Pro
     </>
   );
 }
+
+const destinations = (stairs: Stair[], project: Project) => stairs.map((s) => project.levels.find((l) => l.id === s.toLevelId)?.name ?? '').join('|');
+
+/** Only redraws when a stair or the name of the floor it leads to changes. */
+export const StairShapes = memo(StairShapesImpl, (a, b) => a.stairs === b.stairs && destinations(a.stairs, a.project) === destinations(b.stairs, b.project));

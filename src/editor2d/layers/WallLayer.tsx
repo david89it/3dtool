@@ -1,3 +1,5 @@
+import { countRender } from '../../perf';
+import { memo } from 'react';
 import { Group, Line } from 'react-konva';
 import type { Level, Opening, Vec2, Wall } from '../../model/types';
 import type { JointData, WallOutline } from '../../geometry/joints';
@@ -73,7 +75,7 @@ function OpeningShape({ o, w, op }: { o: WallOutline; w: Wall; op: Opening }) {
   return <Group listening={false}>{parts}</Group>;
 }
 
-export function WallShapes({
+function WallShapesImpl({
   level,
   joints,
   selectedWallId,
@@ -90,6 +92,7 @@ export function WallShapes({
   hoverOpeningId?: string;
   ghost?: OpeningGhost | null;
 }) {
+  countRender('WallShapes');
   const byId = new Map(level.walls.map((w) => [w.id, w] as const));
   return (
     <>
@@ -181,3 +184,16 @@ export function WallShapes({
     </>
   );
 }
+
+/** Walls only redraw when the walls, the joints, a wall or opening highlight, or the placement ghost change. */
+export const WallShapes = memo(
+  WallShapesImpl,
+  (a, b) =>
+    a.level.walls === b.level.walls &&
+    a.joints === b.joints &&
+    a.selectedWallId === b.selectedWallId &&
+    a.hoverWallId === b.hoverWallId &&
+    a.selectedOpeningId === b.selectedOpeningId &&
+    a.hoverOpeningId === b.hoverOpeningId &&
+    a.ghost === b.ghost,
+);

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useStore } from '../model/store';
 import { useLayout, watchWidth } from './layoutState';
 import { PanelSlot } from './PanelSlot';
@@ -7,7 +7,6 @@ import { canvasApi } from '../editor2d/canvasApi';
 import { deleteWall } from '../geometry/wallGraph';
 import type { Level } from '../model/types';
 import { deleteSelected, duplicateSelected, turnSelected } from '../editor2d/selectionActions';
-import { CommandPalette } from './CommandPalette';
 import { usePalette } from './paletteState';
 import { toggleThreeD } from './modeToggle';
 import { deleteOpening } from '../geometry/openingEdits';
@@ -20,20 +19,85 @@ import { ModeBar } from './ModeBar';
 import { LeftPanel } from './LeftPanel';
 import { Inspector } from './Inspector';
 import { Toasts } from './Toasts';
+import { ErrorBoundary, SelectionBoundary } from './ErrorBoundary';
 import { Tour } from './Tour';
 import { Shortcuts } from './Shortcuts';
 import { markTourSeen } from '../model/persistence';
-import { SiteMeasure } from '../sitemeasure/SiteMeasure';
-import { ScanGuide } from '../sitemeasure/ScanGuide';
-import { ScanImport } from '../import/ScanImport';
+import { useSiteMeasure } from '../sitemeasure/state';
+import { useVersionsUi } from './versionsUi';
+import { useBudgetUi } from './budgetUi';
 import { EmptyStart, UnlockDialog } from './UnlockDialog';
-import { VersionImportPrompt, VersionsPanel } from './VersionsPanel';
-import { PrintPack } from '../print/PrintPack';
-import { BudgetPanel } from './BudgetPanel';
 import { usePrint } from '../print/state';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
 const View3D = lazy(() => import('../view3d/View3D').then((m) => ({ default: m.View3D })));
+
+// Everything that is not on screen at first paint loads the first time it is opened (each of these
+// draws nothing while closed, so mounting it late changes nothing she can see).
+const PrintPack = lazy(() => import('../print/PrintPack').then((m) => ({ default: m.PrintPack })));
+const BudgetPanel = lazy(() => import('./BudgetPanel').then((m) => ({ default: m.BudgetPanel })));
+const CommandPalette = lazy(() => import('./CommandPalette').then((m) => ({ default: m.CommandPalette })));
+const VersionsPanel = lazy(() => import('./VersionsPanel').then((m) => ({ default: m.VersionsPanel })));
+const VersionImportPrompt = lazy(() => import('./VersionsPanel').then((m) => ({ default: m.VersionImportPrompt })));
+const SiteMeasure = lazy(() => import('../sitemeasure/SiteMeasure').then((m) => ({ default: m.SiteMeasure })));
+const ScanGuide = lazy(() => import('../sitemeasure/ScanGuide').then((m) => ({ default: m.ScanGuide })));
+const ScanImport = lazy(() => import('../import/ScanImport').then((m) => ({ default: m.ScanImport })));
+
+/** Mounts its children (and so loads their code) from the first time `when` is true, and keeps them mounted after. */
+function Deferred({ when, children }: { when: boolean; children: ReactNode }) {
+  const [seen, setSeen] = useState(when);
+  if (when && !seen) setSeen(true);
+  return seen ? <Suspense fallback={null}>{children}</Suspense> : null;
+}
+
+function DeferredPanels() {
+  const measure = useSiteMeasure((s) => s.open);
+  const guide = useSiteMeasure((s) => s.guideOpen);
+  const scan = useSiteMeasure((s) => s.importOpen);
+  const versions = useVersionsUi((s) => s.open);
+  const offer = useVersionsUi((s) => !!s.offer);
+  const budget = useBudgetUi((s) => s.open);
+  return (
+    <>
+      <Deferred when={measure}>
+        <SiteMeasure />
+      </Deferred>
+      <Deferred when={scan}>
+        <ScanImport />
+      </Deferred>
+      <Deferred when={guide}>
+        <ScanGuide />
+      </Deferred>
+      <Deferred when={versions}>
+        <VersionsPanel />
+      </Deferred>
+      <Deferred when={offer}>
+        <VersionImportPrompt />
+      </Deferred>
+      <Deferred when={budget}>
+        <BudgetPanel />
+      </Deferred>
+    </>
+  );
+}
+
+function DeferredPalette() {
+  const open = usePalette((s) => s.open);
+  return (
+    <Deferred when={open}>
+      <CommandPalette />
+    </Deferred>
+  );
+}
+
+function DeferredPrint() {
+  const open = usePrint((s) => s.open);
+  return (
+    <Deferred when={open}>
+      <PrintPack />
+    </Deferred>
+  );
+}
 
 function isTyping(e: KeyboardEvent): boolean {
   const t = e.target as HTMLElement | null;
@@ -155,18 +219,24 @@ export function App() {
       <ModeBar />
       {mode === '3d' ? (
         <main className="workspace three">
-          <Suspense fallback={<div className="loading">Building the 3D view…</div>}>
-            <View3D />
-          </Suspense>
+          <ErrorBoundary scope="view">
+            <Suspense fallback={<div className="loading">Building the 3D view…</div>}>
+              <View3D />
+            </Suspense>
+          </ErrorBoundary>
         </main>
       ) : (
         <main className={`workspace${left ? '' : ' left-collapsed'}${right ? '' : ' right-collapsed'}${narrow ? ' narrow' : ''}`}>
           <PanelSlot side="left">
-            <LeftPanel />
+            <ErrorBoundary scope="panel">
+              <LeftPanel />
+            </ErrorBoundary>
           </PanelSlot>
           <PlanCanvas />
           <PanelSlot side="right">
-            <Inspector />
+            <SelectionBoundary>
+              <Inspector />
+            </SelectionBoundary>
           </PanelSlot>
           {narrow && (left || right) && <div className="panel-scrim" data-testid="panel-scrim" onPointerDown={() => useLayout.getState().closeAll()} />}
         </main>
@@ -174,17 +244,12 @@ export function App() {
       <Toasts />
       <Tour />
       <Shortcuts />
-      <SiteMeasure />
-      <ScanImport />
-      <ScanGuide />
       <EmptyStart />
       <UnlockDialog />
-      <VersionsPanel />
-      <BudgetPanel />
-      <VersionImportPrompt />
-      <CommandPalette />
+      <DeferredPanels />
+      <DeferredPalette />
     </div>
-    <PrintPack />
+    <DeferredPrint />
     </>
   );
 }

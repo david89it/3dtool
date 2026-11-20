@@ -1,6 +1,8 @@
+import { countRender } from '../perf';
 import { SettingsDialog } from './SettingsDialog';
 import { useSiteMeasure } from '../sitemeasure/state';
 import { useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../model/store';
 import { exportProjectFile, readPlanFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
 import { exportHistory, runJob } from '../model/versions';
@@ -9,6 +11,7 @@ import { createStartProject, PUBLIC_BUILD } from '../model/firstRun';
 import { useSeedAvailable, useUnlock } from './UnlockDialog';
 import { canvasApi } from '../editor2d/canvasApi';
 import { activeLevels, groupOf } from '../model/schemes';
+import type { Project } from '../model/types';
 import { OptionSwitcher } from './OptionSwitcher';
 import { usePrint } from '../print/state';
 import { useBudgetUi } from './budgetUi';
@@ -16,8 +19,18 @@ import { UndoButton } from './UndoHistory';
 import { usePalette } from './paletteState';
 import { useDismiss } from './useDialogEsc';
 
+/** Everything the floor tabs show, as one string, so a drag that changes nothing there changes nothing here. */
+function tabsSignature(p: Project): string {
+  return activeLevels(p)
+    .map((l) => `${l.id}|${l.name}|${groupOf(l)}|${l.scheme?.name ?? ''}`)
+    .join('\n');
+}
+
 export function TopBar() {
-  const project = useStore((s) => s.project);
+  countRender('TopBar');
+  // The bar only changes when the plan's name or its floor tabs do, not on every drag; re-read the plan then.
+  useStore(useShallow((s) => ({ name: s.project.name, tabs: tabsSignature(s.project) })));
+  const project = useStore.getState().project;
   const levelId = useStore((s) => s.levelId);
   const setLevel = useStore((s) => s.setLevel);
   const future = useStore((s) => s.future);
@@ -201,8 +214,9 @@ export function TopBar() {
                 role="menuitem"
                 onClick={() => {
                   const url = canvasApi.exportPng();
-                  const L = project.levels.find((l) => l.id === levelId);
-                  if (url) downloadDataUrl(url, `${safeFileName(project.name)}-${safeFileName(L?.name ?? 'plan')}.png`);
+                  const now = useStore.getState().project;
+                  const L = now.levels.find((l) => l.id === levelId);
+                  if (url) downloadDataUrl(url, `${safeFileName(now.name)}-${safeFileName(L?.name ?? 'plan')}.png`);
                   setMenu(false);
                 }}
               >

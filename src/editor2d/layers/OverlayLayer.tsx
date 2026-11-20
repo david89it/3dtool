@@ -1,6 +1,8 @@
+import { countRender } from '../../perf';
 // Screen-space overlay: room names, dimensions, pins, handles, previews.
 // Everything here stays the same size whatever the zoom.
 
+import { memo } from 'react';
 import { Arrow, Circle, Group, Label, Line, Rect, Tag, Text } from 'react-konva';
 import type { Level, PlanNote, Vec2 } from '../../model/types';
 import type { DetectedRoom } from '../../geometry/rooms';
@@ -36,7 +38,7 @@ interface Props {
   minLabelPx?: number;
 }
 
-function DimLabel({ d, view, text, active, estimated }: { d: WallDimension; view: View; text: string; active: boolean; estimated: boolean }) {
+const DimLabel = memo(function DimLabel({ d, view, text, active, estimated }: { d: WallDimension; view: View; text: string; active: boolean; estimated: boolean }) {
   const p = dimLabelScreenPos(view, d);
   const w = text.length * 6.6 + 8;
   return (
@@ -59,9 +61,10 @@ function DimLabel({ d, view, text, active, estimated }: { d: WallDimension; view
       />
     </Label>
   );
-}
+});
 
 export function OverlayLayer(props: Props) {
+  countRender('OverlayLayer');
   const { level, view, rooms, dims, units, selection, overlay, showMarkers } = props;
   const selectedWall = selection?.kind === 'wall' ? level.walls.find((w) => w.id === selection.id) : undefined;
   const handleIds = new Set<string>();
@@ -268,7 +271,7 @@ function Cross({ p }: { p: Vec2 }) {
 }
 
 /** A note on the plan, at a constant screen size. `ghost` is the preview while placing. */
-function NoteShape({
+const NoteShape = memo(function NoteShape({
   note,
   view,
   units,
@@ -360,7 +363,7 @@ function NoteShape({
       {selected && <EndHandle p={b} />}
     </Group>
   );
-}
+});
 
 function EndHandle({ p }: { p: Vec2 }) {
   return <Circle x={p.x} y={p.y} radius={7} fill="#ffffff" stroke={COLORS.accent} strokeWidth={2.5} />;

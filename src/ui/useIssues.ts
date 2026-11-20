@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import type { Level, Project } from '../model/types';
 import { useLevel, useStore } from '../model/store';
 import { runRules, type Issue } from '../rules/engine';
@@ -32,5 +32,14 @@ export function useLevelIssues(): Issue[] {
   const level = useLevel();
   const project = useStore((s) => s.project);
   const units = useStore((s) => s.units);
-  return useMemo(() => (level ? issuesFor(level, project, units) : []), [level, project, units]);
+  // While a piece or wall is being dragged the layout changes on every pointer move; checking all
+  // the rules each time would cost more than drawing it. Show the last result until she lets go.
+  const dragging = useStore((s) => s.gesture !== null);
+  const last = useRef<Issue[]>([]);
+  const issues = useMemo(
+    () => (dragging ? last.current : level ? issuesFor(level, project, units) : []),
+    [level, project, units, dragging],
+  );
+  last.current = issues;
+  return issues;
 }

@@ -1,3 +1,4 @@
+import { countRender } from '../perf';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Group, Layer, Rect, Stage } from 'react-konva';
 import type Konva from 'konva';
@@ -36,6 +37,7 @@ import { editOpening } from '../geometry/openingEdits';
 import { COLORS } from './theme';
 import { canvasApi } from './canvasApi';
 import { ContextMenu } from './ContextMenu';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { hitForContext, type ContextHit } from './contextMenu';
 import { selectHit } from './contextActions';
 
@@ -66,6 +68,17 @@ function toolFor(mode: Mode, tool: Tool): ToolHandler {
   if (mode === 'furnish' && tool === 'select') return furnishSelectTool;
   return TOOLS[tool] ?? selectTool;
 }
+/** Two overlays that draw the same thing (undefined fields count as missing; points compare by value). */
+export function sameOverlay(a: unknown, b: unknown, depth = 0): boolean {
+  if (a === b) return true;
+  if (depth > 4 || typeof a !== 'object' || typeof b !== 'object' || !a || !b) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a).filter((k) => (a as Record<string, unknown>)[k] !== undefined);
+  const kb = Object.keys(b).filter((k) => (b as Record<string, unknown>)[k] !== undefined);
+  if (ka.length !== kb.length) return false;
+  return ka.every((k) => sameOverlay((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], depth + 1));
+}
+
 function currentTool(): ToolHandler {
   const s = useStore.getState();
   return toolFor(s.mode, s.tool);
@@ -83,6 +96,7 @@ interface LabelEdit {
 }
 
 export function PlanCanvas() {
+  countRender('PlanCanvas');
   const level = useLevel();
   const project = useStore((s) => s.project);
   const levelId = useStore((s) => s.levelId);
@@ -103,7 +117,15 @@ export function PlanCanvas() {
   const [view, setView] = useState<View>({ scale: 0.1, x: 0, y: 0 });
   const viewRef = useRef(view);
   viewRef.current = view;
-  const [overlay, setOverlay] = useState<Overlay>({});
+  const [overlay, setOverlayRaw] = useState<Overlay>({});
+  // Hovering produces a new overlay on every pointer move even when nothing under the pointer
+  // changed; keep the old one then, so the whole plan is not redrawn for nothing.
+  const setOverlay = useCallback((v: Overlay | ((o: Overlay) => Overlay)) => {
+    setOverlayRaw((prev) => {
+      const next = typeof v === 'function' ? v(prev) : v;
+      return sameOverlay(prev, next) ? prev : next;
+    });
+  }, []);
   const [labelEdit, setLabelEdit] = useState<LabelEdit | null>(null);
   const [calib, setCalib] = useState<{ p1: Vec2; p2: Vec2; text: string; error?: string } | null>(null);
   const fittedFor = useRef<string>('');
@@ -148,13 +170,15 @@ export function PlanCanvas() {
     setMenu(null);
   }, [tool, levelId, mode]);
 
+  // Wall geometry depends only on the corners and walls, so moving furniture or editing a note keeps it.
   const derived = useMemo(() => {
     if (!level) return null;
     const joints = computeJoints(level);
     const rooms = detectRooms(level, joints);
     const dims = wallDimensions(level, joints, rooms);
     return { joints, rooms, dims };
-  }, [level]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [level?.nodes, level?.walls, level?.id]);
 
   const openLabelEditor = useCallback(
     (d: WallDimension) => {
@@ -634,6 +658,7 @@ export function PlanCanvas() {
       {size.w > 0 && (
         <Stage width={size.w} height={size.h} ref={stageRef} listening={false}>
           <Layer listening={false}>
+            <ErrorBoundary scope="canvas">
             <Rect x={0} y={0} width={size.w} height={size.h} fill={COLORS.paper} />
             <Group x={view.x} y={view.y} scaleX={view.scale} scaleY={view.scale}>
               {level.underlay && <UnderlayImage underlay={level.underlay} />}
@@ -660,8 +685,10 @@ export function PlanCanvas() {
               <StairShapes stairs={level.stairs} project={project} />
               <HighlightShapes level={level} project={project} joints={derived.joints} highlight={highlight} />
             </Group>
+            </ErrorBoundary>
           </Layer>
           <Layer listening={false}>
+            <ErrorBoundary scope="canvas">
             <OverlayLayer
               level={level}
               view={view}
@@ -685,6 +712,7 @@ export function PlanCanvas() {
               ghost={itemGhost}
               marquee={overlay.marquee}
             />
+            </ErrorBoundary>
           </Layer>
         </Stage>
       )}

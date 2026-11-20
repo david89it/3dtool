@@ -1,9 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
+import { CrashGate, ErrorBoundary, installGlobalErrorToasts } from './ui/ErrorBoundary';
 import { useStore } from './model/store';
-import { flushSave, loadSavedProject, loadSettings, markTourSeen, startAutosave } from './model/persistence';
-import { createStartProject } from './model/firstRun';
+import { flushSave, loadForBoot, loadSettings, markTourSeen, startAutosave } from './model/persistence';
+import { createEmptyProject, createStartProject } from './model/firstRun';
 import { loadAdviceEnabled, loadApiKey } from './advice/keyStore';
 import { canvasApi } from './editor2d/canvasApi';
 import './ui/styles.css';
@@ -13,16 +14,21 @@ async function boot() {
   if (settings.units) useStore.getState().setUnits(settings.units);
   if (settings.showMarkers !== undefined) useStore.getState().setShowMarkers(settings.showMarkers);
   if (settings.showAllClearances !== undefined) useStore.getState().setShowAllClearances(settings.showAllClearances);
-  const [adviceOn, key] = await Promise.all([loadAdviceEnabled(), loadApiKey()]);
-  useStore.getState().setAdviceState({ enabled: adviceOn, keySaved: !!key });
-  const saved = await loadSavedProject();
-  const project = saved ?? (await createStartProject());
+  try {
+    const [adviceOn, key] = await Promise.all([loadAdviceEnabled(), loadApiKey()]);
+    useStore.getState().setAdviceState({ enabled: adviceOn, keySaved: !!key });
+  } catch {
+    // Ask Claude is optional; the plan opens without it.
+  }
+  // A start that fails (the seed cannot load) still opens an empty plan rather than the loading message forever.
+  const { project, notices } = await loadForBoot(() => createStartProject().catch(() => createEmptyProject()));
   useStore.getState().loadProject(project);
-  if (!saved) await flushSave();
+  // Writes the starting plan on a first visit; does nothing when saving is paused or the plan came from storage.
+  await flushSave();
   startAutosave();
+  for (const n of notices) useStore.getState().toast(n.text, n.tone);
   // First run: a short tour. `?notour` in the address skips it (tests, demos).
   if (!settings.tourSeen && !/[?&]notour\b/.test(window.location.search)) useStore.getState().setTourStep(0);
-  window.addEventListener('pagehide', () => void flushSave());
 }
 
 if (import.meta.env.DEV) {
@@ -38,9 +44,19 @@ if (import.meta.env.DEV) {
   };
 }
 
-createRoot(document.getElementById('root')!).render(
+installGlobalErrorToasts();
+createRoot(document.getElementById('root') ?? document.body).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <CrashGate>
+        <App />
+      </CrashGate>
+    </ErrorBoundary>
   </StrictMode>,
 );
-void boot();
+boot().catch((e) => {
+  // Last resort: never leave "Opening your plan…" on screen for good.
+  console.error('Flat Planner could not start', e);
+  if (!useStore.getState().ready) useStore.getState().loadProject(createEmptyProject());
+  useStore.getState().toast('Flat Planner had trouble starting. Your saved plan has not been changed.', 'warn');
+});

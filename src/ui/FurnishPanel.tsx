@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import Fuse from 'fuse.js';
+import { countRender } from '../perf';
 import type { CatalogueItem } from '../model/types';
 import { useStore } from '../model/store';
 import { CATEGORY_LABEL } from '../catalogue/items';
@@ -35,7 +36,9 @@ export function ItemPreview({ item, size = 44 }: { item: CatalogueItem; size?: n
 }
 
 export function FurnishPanel() {
-  const project = useStore((s) => s.project);
+  countRender('FurnishPanel');
+  // Only her own items matter here; the list and its search index must not be rebuilt on every drag.
+  const overrides = useStore((s) => s.project.catalogueOverrides);
   const units = useStore((s) => s.units);
   const tool = useStore((s) => s.tool);
   const placeItemId = useStore((s) => s.placeItemId);
@@ -47,7 +50,7 @@ export function FurnishPanel() {
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const drag = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
 
-  const items = useMemo(() => allCatalogue(project), [project]);
+  const items = useMemo(() => allCatalogue({ catalogueOverrides: overrides }), [overrides]);
   const fuse = useMemo(
     () =>
       new Fuse(items, {

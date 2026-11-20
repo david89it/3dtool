@@ -1,0 +1,41 @@
+# Type check, unit tests and a production build on every push and pull request.
+# Fast on purpose (about a minute). The Playwright end-to-end tests are not run
+# here: they need a browser (`npx playwright install --with-deps chromium`) and
+# take several minutes. Run them locally before merging: `npx playwright test --trace off`.
+
+name: Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Run JavaScript actions on Node 24 now (GitHub's default from 2026); Node 20 is deprecated.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npx tsc -b
+      - name: Unit tests
+        run: npx vitest run
+      - name: Production build (public, no private seed)
+        run: npx vite build
+        env:
+          VITE_PUBLIC_BUILD: '1'
