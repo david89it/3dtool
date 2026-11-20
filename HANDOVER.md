@@ -242,6 +242,11 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-20 · review · Stability and performance review (`CODE_REVIEW.md`): `model/repair.ts`
+  repairs damaged plans on load, start-up never replaces a plan it could not read, autosave saves
+  after drags and retries, error boundaries (`ui/ErrorBoundary.tsx`), memoised plan layers, lazy
+  panels, `.github/workflows/test.yml`, `scripts/perf-browser.mjs` (dev server) and `src/perf.ts`
+  render counters.
 - 2026-11-11 · pack-2 · Compare with a version in the print view
   (`print/compare.ts`, `compare.test.ts`, `state.ts` remembers the choice),
   removed walls on cover and structural page, ghost walls in `renderLevel.tsx`,
