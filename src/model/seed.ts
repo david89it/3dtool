@@ -12,7 +12,10 @@
 // (0, 0) is the inside corner of the rear wall and the left party wall.
 
 import type { Id, Level, Opening, Project, Vec2, WallKind, Structural, Marker } from './types';
-import { addWall, wallEnds } from '../geometry/wallGraph';
+import { addWall, findWallNear, wallEnds } from '../geometry/wallGraph';
+import { CATALOGUE } from '../catalogue/items';
+import { newPlacedItem } from '../catalogue/catalogue';
+import { DEFAULT_KNEE, DEFAULT_PITCH } from '../geometry/roof';
 import { detectRooms, syncRooms } from '../geometry/rooms';
 import { dot, norm, perpL, pointInPolygon, projectOnSegment, sub, dist } from '../geometry/vec';
 import { uid } from './ids';
@@ -145,6 +148,25 @@ function chimneyBreast(level: Level, y0: number, y1: number, depth = 320): void 
   wall(level, [fx, y1 - 50], [-115, y1 - 50], 'party', { thickness: 100 });
 }
 
+/**
+ * The chimney breast as a catalogue piece too, so it can be resized and counted by the
+ * rules: a masonry box on the left party wall from y0 to y1, up to the ceiling. The size
+ * is a guess from the plan, so it is marked estimated until measured.
+ */
+function chimneyItem(level: Level, y0: number, y1: number, depth = 320): void {
+  const cat = CATALOGUE.find((c) => c.id === 'chimney-breast')!;
+  const mid = (y0 + y1) / 2;
+  const it = newPlacedItem(cat, { x: depth / 2, y: mid }, 270); // back to the party wall, front into the room
+  it.dims = { w: y1 - y0, d: depth, h: level.ceilingHeight };
+  it.estimated = true;
+  const hit = findWallNear(level, { x: -115, y: mid }, 5);
+  if (hit) {
+    const [a] = wallEnds(level, hit.wall);
+    it.mountedTo = { wallId: hit.wall.id, offset: Math.round(dist(a, hit.point)) };
+  }
+  level.items.push(it);
+}
+
 function groundFloor(): Level {
   const L = emptyLevel(LEVEL_IDS.ground, 'Ground floor', 0, 2700);
   // Narrow entrance hall and stair, off the communal hallway, under the
@@ -190,6 +212,8 @@ function firstFloor(): Level {
   wall(L, [3500, 3790], [4635, 3790], 'internal');
   chimneyBreast(L, 1010, 2630);
   chimneyBreast(L, 4390, 6020);
+  chimneyItem(L, 1010, 2630);
+  chimneyItem(L, 4390, 6020);
 
   opening(L, 'window', [605, -165], [1605, -165], { sill: 900, height: 1500 });
   opening(L, 'door', [2860, 2550], [2860, 3300], { into: [2400, 3000], hinge: 'q' });
@@ -289,6 +313,8 @@ function secondFloor(): Level {
   wall(L, [3790, 4580], [4635, 4580], 'internal');
   chimneyBreast(L, 1010, 2620);
   chimneyBreast(L, 4480, 5870);
+  chimneyItem(L, 1010, 2620);
+  chimneyItem(L, 4480, 5870);
 
   opening(L, 'window', [605, -165], [1605, -165], { sill: 800, height: 1500 });
   opening(L, 'window', [3215, -165], [4205, -165], { sill: 800, height: 1500 });
@@ -332,7 +358,34 @@ function secondFloor(): Level {
 
 function loft(): Level {
   const L = emptyLevel(LEVEL_IDS.loft, 'Loft', 8800, 2200);
+  // Not measured yet: the walls are copied from the floor below, so the loft fills the same
+  // footprint. The ridge is guessed to run along the street (front to back slopes).
+  wall(L, [-115, -165], [4635, -165], 'external');
+  wall(L, [4635, -165], [4635, 7065], 'party');
+  wall(L, [4635, 7065], [-115, 7065], 'external');
+  wall(L, [-115, 7065], [-115, -165], 'party');
+  nameRooms(L, [{ at: [2260, 3400], name: 'Loft' }]);
+  const room = L.rooms.find((r) => r.name === 'Loft');
+  const back = findWallNear(L, { x: 2000, y: -165 }, 5)?.wall;
+  const front = findWallNear(L, { x: 2000, y: 7065 }, 5)?.wall;
+  if (room && back && front) {
+    room.slopes = [back, front].map((w) => ({ id: uid('sl'), wallId: w.id, kneeHeight: DEFAULT_KNEE, pitchDeg: DEFAULT_PITCH, estimated: ['knee', 'pitch'] }));
+  }
+  // The stair up from the second floor arrives here (same place, other end).
+  L.stairs.push({
+    id: uid('s'),
+    pos: { x: 3330, y: 2300 },
+    rotationDeg: -90,
+    width: 700,
+    length: 1300,
+    toLevelId: LEVEL_IDS.second,
+    direction: 'down',
+  });
   marker(L, [2260, 3400], 'Dimensions unknown, measure on site.');
+  marker(L, [2260, 3800], 'Loft walls are copied from the floor below. Measure the room.');
+  marker(L, [2260, 500], 'Roof slope, back wall: knee-wall height (about 90 cm) and pitch (about 35 degrees) are estimated. Measure both.');
+  marker(L, [2260, 6400], 'Roof slope, front wall: knee-wall height (about 90 cm) and pitch (about 35 degrees) are estimated. Measure both.');
+  marker(L, [2260, 3000], 'Flat ceiling height (about 2.2 m) between the slopes: estimated. Measure.');
   return L;
 }
 

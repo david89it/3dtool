@@ -90,6 +90,10 @@ export function cloneLevel(src: Level): Level {
   for (const r of copy.rooms) {
     r.id = uid('r');
     r.boundary = r.boundary.map((id) => map.get(id) ?? id);
+    for (const sl of r.slopes ?? []) {
+      sl.id = uid('sl');
+      sl.wallId = map.get(sl.wallId) ?? sl.wallId;
+    }
   }
   const items = new Map<Id, Id>();
   for (const it of copy.items) {

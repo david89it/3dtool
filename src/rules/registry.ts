@@ -10,14 +10,15 @@
 // `required` it is reported at the rule's severity, between `required` and
 // `ideal` it is a tip, at or above `ideal` it is fine and dropped.
 
-import type { Id } from '../model/types';
+import type { Id, Vec2 } from '../model/types';
 import { itemParts } from '../catalogue/catalogue';
 import { needsStructuralBadge, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
 import { dist, dot, sub } from '../geometry/vec';
 import { makePlaced, solidDistance, solidsOverlap, type Placed, type RuleContext, type Hit } from './context';
 import { activeLevelsResolved, groupOf } from '../model/schemes';
-import { blockedBedrooms, buildEscapeGraph, escapeGeometry, escapeWords, newKitchenJoins } from './escape';
+import { blockedBedrooms, buildEscapeGraph, escapeGeometry, escapeWords, kitchensOntoRoute, newKitchenJoins } from './escape';
 import { convexOverlap, pointPolyDistance, polyDistance, strip } from './poly';
+import { heightAt, resolveSlopes } from '../geometry/roof';
 
 export type Severity = 'error' | 'warning' | 'tip';
 export type Params = Record<string, number>;
@@ -686,6 +687,26 @@ export const RULES: Rule[] = [
           key: edge.openingId,
         });
       }
+      for (const j of kitchensOntoRoute(g, ctx.level.id)) {
+        const stairs = j.hall.outside || /stair/i.test(j.hall.name);
+        const where = stairs ? 'the stairs' : 'the hall';
+        const isDoor = j.joint === 'door';
+        out.push({
+          itemIds: [],
+          wallIds: [...new Set(j.edges.flatMap((e) => (e.wallId ? [e.wallId] : [])))],
+          measured: 1,
+          required: 0,
+          severity: isDoor ? 'tip' : 'warning',
+          message:
+            `The ${j.kitchen.openPlan || !isDoor ? 'open kitchen' : 'kitchen'} opens onto ${where}, which ${stairs ? 'are' : 'is'} the way out from the bedrooms. A fire in the kitchen could block ${stairs ? 'them' : 'it'}. ` +
+            `This usually needs a fire door between them (FD30, self-closing) or a protected hall. Ask Building Control.` +
+            (isDoor ? ' The joining opening is a door, which may already be a fire door: check it is.' : ' The joining opening has no door.') +
+            ' This is guidance, not a compliance check.',
+          roomName: j.kitchen.name,
+          roomId: j.kitchen.roomId,
+          key: `kitchen-onto-route:${j.hall.id}`,
+        });
+      }
       if (!g.entranceFound && ctx.level.rooms.some((r) => /bed/i.test(r.name))) {
         out.push({
           itemIds: [],
@@ -706,23 +727,66 @@ export const RULES: Rule[] = [
     scope: 'item',
     severity: 'warning',
     fixable: false,
-    params: { margin: 50 },
-    paramLabels: { margin: 'Space to leave under the ceiling' },
+    params: { margin: 50, bedHead: 1300, standing: 1800 },
+    paramLabels: {
+      margin: 'Space to leave under the ceiling',
+      bedHead: 'Ceiling height over the head of a bed (to sit up)',
+      standing: 'Ceiling height where you stand at a cupboard or worktop',
+    },
     applies: (p) => has(p, 'loft-headroom') && p.cat.mount !== 'ceiling',
-    measure: (p, ctx, { margin }) => {
-      const room = ctx.roomOf(p).room;
-      const ceiling = room?.ceilingHeight ?? ctx.level.ceilingHeight;
-      if (p.top <= ceiling - margin) return [];
-      return [
-        {
+    measure: (p, ctx, { margin, bedHead, standing }) => {
+      const { room, detected } = ctx.roomOf(p);
+      const flat = room?.ceilingHeight ?? ctx.level.ceilingHeight;
+      // Under a sloped roof the ceiling is lower toward the wall: use the real height at each spot.
+      const slopes = resolveSlopes(ctx.level, room, detected);
+      const heightAtPoint = (pt: Vec2) => heightAt(slopes, flat, pt);
+      const [bl, br, fr, fl] = p.poly;
+      const mid = (a: Vec2, b: Vec2): Vec2 => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+      const spots = [bl, br, fr, fl, mid(bl, br), mid(br, fr), mid(fr, fl), mid(fl, bl), p.centre];
+      const lowest = Math.min(...spots.map(heightAtPoint));
+      const out: Finding[] = [];
+      if (p.top > lowest - margin) {
+        out.push({
           itemIds: [p.item.id],
           measured: p.top,
-          required: ceiling - margin,
+          required: lowest - margin,
           severity: 'warning',
-          message: `${name(p)} is ${ctx.fmt(p.top)} tall and the ceiling here is ${ctx.fmt(ceiling)}. It may not fit, especially where the roof slopes.`,
+          message: slopes.length
+            ? `${name(p)} is ${ctx.fmt(p.top)} tall, but the sloping ceiling above it comes down to ${ctx.fmt(lowest)} at its lowest edge. It will not fit there.`
+            : `${name(p)} is ${ctx.fmt(p.top)} tall and the ceiling here is ${ctx.fmt(flat)}. It may not fit, especially where the roof slopes.`,
           roomItem: p,
-        },
-      ];
+        });
+      }
+      if (slopes.length && p.cat.category === 'sleep') {
+        // Sitting up in bed: the ceiling over the pillow end.
+        const head = mid(bl, br);
+        const over = heightAtPoint({ x: head.x + p.front.x * 300, y: head.y + p.front.y * 300 });
+        out.push({
+          itemIds: [p.item.id],
+          measured: over,
+          required: bedHead,
+          ideal: bedHead + 200,
+          subject: `Ceiling over the head of the ${lname(p)}`,
+          need: 'to sit up in bed without bumping your head',
+          roomItem: p,
+          key: 'bed-head',
+        });
+      }
+      if (slopes.length && ['storage', 'kitchen', 'bath', 'utility'].includes(p.cat.category)) {
+        // Standing in front of it to use it.
+        const fc = mid(fl, fr);
+        const at = heightAtPoint({ x: fc.x + p.front.x * 450, y: fc.y + p.front.y * 450 });
+        out.push({
+          itemIds: [p.item.id],
+          measured: at,
+          required: standing,
+          subject: `Ceiling where you stand at the ${lname(p)}`,
+          need: 'to stand up straight to use it',
+          roomItem: p,
+          key: 'standing',
+        });
+      }
+      return out;
     },
   },
 ];

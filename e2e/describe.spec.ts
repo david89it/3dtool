@@ -74,6 +74,12 @@ test('describe a piece: preview, edit a size, add, find under Your items, place,
     });
   });
   await freshStart(page);
+  // The seed's chimney breast pieces are not part of this test: take them off.
+  await page.evaluate(() =>
+    (window as any).__flatplan.store.setState((st: any) => ({
+      project: { ...st.project, levels: st.project.levels.map((l: any) => ({ ...l, items: l.items.filter((i: any) => i.catalogueId !== 'chimney-breast') })) },
+    })),
+  );
 
   await page.getByRole('button', { name: 'Furnish', exact: true }).click();
 
@@ -251,6 +257,12 @@ test('shop page link: real sizes, colour and shape from the page, link and price
     stop_reason: 'end_turn',
   }));
   await freshStart(page);
+  // The seed's chimney breast pieces are not part of this test: take them off.
+  await page.evaluate(() =>
+    (window as any).__flatplan.store.setState((st: any) => ({
+      project: { ...st.project, levels: st.project.levels.map((l: any) => ({ ...l, items: l.items.filter((i: any) => i.catalogueId !== 'chimney-breast') })) },
+    })),
+  );
   await enableClaude(page);
 
   await page.getByLabel('Shop link or picture link (optional)').fill(PAGE_URL);

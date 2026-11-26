@@ -7,6 +7,8 @@ import { pointInPolygon } from '../geometry/vec';
 import { CATALOGUE } from '../catalogue/items';
 import { newPlacedItem } from '../catalogue/catalogue';
 import { runRules } from './engine';
+import { buildSeedProject, LEVEL_IDS } from '../model/seed';
+import { deleteWall } from '../geometry/wallGraph';
 import type { RuleProject } from './context';
 
 const project = { catalogueOverrides: [] };
@@ -86,7 +88,8 @@ const escapeIssues = (L: Level, prj: RuleProject = project) => runRules(L, prj).
 
 describe('fire-escape rule', () => {
   it('passes when the bedroom reaches the front door through a hall', () => {
-    expect(escapeIssues(flat(true))).toEqual([]);
+    // No warning. The kitchen door onto the hall only gets the "check it is a fire door" note (see below).
+    expect(escapeIssues(flat(true)).filter((i) => i.severity !== 'tip')).toEqual([]);
   });
 
   it('warns when the bedroom opens into an open kitchen-living room with the front door', () => {
@@ -129,7 +132,7 @@ describe('fire-escape rule', () => {
     const L = flat(true);
     door(L, { x: 4500, y: 2000 }, { existing: undefined, type: 'opening', width: 1500 }, 'opening');
     const issues = escapeIssues(L);
-    const note = issues.find((i) => i.severity === 'tip');
+    const note = issues.find((i) => i.message.includes('new opening'));
     expect(note).toBeTruthy();
     expect(note!.message).toContain('new opening');
     expect(note!.message).toContain('Reception');
@@ -201,6 +204,108 @@ describe('fire-escape rule', () => {
       const w = warnings(U, [ground(), U]);
       expect(w).toHaveLength(1);
       expect(w[0].roomName).toBe('Bedroom 1');
+    });
+  });
+
+  describe('kitchen that opens onto the stairs or hall', () => {
+    const onto = (L: Level, prj: RuleProject = project) => escapeIssues(L, prj).filter((i) => i.message.includes('opens onto'));
+
+    it('gives an info note when the kitchen joins the hall by a door', () => {
+      const n = onto(flat(true));
+      expect(n).toHaveLength(1);
+      expect(n[0].severity).toBe('tip');
+      expect(n[0].roomName).toBe('Kitchen');
+      expect(n[0].message).toContain('The kitchen opens onto the hall, which is the way out from the bedrooms.');
+      expect(n[0].message).toContain('FD30, self-closing');
+      expect(n[0].message).toContain('Ask Building Control');
+      expect(n[0].message).toContain('check it is');
+    });
+
+    it('warns when the kitchen joins the hall by a cased opening with no door', () => {
+      const L = flat(true);
+      for (const w of L.walls) for (const o of w.openings) if (o.id.endsWith('-3200-1000')) o.type = 'opening';
+      const n = onto(L);
+      expect(n).toHaveLength(1);
+      expect(n[0].severity).toBe('warning');
+      expect(n[0].message).toContain('The open kitchen opens onto the hall');
+      expect(n[0].message).toContain('The joining opening has no door');
+      expect(n[0].wallIds).toHaveLength(1);
+    });
+
+    it('says nothing when no bedroom uses that hall, or the kitchen is closed off', () => {
+      const L = flat(true);
+      L.items = L.items.filter((i) => !i.catalogueId.startsWith('bed-'));
+      name(L, { x: 1000, y: 2000 }, 'Study');
+      expect(onto(L)).toEqual([]);
+      const closed = flat(true);
+      for (const w of closed.walls) w.openings = w.openings.filter((o) => !o.id.endsWith('-3200-1000'));
+      expect(onto(closed)).toEqual([]);
+    });
+
+    it('does not report the kitchen that has the front door itself', () => {
+      expect(onto(flat(false))).toEqual([]);
+    });
+
+    describe('on the seed', () => {
+      const first = (p: ReturnType<typeof buildSeedProject>) => p.levels.find((l) => l.id === LEVEL_IDS.first)!;
+      const prj = (p: ReturnType<typeof buildSeedProject>) => ({ catalogueOverrides: [], levels: p.levels });
+
+      /** Seed with the kitchen/reception partition taken out. The merged room keeps one of the two names. */
+      function opened() {
+        const p = buildSeedProject();
+        const L = first(p);
+        const pos = new Map(L.nodes.map((n) => [n.id, n.pos] as const));
+        for (const w of [...L.walls]) {
+          const a = pos.get(w.a)!;
+          const b = pos.get(w.b)!;
+          if (a.y === 3370 && b.y === 3370 && Math.max(a.x, b.x) <= 2860) deleteWall(L, w.id);
+        }
+        syncRooms(L);
+        return { p, L };
+      }
+
+      it('notes the kitchen door onto the stairs as it is today', () => {
+        const p = buildSeedProject();
+        const n = onto(first(p), prj(p));
+        expect(n.length).toBeGreaterThan(0);
+        expect(n.every((i) => i.severity === 'tip')).toBe(true);
+        expect(n[0].message).toContain('opens onto the stairs, which are the way out from the bedrooms');
+      });
+
+      it('with the kitchen/reception wall removed, the open kitchen onto the stairs is an info note while the joints are doors', () => {
+        const { p, L } = opened();
+        L.rooms[0].name = 'Kitchen';
+        const n = onto(L, prj(p));
+        expect(n).toHaveLength(1);
+        expect(n[0].severity).toBe('tip');
+        expect(n[0].roomName).toBe('Kitchen');
+        expect(n[0].message).toContain('The open kitchen opens onto the stairs, which are the way out from the bedrooms.');
+        expect(n[0].message).toContain('A fire in the kitchen could block them.');
+        expect(n[0].message).toContain('check it is');
+        // No new "way out goes through the kitchen" warning: the bedrooms still leave by the stair.
+        expect(escapeIssues(L, prj(p)).filter((i) => i.severity === 'warning')).toEqual([]);
+      });
+
+      it('with the wall out the merged room is called Reception, so it counts as the kitchen once a hob is in it', () => {
+        const { p, L } = opened();
+        expect(L.rooms.map((r) => r.name)).toEqual(['Reception']);
+        expect(onto(L, prj(p))).toEqual([]); // no cooking yet
+        put(L, 'kitchen-hob', 1400, 1000);
+        const n = onto(L, prj(p));
+        expect(n).toHaveLength(1);
+        expect(n[0].roomName).toBe('Reception');
+        expect(n[0].message).toContain('The open kitchen opens onto the stairs'); // 20 m² or more: open plan
+      });
+
+      it('becomes a warning if the open kitchen joins the stairs by a cased opening', () => {
+        const { p, L } = opened();
+        L.rooms[0].name = 'Kitchen';
+        for (const w of L.walls) for (const o of w.openings) if (o.type === 'door') o.type = 'opening';
+        const n = onto(L, prj(p));
+        expect(n).toHaveLength(1);
+        expect(n[0].severity).toBe('warning');
+        expect(n[0].message).toContain('The open kitchen opens onto the stairs');
+      });
     });
   });
 });

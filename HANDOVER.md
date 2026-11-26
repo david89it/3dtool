@@ -4,7 +4,7 @@ The one document to read before working on Flat Planner. It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-20, after Report a problem.
+Last updated: 2026-11-26, after loft slopes and chimney breasts.
 
 ## 1. What this is
 
@@ -210,8 +210,8 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 
 **Next, in order:**
 
-1. Sloped loft and chimney breasts after site visit (sloped loft ceiling and
-   chimney-breast objects).
+1. Site visit: type in the numbers marked ≈ (loft knee wall height, pitch, flat ceiling height, loft
+   outline and ridge direction; chimney breast sizes). Everything else for the loft and chimneys is built.
 **Backlog (tracked, not scheduled):**
 
 - From `UX_REVIEW.md`: no P2 items left except keys 1 to 5 for the modes and the P3 polish list.
@@ -232,13 +232,13 @@ side-by-side compare, live Pinterest sync, fps meter.
   lights, no sun shadows or furniture lights; floors that were added or
   deleted since the version are ignored; the structural pin is not tappable in
   Furnish mode; notes can only be selected in Trace mode.
-- No roof slope model.
+- Roof slopes: planes from one or two walls only (no hips, dormers or off-axis ridge); the seed loft's outline is copied from the second floor and the ridge direction is a guess; no head collision in walk mode (eye height is clamped, and you cannot step under 1.1 m). The seed's chimney pieces overlap the old solid masses in 3D (same colour).
 - Materials: schemes do not include single-face wall paint; a window or door
   between two rooms takes the woodwork colour of the room on the wall's left;
   skirting is straight boxes (no mitres at corners); the face-click path has
   unit tests but no end-to-end click test; paint colours are chosen by eye.
 - Wall-hung items follow their wall (`src/model/mounted.ts`), but one on a wall removed by merging corners is detached, and a wide one can overhang the end of a short wall.
-- Fire escape rule (`src/rules/escape.ts`) is guidance only: it checks routes through the kitchen, not distances, door ratings or a kitchen open to the stair. The seed does not warn after opening the kitchen into the reception (its bedrooms leave by the stair, not through the kitchen).
+- Fire escape rule (`src/rules/escape.ts`) is guidance only: it checks routes through the kitchen and a kitchen that opens onto the stair or hall on the bedrooms' way out (door = info, cased opening = warning), not distances or door ratings. The seed does not warn after opening the kitchen into the reception (its bedrooms leave by the stair, not through the kitchen).
 - The building floats in 3D because only the entrance hall is modelled at
   ground level.
 - Seed stairs are rough.
@@ -268,6 +268,12 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 ## 8. Log (newest first, one line each)
 
 - 2026-11-26 · ipad-ux · Details panel on selection under 1000 px, window focus trap and Esc fix, typeable note length and image rotation, two-row top chrome with a More menu at 1100 px and under; `e2e/ipad-ux.spec.ts`.
+- 2026-11-26 · loft · Sloped ceilings (`Room.slopes`, `geometry/roof.ts`, `RoofLayer`, room panel *Sloped ceiling*,
+  3D ceiling planes and cut walls in `sceneBuild.ts`, walk eye clamp in `walkPhysics.ts`/`WalkRig.tsx`,
+  `loft-headroom` reads the real height), seed Loft with walls and estimated slopes, Chimney breast item
+  (`measureNote`, `PlacedItem.estimated`) placed on the seed, fire-escape note for a kitchen opening onto the
+  stairs (`kitchensOntoRoute`). Tests `roof.test.ts`, `chimney.test.ts`, `escape.test.ts`, `e2e/loft.spec.ts`.
+
 - 2026-11-26 · safety · Copy reminder, single editor tab (BroadcastChannel hand-over, flush before release, reload from
   storage), Recovered backups in Settings, `nodePos` made safe; tests `copyReminder`, `tabOwnership`, `backups`,
   `wallGraph`, `e2e/safety.spec.ts`. See DECISIONS.

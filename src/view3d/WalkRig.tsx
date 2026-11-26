@@ -8,7 +8,8 @@ import { PointerLockControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Level, Project, Vec2 } from '../model/types';
 import { add, mul } from '../geometry/vec';
-import { EYE_HEIGHT, floorHeightAt, levelObstacles, levelUnderFeet, resolveCollision, stairRamps, WALK_SPEED, type Obstacles } from './walkPhysics';
+import { eyeHeightFor, floorHeightAt, headroomAllows, levelObstacles, levelUnderFeet, resolveCollision, stairRamps, WALK_SPEED, type Obstacles } from './walkPhysics';
+import { slopeZones, zoneHeightAt, type SlopeZone } from '../geometry/roof';
 import { biggestRoom, MM } from './sceneBuild';
 
 const scratch = new THREE.Vector3();
@@ -58,6 +59,18 @@ export function WalkRig({ levels, project, startLevel, touch, onLevelChange, spa
     return m;
   }, [levels, project]);
 
+  // Sloped ceilings (a loft): your eyes may not go through the roof, and you cannot walk where it is too low to stand.
+  const zones = useMemo(() => {
+    const m = new Map<string, SlopeZone[]>();
+    for (const L of levels) m.set(L.id, slopeZones(L));
+    return m;
+  }, [levels]);
+  const headroomAt = (p: Vec2, feet: number): number | undefined => {
+    const L = levelUnderFeet(feet, levels);
+    const h = L ? zoneHeightAt(zones.get(L.id) ?? [], p) : undefined;
+    return h === undefined || !L ? undefined : L.elevation + h - feet;
+  };
+
   // Start in the middle of the current floor's biggest room, looking along it.
   useEffect(() => {
     const room = biggestRoom(startLevel);
@@ -69,7 +82,7 @@ export function WalkRig({ levels, project, startLevel, touch, onLevelChange, spa
     const yaw = spawn ? Math.atan2(-(spawn.face.x - spawn.stand.x), -(spawn.face.y - spawn.stand.y)) : 0;
     camera.rotation.set(0, yaw, 0);
     look.current = { yaw, pitch: 0 };
-    camera.position.set(walkState.pos.x * MM, (walkState.feet + EYE_HEIGHT) * MM, walkState.pos.y * MM);
+    camera.position.set(walkState.pos.x * MM, (walkState.feet + eyeHeightFor(headroomAt(walkState.pos, walkState.feet))) * MM, walkState.pos.y * MM);
     // On entering Walk, and again when "Walk in here" sends a new place to stand.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spawn?.n]);
@@ -124,10 +137,11 @@ export function WalkRig({ levels, project, startLevel, touch, onLevelChange, spa
       const here = levelUnderFeet(walkState.feet, levels);
       const obs = here ? obstacles.get(here.id) : undefined;
       const target = add(walkState.pos, mul(mv, WALK_SPEED * dt));
-      walkState.pos = obs ? resolveCollision(target, obs) : target;
+      const next = obs ? resolveCollision(target, obs) : target;
+      if (headroomAllows(headroomAt(walkState.pos, walkState.feet), headroomAt(next, walkState.feet))) walkState.pos = next;
     }
     walkState.feet = floorHeightAt(walkState.pos, walkState.feet, levels, ramps);
-    camera.position.set(walkState.pos.x * MM, (walkState.feet + EYE_HEIGHT) * MM, walkState.pos.y * MM);
+    camera.position.set(walkState.pos.x * MM, (walkState.feet + eyeHeightFor(headroomAt(walkState.pos, walkState.feet))) * MM, walkState.pos.y * MM);
     const now = levelUnderFeet(walkState.feet, levels);
     if (now && now.id !== walkState.levelId) {
       walkState.levelId = now.id;

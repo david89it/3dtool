@@ -21,6 +21,8 @@ export interface EscapeNode {
   outside: boolean;
   kitchen: boolean;
   bedroom: boolean;
+  /** A kitchen that is one space with the living area (named so, or 20 m² or more). */
+  openPlan?: boolean;
 }
 
 export interface EscapeEdge {
@@ -29,6 +31,8 @@ export interface EscapeEdge {
   levelId: Id;
   wallId?: Id;
   openingId?: Id;
+  /** What joins the two spaces: a door, or a cased opening with no leaf. */
+  joint?: 'door' | 'opening';
   /** Not in the flat today: she added it. */
   isNew: boolean;
   stair?: boolean;
@@ -61,6 +65,11 @@ const isBedItem = (id: string) => id.startsWith('bed-');
 /** Doors and cased openings you can walk through (windows never count). */
 const walkable = (o: Opening) => (o.type === 'door' || o.type === 'opening') && o.sill < 100;
 
+/** A kitchen this big, or named with a living space, is treated as open plan. */
+const OPEN_PLAN_MM2 = 20e6;
+const OPEN_PLAN_NAME = /(kitchen.*(living|reception|diner|dining|lounge|open))|((living|reception|dining|lounge).*kitchen)|open.?plan/i;
+const HALL_NAME = /\b(hall|hallway|landing|stairs?|stairwell|lobby|entrance|corridor)\b/i;
+
 const outsideId = (level: Level) => `${level.id}|OUT`;
 
 interface Walked {
@@ -85,6 +94,7 @@ function walk(level: Level, nodes: Map<string, EscapeNode>, project: EscapeProje
       outside: false,
       kitchen: /kitchen/i.test(name),
       bedroom: /bed/i.test(name),
+      openPlan: d.area >= OPEN_PLAN_MM2 || OPEN_PLAN_NAME.test(name),
     });
   }
   const roomNode = (p: Vec2): string => {
@@ -147,7 +157,7 @@ export function buildEscapeGraph(levels: Level[], project: EscapeProject, geoOf:
         const a = w.roomNode(s[0]);
         const b = w.roomNode(s[1]);
         if (a === b) continue;
-        edges.push({ a, b, levelId: l.id, wallId: wall.id, openingId: o.id, isNew: !o.existing });
+        edges.push({ a, b, levelId: l.id, wallId: wall.id, openingId: o.id, joint: o.type === 'door' ? 'door' : 'opening', isNew: !o.existing });
         if (o.type === 'door') doors.push({ level: l, opening: o, a, b });
       }
     }
@@ -249,6 +259,54 @@ export function newKitchenJoins(g: EscapeGraph, levelId: Id): { edge: EscapeEdge
     out.push({ edge: e, kitchen: a.kitchen ? a : b, other: a.kitchen ? b : a });
   }
   return out;
+}
+
+export interface KitchenOntoRoute {
+  kitchen: EscapeNode;
+  /** The hall or stair space the kitchen opens onto. */
+  hall: EscapeNode;
+  /** 'opening' when any join is a cased opening (no door); else 'door'. */
+  joint: 'door' | 'opening';
+  edges: EscapeEdge[];
+}
+
+/** Hall, landing or stair spaces that a bedroom's way out passes through (not the rooms at the front door itself). */
+function routeSpaces(g: EscapeGraph): Set<string> {
+  const on = new Set<string>();
+  for (const n of g.nodes.values()) {
+    if (!n.bedroom || n.kitchen) continue;
+    const path = route(g, n.id, true) ?? route(g, n.id, false);
+    for (const id of path ?? []) on.add(id);
+  }
+  return on;
+}
+
+/**
+ * Kitchens (or open-plan rooms with a kitchen in them) on this floor that open straight onto
+ * the hall or stairs a bedroom uses to get out. One entry per kitchen and hall; a cased opening
+ * beats a door when there are both.
+ */
+export function kitchensOntoRoute(g: EscapeGraph, levelId: Id): KitchenOntoRoute[] {
+  if (!g.entranceFound) return [];
+  const on = routeSpaces(g);
+  const found = new Map<string, KitchenOntoRoute>();
+  for (const e of g.edges) {
+    if (e.levelId !== levelId || e.stair || !e.joint) continue;
+    const a = g.nodes.get(e.a)!;
+    const b = g.nodes.get(e.b)!;
+    if (a.kitchen === b.kitchen) continue;
+    const kitchen = a.kitchen ? a : b;
+    const hall = a.kitchen ? b : a;
+    if (kitchen.outside || hall.bedroom || !on.has(hall.id)) continue;
+    if (!hall.outside && !HALL_NAME.test(hall.name)) continue;
+    const key = `${kitchen.id}>${hall.id}`;
+    const prev = found.get(key);
+    if (prev) {
+      prev.edges.push(e);
+      if (e.joint === 'opening') prev.joint = 'opening';
+    } else found.set(key, { kitchen, hall, joint: e.joint, edges: [e] });
+  }
+  return [...found.values()];
 }
 
 export const escapeWords = (n: EscapeNode): string => (/kitchen/i.test(n.name) ? 'the kitchen' : `the cooking area (${n.name})`);

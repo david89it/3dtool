@@ -430,6 +430,68 @@ describe('rules: pass and fail', () => {
     expect(bad(low, 'loft-headroom')).toHaveLength(1);
   });
 
+  describe('loft-headroom under a sloped roof', () => {
+    /** 4000 x 6000 loft, back wall y = 0 and front wall y = 6000, both with a 900 mm knee wall at 35 degrees, ceiling 2200. */
+    function loftRoom(): Level {
+      const L = room(4000, 6000);
+      L.ceilingHeight = 2200;
+      const wallAt = (y: number) => L.walls.find((w) => nodePos(L, w.a).y === y && nodePos(L, w.b).y === y)!;
+      L.rooms[0].slopes = [0, 6000].map((y, i) => ({ id: `s${i}`, wallId: wallAt(y).id, kneeHeight: 900, pitchDeg: 35 }));
+      return L;
+    }
+    const msgs = (L: Level) => issues(L, 'loft-headroom').map((i) => i.message);
+
+    it('flags a wardrobe against the knee wall, but not one in the middle of the loft', () => {
+      const L = loftRoom();
+      againstTop(L, 'wardrobe-hinged', 1000); // 2000 tall, ceiling 900 at the wall face
+      expect(msgs(L).some((x) => x.includes('sloping ceiling above it comes down to 900 mm'))).toBe(true);
+      const ok = loftRoom();
+      put(ok, 'wardrobe-hinged', 2000, 3000, 0);
+      expect(msgs(ok).filter((x) => x.includes('tall'))).toHaveLength(0);
+    });
+
+    it('uses the height at the spot, not the room ceiling: a 1.4 m piece fits where the ceiling is 1.7 m', () => {
+      const L = loftRoom();
+      const c = cat('bookcase');
+      const d = c.defaultDims.d;
+      // Back edge at y = 1300: ceiling there is 900 + 1250 * tan35 = 1775.
+      put(L, 'bookcase', 2000, 1300 + d / 2, 0, { dims: { ...c.defaultDims, h: 1400 } });
+      expect(msgs(L).filter((x) => x.includes('tall'))).toHaveLength(0);
+      const low = loftRoom();
+      put(low, 'bookcase', 2000, 400 + d / 2, 0, { dims: { ...c.defaultDims, h: 1400 } });
+      expect(msgs(low).filter((x) => x.includes('tall'))).toHaveLength(1);
+    });
+
+    it('checks the ceiling over the head of the bed for sitting up', () => {
+      const L = loftRoom();
+      // Head against the knee wall: 300 mm in from the back edge the ceiling is about 1.1 m.
+      againstTop(L, 'bed-double', 2000);
+      const head = bad(L, 'loft-headroom').find((i) => i.message.startsWith('Ceiling over the head of the double bed'));
+      expect(head).toBeTruthy();
+      expect(head!.message).toContain('to sit up in bed');
+      expect(head!.measured).toBeLessThan(1300);
+      // Head end moved 1.2 m out from the wall: no complaint about the head.
+      const ok = loftRoom();
+      put(ok, 'bed-double', 2000, 1250 + cat('bed-double').defaultDims.d / 2, 0);
+      expect(issues(ok, 'loft-headroom').filter((i) => i.message.startsWith('Ceiling over the head'))).toHaveLength(0);
+      // In a flat-ceilinged room the bed check never applies.
+      const flat = room();
+      againstTop(flat, 'bed-double', 2000);
+      expect(msgs(flat)).toEqual([]);
+    });
+
+    it('checks the standing area in front of a wardrobe or worktop', () => {
+      const L = loftRoom();
+      // Wardrobe turned to face the back wall, its front 1 m from the wall: you would stand at y about 550, where the ceiling is 1.3 m.
+      const w = cat('wardrobe-hinged');
+      put(L, 'wardrobe-hinged', 2000, 1000 + w.defaultDims.d / 2, 180);
+      expect(msgs(L).some((x) => x.startsWith('Ceiling where you stand at the'))).toBe(true);
+      const ok = loftRoom();
+      put(ok, 'wardrobe-hinged', 2000, 3000, 0);
+      expect(msgs(ok).some((x) => x.includes('stand'))).toBe(false);
+    });
+  });
+
   it('gives a tip between the minimum and the comfortable size', () => {
     const L = room(4000, 2800); // foot gap 2750 - 50 - 2050 = 650: above 600, below 800
     againstTop(L, 'bed-double', 2000);
@@ -489,7 +551,7 @@ describe('fixers', () => {
   it('moves a wardrobe along the wall clear of the chest in front', () => {
     const L = room();
     againstTop(L, 'wardrobe-hinged', 2000);
-    put(L, 'drawers-chest', 2000, 650 + 300 + 225);
+    put(L, 'bookcase', 2000, 650 + 300 + 225);
     const issue = bad(L, 'wardrobe-hinged-front')[0];
     const fix = fixIssue(L, project, issue)!;
     expect(fix).not.toBeNull();

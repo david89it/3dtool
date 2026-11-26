@@ -9,6 +9,8 @@ export const canvasApi = {
   finishTrace: () => {},
   fit: () => {},
   zoom: (_factor: number) => {},
+  /** How many 1.5 m ceiling lines and hatched low-ceiling areas the plan is drawing (tests). */
+  roofMarks: (): { lines: number; hatches: number } => ({ lines: 0, hatches: 0 }),
   exportPng: (): string | null => null,
   worldToScreen: (p: Vec2): Vec2 => p,
   getView: (): View => ({ scale: 1, x: 0, y: 0 }),

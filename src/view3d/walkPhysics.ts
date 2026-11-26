@@ -8,6 +8,25 @@ import { findCatalogueItem, footprint, isFloorObstacle, obstacleRects } from '..
 export const PLAYER_RADIUS = 250;
 export const EYE_HEIGHT = 1600;
 export const WALK_SPEED = 1400; // mm per second
+/** Gap kept between your eyes and a sloping ceiling (mm). */
+export const HEAD_CLEARANCE = 120;
+/** You cannot walk where the ceiling is lower than this (mm): it is crawl space. */
+export const MIN_WALK_HEADROOM = 1100;
+
+/**
+ * Where your eyes are, given the headroom (ceiling height above the floor you stand on,
+ * undefined when there is no sloped ceiling here): never through a slope.
+ */
+export function eyeHeightFor(headroom: number | undefined): number {
+  if (headroom === undefined) return EYE_HEIGHT;
+  return Math.max(600, Math.min(EYE_HEIGHT, headroom - HEAD_CLEARANCE));
+}
+
+/** Can you step from `from` to `to`? Not into space under a sloped ceiling lower than you can stand in (moving out of it is fine). */
+export function headroomAllows(fromHeadroom: number | undefined, toHeadroom: number | undefined): boolean {
+  if (toHeadroom === undefined || toHeadroom >= MIN_WALK_HEADROOM) return true;
+  return fromHeadroom !== undefined && toHeadroom >= fromHeadroom;
+}
 /** You can step onto a floor up to this much above your feet. */
 export const STEP_UP = 400;
 

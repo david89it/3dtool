@@ -398,3 +398,35 @@ Then add `'piano-stool'` to the upright piano's `rules` in `items.ts`, and add
 a passing and a failing fixture to `src/rules/rules.test.ts` (build a room
 with `room()` and place items with `put()` or `againstTop()`). The new number
 appears in Settings automatically.
+
+## Loft: sloped ceilings, chimney breasts, kitchen onto the stairs
+
+**Sloped ceiling** (`Room.slopes`, `src/geometry/roof.ts`). Click a room, then use *Sloped ceiling* in
+the room panel. Pick the wall the roof comes down to, then type the **wall height where the roof
+starts** (the knee wall) and the **roof pitch** in degrees. A room can have two slopes (front and
+back, say). The ceiling is flat at the room's ceiling height where the slopes meet it. Values added
+by the app or the seed show **≈** until you type them.
+
+- *Plan:* a dashed line marks where the ceiling is 1.5 m high, and the floor under 1.5 m is
+  hatched lightly (the UK "usable floor area" rule). The room panel gives the floor area that is
+  1.5 m or more.
+- *3D:* the ceiling is a flat part plus one tilted plane per slope; walls under a slope are cut to
+  the slope line, and a window taller than the slope is trimmed to fit under it.
+- *Walk:* your eyes stay 12 cm under the roof, and you cannot walk where the ceiling is under 1.1 m.
+- *Advice:* `loft-headroom` now reads the real ceiling height under each piece: it flags a tall
+  piece whose footprint reaches a low edge, checks the ceiling over the head of a bed (1.3 m to
+  sit up) and where you stand at a wardrobe, shelf unit or worktop (1.8 m). Both heights are in
+  Settings.
+- *Seed:* the Loft now has walls (copied from the floor below, estimated) and two slopes on the
+  front and back walls: knee wall 90 cm, pitch 35°, flat ceiling 2.2 m. Measure markers are on
+  the plan.
+
+**Chimney breast** (catalogue item, structure). A masonry box fixed to a wall, up to the ceiling,
+with width, depth and height you can type. The seed has one on each chimney breast of the first and
+second floors, marked as estimated; *I have measured it* in the item panel clears the mark (typing a
+size does too). The existing small solid blocks in the wall graph are unchanged.
+
+**Kitchen onto the stairs** (rule `fire-escape`). If a kitchen (or an open-plan room with cooking in
+it) opens straight onto the hall or stairs a bedroom uses to get out, Advice says so: an info note
+when the opening is a door ("check it is a fire door"), a warning when it is a cased opening with
+no door. Guidance only, not a compliance check.

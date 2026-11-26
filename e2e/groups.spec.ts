@@ -48,6 +48,12 @@ test('select several, move together, group, duplicate, ungroup, and search', asy
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   page.on('pageerror', (e) => errors.push(e.message));
   await freshStart(page);
+  // The seed's chimney breast pieces are not part of this test: take them off.
+  await page.evaluate(() =>
+    (window as any).__flatplan.store.setState((st: any) => ({
+      project: { ...st.project, levels: st.project.levels.map((l: any) => ({ ...l, items: l.items.filter((i: any) => i.catalogueId !== 'chimney-breast') })) },
+    })),
+  );
 
   await page.getByRole('button', { name: 'Furnish', exact: true }).click();
   await page.getByRole('button', { name: 'Second floor', exact: true }).click();
