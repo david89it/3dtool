@@ -331,6 +331,8 @@ item…*). These are saved in the project's `catalogueOverrides`.
 | Fix it | **Fix** nudges (and if needed turns) only the things named, to the nearest spot that works. Undo puts them back |
 | Check one item | Select it in Furnish mode: its problems are listed in its panel |
 | Change the numbers | **Settings → Layout rules**. Every value is editable, saved with the plan, undoable; *Reset to UK defaults* |
+| Way out in a fire | Advice mode checks that each bedroom can reach the front door without passing through the kitchen. Select the front door in Openings mode and tick **Front door of the flat** (otherwise a door to the outside of the lowest floor is used). Switch the check off under **Settings → Layout rules → Way out in a fire**. It is guidance, not a compliance check: ask Building Control |
+| Wall-hung pieces | Radiators and other wall-mounted pieces stay on their wall, at the same distance along it, when you move a wall or a corner, change its thickness or split it. If you delete the wall the piece stays put and is no longer attached |
 | Ask Claude (optional) | **Settings → Ask Claude for advice**: switch it on and save your own Anthropic API key (kept only in this browser, sent only to Anthropic). Then **Ask for advice** in Advice mode |
 
 Problems are worded as measured against needed, for example *"Wardrobe to

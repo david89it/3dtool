@@ -60,7 +60,7 @@ const issues = (L: Level, ruleId: string): Issue[] => runRules(L, project).filte
 const bad = (L: Level, ruleId: string) => issues(L, ruleId).filter((i) => i.severity !== 'tip');
 
 describe('registry', () => {
-  it('has all 22 rules from the brief', () => {
+  it('has all 23 rules from the brief', () => {
     expect(RULES.map((r) => r.id).sort()).toEqual(
       [
         'bed-side-access',
@@ -85,6 +85,7 @@ describe('registry', () => {
         'basin-front',
         'structural-opening',
         'loft-headroom',
+        'fire-escape',
       ].sort(),
     );
   });

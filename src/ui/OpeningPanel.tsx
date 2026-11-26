@@ -156,6 +156,23 @@ export function OpeningPanel({ level, openingId }: { level: Level; openingId: st
         </div>
       )}
 
+      {opening.type === 'door' && (
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={!!opening.isEntrance}
+            onChange={(e) => {
+              const v = e.target.checked;
+              change(v ? 'Mark front door of the flat' : 'Unmark front door', (o) => {
+                if (v) o.isEntrance = true;
+                else delete o.isEntrance;
+              });
+            }}
+          />
+          Front door of the flat
+        </label>
+      )}
+
       {isStructural(wall) && (
         <div className="warn-box">
           {!opening.existing && <p data-testid="structural-badge">⚠ {STRUCTURAL_BADGE_TEXT}</p>}

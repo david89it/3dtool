@@ -8,6 +8,7 @@ import { clampOpenings } from '../geometry/wallGraph';
 import { activeLevels, withActive } from './schemes';
 import { autoSnapshot, noteChange, setVersionWarn } from './versions';
 import { pruneGroups } from './groups';
+import { followMountedItems } from './mounted';
 
 enablePatches();
 
@@ -260,10 +261,12 @@ export const useStore = create<AppState>()((set, get) => ({
 
   editLevel: (label, recipe) => {
     const { levelId } = get();
+    const base = get().project.levels.find((l) => l.id === levelId);
     get().commit(label, (draft) => {
       const i = levelIndex(draft as Project, levelId);
       if (i < 0) return;
       recipe(draft.levels[i]);
+      if (base) followMountedItems(base, draft.levels[i] as Level);
       tidy(draft.levels[i]);
     });
   },
@@ -280,6 +283,8 @@ export const useStore = create<AppState>()((set, get) => ({
       const i = levelIndex(draft as Project, levelId);
       if (i < 0) return;
       recipe(draft.levels[i]);
+      const base = g.base.levels[i];
+      if (base) followMountedItems(base, draft.levels[i] as Level);
       tidy(draft.levels[i]);
     });
     set({ project: next, gesture: { ...g, patches, inverse, recipe } });
