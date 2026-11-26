@@ -78,6 +78,18 @@ test('phase 3: find, place, fold down, resize, turn, duplicate, lock, custom ite
   await page.getByRole('button', { name: 'Turn 90° clockwise' }).click();
   all = await items(page);
   expect(all[0].rotationDeg).toBe(90);
+  await page.getByRole('button', { name: 'Turn 15° anticlockwise' }).click();
+  all = await items(page);
+  expect(all[0].rotationDeg).toBe(75);
+  await page.getByTestId('item-angle').fill('30°');
+  await page.getByTestId('item-angle').press('Enter');
+  all = await items(page);
+  expect(all[0].rotationDeg).toBe(30);
+  await page.getByRole('button', { name: 'Turn 90° clockwise' }).click();
+  all = await items(page);
+  expect(all[0].rotationDeg).toBe(120);
+  await page.getByTestId('item-angle').fill('90');
+  await page.getByTestId('item-angle').press('Enter');
 
   // Duplicate with the keyboard.
   await page.keyboard.press('ControlOrMeta+d');

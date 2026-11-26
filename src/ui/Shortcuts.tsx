@@ -41,11 +41,12 @@ const ROWS: { title: string; keys: [string, string][] }[] = [
     title: 'Furnish',
     keys: [
       ['R / Shift R', 'Turn the selected item (or all selected) 90° right / left'],
+      ['Alt R / Alt Shift R', 'Turn the selected item 15° right / left'],
       ['Ctrl/⌘ D', 'Duplicate the selected item or items'],
       ['Shift + click', 'Add an item to the selection, or take it out'],
       ['Shift + drag on empty floor', 'Draw a box to select what is inside it'],
       ['Alt + click', 'Pick one item of a group'],
-      ['Alt + rotate handle', 'Turn freely instead of in 90° steps'],
+      ['Alt + rotate handle', 'Turn freely instead of in 15° steps'],
     ],
   },
   {

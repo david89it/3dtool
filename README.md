@@ -313,7 +313,7 @@ item…*). These are saved in the project's `catalogueOverrides`.
 | Place it | Click it, then click the plan. Or drag it onto the plan. Near a wall it turns to back onto the wall. Alt: no snapping |
 | Move | Drag it. It slides along a wall it is backed onto |
 | Resize | Drag the dots on its edges (the other edge stays put), or type sizes in the right panel |
-| Turn | Drag the round handle (90° steps; Alt for any angle), press R, or use *Turn 90°* |
+| Turn | Drag the round handle (15° steps; Alt for any angle), type the angle in the item panel, use the 15° and 90° buttons, or press R (90°) or Alt R (15°); Shift turns the other way |
 | Fold down, extend, open | *Position* in the right panel (Murphy bed, sofa bed, extendable table, fold-down desk, pull-out drawer) |
 | Duplicate, lock, remove | Ctrl/⌘ D, *Lock*, Delete |
 | See the space things need | Select an item, or tick *Show space needed around everything* |

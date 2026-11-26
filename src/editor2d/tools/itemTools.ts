@@ -2,7 +2,7 @@
 // - placeItem: after clicking an item in the catalogue, move over the plan
 //   (it backs up to a nearby wall by itself) and click to place it.
 // - select: click to select; drag to move (slides flush along walls); drag
-//   the edge handles to resize, the round handle to turn (90° steps, Alt
+//   the edge handles to resize, the round handle to turn (15° steps, Alt
 //   for free). Locked items stay put.
 //   Several at once: Shift-click toggles a piece, Shift-drag on empty floor
 //   draws a selection box, and a group selects as a whole (Alt-click picks
@@ -21,6 +21,9 @@ import { hitItem, hitItemHandle, itemHandles } from '../itemHit';
 import { expandToGroup, selectionIds, selectionOf } from '../../model/groups';
 import { toggleInSelection } from '../selectionActions';
 import { DRAG_START_PX, type ToolCtx, type ToolHandler } from './types';
+
+/** Steps the rotate handle snaps to; Alt turns freely in 1° steps. */
+export const ROTATE_SNAP_DEG = 15;
 
 function project() {
   return useStore.getState().project;
@@ -289,7 +292,7 @@ export const furnishSelectTool: ToolHandler = {
       const c = pend.item.pos;
       const v = sub(p.world, c);
       let deg = (Math.atan2(-v.x, v.y) * 180) / Math.PI;
-      deg = p.alt ? Math.round(deg) : Math.round(deg / 90) * 90;
+      deg = p.alt ? Math.round(deg) : Math.round(deg / ROTATE_SNAP_DEG) * ROTATE_SNAP_DEG;
       next = { ...pend.item, rotationDeg: ((deg % 360) + 360) % 360, mountedTo: undefined };
     }
     const id = pend.item.id;

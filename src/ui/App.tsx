@@ -169,8 +169,11 @@ function useShortcuts() {
       else if (e.key === 'v' || e.key === 'V') s.setTool('select');
       else if ((e.key === 'w' || e.key === 'W') && s.mode === 'trace') s.setTool('draw');
       else if (e.key === 'f' || e.key === 'F') canvasApi.fit();
-      else if ((e.key === 'r' || e.key === 'R') && (s.selection?.kind === 'item' || s.selection?.kind === 'items')) {
-        turnSelected(e.shiftKey ? -90 : 90);
+      else if ((e.key === 'r' || e.key === 'R' || e.code === 'KeyR') && (s.selection?.kind === 'item' || s.selection?.kind === 'items')) {
+        // Alt (Option on a Mac, where e.key becomes "®") turns in 15° steps.
+        e.preventDefault();
+        const step = e.altKey ? 15 : 90;
+        turnSelected(e.shiftKey ? -step : step);
       }
       else if ((e.key === 'Delete' || e.key === 'Backspace') && s.selection) {
         const sel = s.selection;
