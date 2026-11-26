@@ -2,7 +2,7 @@
 // a catalogue item". Sizes are typical UK sizes in millimetres.
 
 import type { CatalogueItem, Clearance } from '../model/types';
-import { buildSurround } from './builders';
+import { buildModules, buildSurround } from './builders';
 import { bed, box, cabinet, chair, cyl, kitchenBase, roundTable, slab, sofa, table } from './parts';
 
 const front = (min: number, ideal: number, reason: string, dynamic?: Clearance['dynamic']): Clearance => ({
@@ -495,6 +495,19 @@ export const CATALOGUE: CatalogueItem[] = [
     geometry: cabinet(800, 250, 1000, 'white', 40),
     clearance: [front(500, 600, 'Room for the tilting doors', 'drawerPull')],
     rules: ['drawer-pull', 'door-swing'],
+  },
+  {
+    id: 'modular-storage',
+    name: 'Modular storage (USM Haller style)',
+    aliases: ['usm', 'usm haller', 'haller', 'modular shelf', 'modular storage', 'cube storage', 'metal storage', 'modules'],
+    category: 'storage',
+    defaultDims: { w: 750, d: 370, h: 780 },
+    resizable: {},
+    mount: 'floor',
+    builder: 'modules',
+    geometry: buildModules({}, { w: 750, d: 370, h: 780 }),
+    clearance: [front(450, 600, 'Room to open the doors and drop-down fronts', 'doorSwing')],
+    rules: ['door-swing'],
   },
   {
     id: 'sideboard',

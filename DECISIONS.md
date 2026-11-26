@@ -1009,3 +1009,14 @@ width, so a wide piece can overhang the end of a short wall.
   (logged once per wall), which the drawing code already treats as nothing to draw. `repairProject` already drops such
   walls on load. Callers inside `editor2d`, `rules` and `advice` were not changed (owned by other work); they now get the
   fallback instead of an exception.
+
+## Modular storage (USM Haller style)
+
+- **One item, a grid of modules**, not separate stacked pieces: `builder: 'modules'` with
+  `params.cols` (across, 1-8) and `params.rows` (stacked high, 1-5). Stacking separate items would
+  need a height-above-floor on every piece, which the model does not have; a USM unit is one
+  frame anyway. Six modules can be one 3 x 2 unit, or several units side by side.
+- **Fixed module size from the owners:** 750 wide, 750 high, 370 deep (mm), plus 30 mm feet. Not
+  resizable; the panel changes whole modules and keeps the left end of the unit where it is.
+- Chrome frame (`metal`), panels take the piece's colour (`cabinet`). The name says "style": no
+  brand claim.

@@ -85,6 +85,56 @@ export const buildSurround: Builder = (item, dims) => {
   return parts;
 };
 
+/** Modular storage (USM Haller style): one module is 750 wide, 750 high, 370 deep (mm). */
+export const MODULE = { w: 750, h: 750, d: 370, tube: 20, foot: 30, maxAcross: 8, maxHigh: 5 };
+
+/** How many modules across and high, from params (at least 1 each). */
+export function moduleGrid(item: Pick<PlacedItem, 'params'>): { cols: number; rows: number } {
+  const clamp = (v: number | undefined, max: number) => Math.max(1, Math.min(max, Math.round(v ?? 1)));
+  return { cols: clamp(item.params?.cols, MODULE.maxAcross), rows: clamp(item.params?.rows, MODULE.maxHigh) };
+}
+
+/** Overall size of a module unit for a grid. */
+export function moduleDims(cols: number, rows: number): Dims {
+  return { w: cols * MODULE.w, d: MODULE.d, h: rows * MODULE.h + MODULE.foot };
+}
+
+/**
+ * Modular storage: a chrome tube frame on small feet with a panel box in
+ * every module (the panels take the piece's colour). Modules stack as rows.
+ */
+export const buildModules: Builder = (item, dims) => {
+  const { cols, rows } = moduleGrid(item);
+  const { tube, foot } = MODULE;
+  const cw = dims.w / cols;
+  const rh = (dims.h - foot) / rows;
+  const d = dims.d;
+  const parts: PrimitivePart[] = [];
+  const x0 = -dims.w / 2;
+  // Feet under every corner of the bottom row.
+  for (let c = 0; c <= cols; c++) {
+    for (const z of [-d / 2 + tube / 2, d / 2 - tube / 2]) parts.push(slab(x0 + c * cw, 0, z, tube, foot, tube, 'metal'));
+  }
+  // Uprights and rails at the front and back.
+  for (const z of [-d / 2 + tube / 2, d / 2 - tube / 2]) {
+    for (let c = 0; c <= cols; c++) parts.push(slab(x0 + c * cw, foot, z, tube, dims.h - foot, tube, 'metal'));
+    for (let r = 0; r <= rows; r++) parts.push(slab(0, foot + r * rh - (r === rows ? tube : 0), z, dims.w, tube, tube, 'metal'));
+  }
+  // Side rails (depth) at every row line, both ends.
+  for (let r = 0; r <= rows; r++) {
+    for (const x of [x0 + tube / 2, -x0 - tube / 2]) parts.push(slab(x, foot + r * rh - (r === rows ? tube : 0), 0, tube, tube, d, 'metal'));
+  }
+  // A panel box in every module, slightly inset.
+  const inset = 12;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      parts.push(slab(x0 + (c + 0.5) * cw, foot + r * rh + inset, 0, cw - 2 * inset, rh - 2 * inset, d - 2 * inset, 'cabinet'));
+    }
+  }
+  return parts;
+};
+
 export const BUILDERS: Record<string, Builder> = {
   'opening-surround': buildSurround,
+  modules: buildModules,
 };

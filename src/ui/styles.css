@@ -2159,3 +2159,14 @@ a.btn.primary {
   flex: 1;
   min-width: 0;
 }
+
+/* − 3 + steppers (modular storage) */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.stepper .value {
+  min-width: 2ch;
+  text-align: center;
+}
