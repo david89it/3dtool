@@ -2169,6 +2169,7 @@ a.btn.primary {
 .stepper .value {
   min-width: 2ch;
   text-align: center;
+}
 
 /* Distance labels next to the selected piece on the plan: a 44 px target at the middle of each line. */
 .guide-label {
