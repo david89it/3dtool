@@ -209,6 +209,22 @@ export interface Room {
   // EXTENSION: colour (paint id or hex) for the skirting, door leaves and
   // frames and window frames in this room; the standard white when missing.
   woodworkColor?: string;
+  // EXTENSION (sloped ceilings, loft): up to two roof slopes. Each rises from one of
+  // the room's walls (the low side) at its pitch, starting at the knee-wall height
+  // there, until it meets the flat ceiling (`ceilingHeight`). See src/geometry/roof.ts.
+  slopes?: RoomSlope[];
+}
+
+// EXTENSION: see Room.slopes. `wallId` is the wall the roof comes down to; `kneeHeight`
+// is how tall the wall is where the slope starts (mm); `pitchDeg` is the angle of the
+// roof above level. `estimated` lists the values still guessed ('knee', 'pitch'): each
+// shows "≈" until she types a value for it.
+export interface RoomSlope {
+  id: Id;
+  wallId: Id;
+  kneeHeight: number;
+  pitchDeg: number;
+  estimated?: ('knee' | 'pitch')[];
 }
 
 export interface PlacedItem {
@@ -234,6 +250,9 @@ export interface PlacedItem {
   supplier?: string;
   link?: string;
   status?: ItemStatus;
+  // EXTENSION (chimney breasts, measure me): true while the size is a guess from the
+  // plan or photos. Shown as an amber note in the item panel until she confirms it.
+  estimated?: boolean;
 }
 
 // Convention (not specified in the brief, recorded in DECISIONS.md):
@@ -288,6 +307,9 @@ export interface CatalogueItem {
   // EXTENSION (costs): a default price in £ for her own items, copied onto a
   // piece when she places it.
   price?: number;
+  // EXTENSION (measure me): a note shown in the item panel for items whose real size
+  // has to be taken on site (a chimney breast).
+  measureNote?: string;
 }
 
 export interface PrimitivePart {

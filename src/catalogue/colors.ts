@@ -20,6 +20,7 @@ export const PLAN_COLORS: Record<string, string> = {
   rug: '#dccbb4',
   shade: '#f3ebd9',
   plaster: '#e6e1d8',
+  masonry: '#8d887f', // chimney breasts and other solid brickwork
   art: '#c8a39f',
   custom: '#c7d5ea',
   joinery: '#e7e1d6', // painted built-in joinery (her finish colour overrides it)

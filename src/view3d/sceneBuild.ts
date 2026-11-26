@@ -18,6 +18,7 @@ import { wallDir, wallEndExtensions, wallProfile, type WallProfile } from './wal
 import { ceilingMaterialFor, finishMaterial, tintedMaterial, tokenMaterial, woodworkMaterial } from './materials';
 import { overrideColor } from '../catalogue/colors';
 import { defaultFloorId, wallFaceFinishId, woodworkHex } from './finishes';
+import { flatRegion, heightAt, lowestBetween, planeAt, slopedRegions, slopeZones, wallTop, type SlopeZone } from '../geometry/roof';
 
 export const MM = 0.001;
 
@@ -88,7 +89,7 @@ function wallBox(basis: THREE.Matrix4, u0: number, u1: number, v0: number, v1: n
 }
 
 /** Flat polygon at a height with UVs in metres. Normal up or down. */
-function flatPolygon(poly: Vec2[], heightMm: number, up: boolean): THREE.BufferGeometry | null {
+function flatPolygon(poly: Vec2[], heightMm: number, up: boolean, heightOf?: (p: Vec2) => number): THREE.BufferGeometry | null {
   if (poly.length < 3) return null;
   const pts = signedArea(poly) < 0 ? [...poly].reverse() : poly;
   const tris = THREE.ShapeUtils.triangulateShape(
@@ -98,7 +99,7 @@ function flatPolygon(poly: Vec2[], heightMm: number, up: boolean): THREE.BufferG
   const pos: number[] = [];
   const uv: number[] = [];
   for (const p of pts) {
-    pos.push(p.x * MM, heightMm * MM, p.y * MM);
+    pos.push(p.x * MM, (heightOf ? heightOf(p) : heightMm) * MM, p.y * MM);
     uv.push(p.x * MM, p.y * MM);
   }
   const idx: number[] = [];
@@ -125,7 +126,10 @@ function flatPolygon(poly: Vec2[], heightMm: number, up: boolean): THREE.BufferG
  * that reaches the cut splits the wall into separate pieces, so no thin strip
  * is left across the top of it.
  */
-function profileShapes(profile: WallProfile, cut: boolean): { shapes: THREE.Shape[]; sills: { u0: number; u1: number; v1: number }[] } {
+/** Top edge of a wall under a sloped ceiling: polyline in the wall frame between two u values. */
+type TopFn = (u0: number, u1: number) => { u: number; v: number }[];
+
+function profileShapes(profile: WallProfile, cut: boolean, top?: TopFn): { shapes: THREE.Shape[]; sills: { u0: number; u1: number; v1: number }[] } {
   const { u0, u1, v0, v1 } = profile.outer;
   const through = cut ? profile.holes.filter((h) => h.v1 >= v1 - 25).sort((p, q) => p.u0 - q.u0) : [];
   const spans: [number, number][] = [];
@@ -141,8 +145,13 @@ function profileShapes(profile: WallProfile, cut: boolean): { shapes: THREE.Shap
     const shape = new THREE.Shape();
     shape.moveTo(a * MM, v0 * MM);
     shape.lineTo(b * MM, v0 * MM);
-    shape.lineTo(b * MM, v1 * MM);
-    shape.lineTo(a * MM, v1 * MM);
+    if (top) {
+      const pts = top(a, b);
+      for (let i = pts.length - 1; i >= 0; i--) shape.lineTo(pts[i].u * MM, pts[i].v * MM);
+    } else {
+      shape.lineTo(b * MM, v1 * MM);
+      shape.lineTo(a * MM, v1 * MM);
+    }
     shape.closePath();
     for (const h of profile.holes) {
       if (through.includes(h) || h.u0 < a + 1 || h.u1 > b - 1) continue;
@@ -206,16 +215,52 @@ function wallMeshes(
   sideRooms: WallSides,
   out: Map<string, THREE.BufferGeometry[]>,
   cut = false,
+  zones: Map<string, SlopeZone> = new Map(),
 ) {
   const { a, d, length } = wallDir(level, wall);
   if (length < 1) return;
   const { extA, extB } = wallEndExtensions(level, wall);
   const profile = wallProfile(length, height, wall.openings, extA, extB);
   const basis = wallBasis(a, d, level.elevation);
-  const { shapes, sills } = profileShapes(profile, cut);
   const half = wall.thickness / 2;
+  // Under a sloped ceiling a wall is cut to the slope line. Each side follows its own
+  // room's ceiling; a side that faces no room follows the room on the other side.
+  const roomZone = (side: 'L' | 'R'): SlopeZone | undefined => {
+    const r = sideRooms[side]?.room;
+    return r ? zones.get(r.id) : undefined;
+  };
+  const tops: Partial<Record<'L' | 'R', TopFn>> = {};
+  for (const side of ['L', 'R'] as const) {
+    const other = side === 'L' ? 'R' : 'L';
+    let z = roomZone(side);
+    let facing: 'L' | 'R' = side;
+    if (!z && !sideRooms[side]) {
+      z = roomZone(other);
+      facing = other;
+    }
+    if (!z) continue;
+    // Read the height a little way inside the room being faced.
+    const shift = mul(perpL(d), (facing === 'L' ? 1 : -1) * half);
+    const zone = z;
+    tops[side] = (u0, u1) => wallTop(zone.slopes, zone.flat, a, d, shift, u0, u1, height);
+  }
+  if (tops.L || tops.R) {
+    // Openings must stay under the slope line.
+    const lows = (['L', 'R'] as const).flatMap((sd) => {
+      const t = tops[sd];
+      if (!t) return [];
+      const full = t(profile.outer.u0, profile.outer.u1);
+      return [(u0: number, u1: number) => lowestBetween(full, u0, u1)];
+    });
+    profile.holes = profile.holes
+      .map((h) => ({ ...h, v1: Math.min(h.v1, ...lows.map((f) => f(h.u0, h.u1) - 30)) }))
+      .filter((h) => h.v1 - h.v0 > 150);
+  }
+  const base = profileShapes(profile, cut);
+  const sills = base.sills;
   // Two half-thickness slabs, so each side wears its own room's finish.
   for (const side of ['L', 'R'] as const) {
+    const shapes = tops[side] ? profileShapes(profile, cut, tops[side]).shapes : base.shapes;
     const g = new THREE.ExtrudeGeometry(shapes, { depth: half * MM, bevelEnabled: false, curveSegments: 1 });
     if (side === 'R') g.translate(0, 0, -half * MM);
     g.applyMatrix4(basis);
@@ -318,10 +363,11 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
 
   // Which room is on each side of each wall.
   const sides = wallSideRooms(level, detected);
+  const zones = new Map(slopeZones(level, detected).map((z) => [z.roomId, z] as const));
 
   for (const w of level.walls) {
     const full = w.height ?? level.ceilingHeight;
-    wallMeshes(level, w, joints.outlines.get(w.id), cut ? Math.min(full, cut) : full, sides.get(w.id) ?? {}, groups, !!cut);
+    wallMeshes(level, w, joints.outlines.get(w.id), cut ? Math.min(full, cut) : full, sides.get(w.id) ?? {}, groups, !!cut, zones);
   }
 
   for (const r of detected) {
@@ -349,9 +395,23 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
       });
     }
     const ch = room?.ceilingHeight ?? level.ceilingHeight;
-    const ceil = cut ? null : flatPolygon(r.inner, level.elevation + ch, false);
-    if (ceil) meshes.push({ key: `ceiling:${r.key}`, geometry: ceil, material: ceilingMaterialFor(room?.ceilingFinish), castShadow: false, receiveShadow: false });
-    lights.push(new THREE.Vector3(r.label.x * MM, (level.elevation + ch - 300) * MM, r.label.y * MM));
+    const zone = room ? zones.get(room.id) : undefined;
+    const ceilMat = ceilingMaterialFor(room?.ceilingFinish);
+    if (!cut && zone) {
+      // Sloped ceiling: a flat part under the ridge level and a tilted plane for each slope.
+      const flatPart = flatRegion(r.inner, ch, zone.slopes);
+      const g0 = flatPart.length ? flatPolygon(flatPart, level.elevation + ch, false) : null;
+      if (g0) meshes.push({ key: `ceiling:${r.key}`, geometry: g0, material: ceilMat, castShadow: false, receiveShadow: false });
+      slopedRegions(r.inner, ch, zone.slopes).forEach((sr, i) => {
+        const g = flatPolygon(sr.poly, 0, false, (p) => level.elevation + planeAt(sr.slope.plane, p));
+        if (g) meshes.push({ key: `ceiling:${r.key}:slope${i}`, geometry: g, material: ceilMat, castShadow: false, receiveShadow: false });
+      });
+    } else {
+      const ceil = cut ? null : flatPolygon(r.inner, level.elevation + ch, false);
+      if (ceil) meshes.push({ key: `ceiling:${r.key}`, geometry: ceil, material: ceilMat, castShadow: false, receiveShadow: false });
+    }
+    const lightH = zone ? heightAt(zone.slopes, ch, r.label) : ch;
+    lights.push(new THREE.Vector3(r.label.x * MM, (level.elevation + lightH - 300) * MM, r.label.y * MM));
   }
 
   const byId = new Map(project.levels.map((l) => [l.id, l] as const));

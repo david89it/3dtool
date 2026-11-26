@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSeedProject } from './seed';
+import { buildSeedProject, LEVEL_IDS } from './seed';
 import { detectRooms } from '../geometry/rooms';
 
 describe('seed project', () => {
@@ -32,5 +32,43 @@ describe('seed project', () => {
     expect(lb.length).toBeGreaterThan(0);
     for (const L of p.levels)
       for (const w of L.walls) if (L !== first || !lb.includes(w)) expect(w.structural).toBe('unknown');
+  });
+
+  it('gives the loft a room with two estimated roof slopes, knee 900 mm and 35 degrees, on the front and back walls', () => {
+    const loft = p.levels.find((l) => l.name === 'Loft')!;
+    const room = loft.rooms.find((r) => r.name === 'Loft')!;
+    expect(room.slopes).toHaveLength(2);
+    const ys = room.slopes!.map((s) => {
+      const w = loft.walls.find((x) => x.id === s.wallId)!;
+      const a = loft.nodes.find((n) => n.id === w.a)!.pos;
+      const b = loft.nodes.find((n) => n.id === w.b)!.pos;
+      expect(a.y).toBe(b.y); // the front and back walls run across the plan
+      expect(s.kneeHeight).toBe(900);
+      expect(s.pitchDeg).toBe(35);
+      expect(s.estimated).toEqual(['knee', 'pitch']);
+      return a.y;
+    });
+    expect(ys.sort((x, y) => x - y)).toEqual([-165, 7065]);
+    expect(loft.markers!.some((m) => /knee-wall height/.test(m.text))).toBe(true);
+    // And a stair that comes up into it.
+    expect(loft.stairs.some((s) => s.toLevelId === LEVEL_IDS.second)).toBe(true);
+  });
+
+  it('puts estimated chimney breast pieces where the solid masses are', () => {
+    for (const id of [LEVEL_IDS.first, LEVEL_IDS.second]) {
+      const L = p.levels.find((l) => l.id === id)!;
+      const solids = detectRooms(L).filter((r) => r.solid);
+      const chimneys = L.items.filter((i) => i.catalogueId === 'chimney-breast');
+      expect(chimneys).toHaveLength(2);
+      expect(solids.length).toBeGreaterThanOrEqual(2);
+      for (const c of chimneys) {
+        expect(c.estimated).toBe(true);
+        expect(c.mountedTo).toBeTruthy();
+        expect(c.dims.d).toBe(320);
+        expect(c.dims.h).toBe(L.ceilingHeight);
+        // It sits over one of the solid masses.
+        expect(solids.some((s) => s.centre.every((q) => q.x < 320) && c.pos.y > Math.min(...s.centre.map((q) => q.y)) && c.pos.y < Math.max(...s.centre.map((q) => q.y)))).toBe(true);
+      }
+    }
   });
 });

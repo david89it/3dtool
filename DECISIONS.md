@@ -1040,3 +1040,46 @@ After the drop the same distances show for the selected single floor piece; the 
 `EditableLength` in a 44 px target. Typing a gap moves the piece along that direction in one
 `editLevel`. Not done: labels for several selected pieces, wall-mounted pieces, locked pieces;
 no guides while resizing or turning; rays do not see through gaps made by openings.
+
+## Loft: sloped ceilings, chimney breasts, kitchen onto the stairs (2026-11-26)
+
+- **Slope model.** `Room.slopes` (up to two `RoomSlope`s: wall id, knee height in mm, pitch in
+  degrees, and `estimated` listing the values still guessed). Each slope is a plane that is the
+  knee height at the wall's inside face and rises into the room at the pitch. Ceiling height at a
+  point is the lowest of the room's flat ceiling and each plane (`src/geometry/roof.ts`). The wall is
+  only a reference line: if it is split, the slope still works. A slope whose wall is deleted is
+  ignored. This does not model hips, dormers or a ridge that is not parallel to a wall; two slopes
+  on opposite walls cover the usual terrace roof.
+- **Estimates (seed).** Knee wall 900 mm, pitch 35°, flat ceiling 2.2 m, on the front and back walls
+  (the ridge is assumed to run along the street). The loft had no walls at all, so the seed
+  now copies the second floor's outline (-115..4635 by -165..7065) as an estimated four-wall room
+  called Loft, with a down stair at the second floor's stair top. The ridge direction, the room size and
+  all three numbers are to be measured. This adds walls to the Loft level only; no other floor's wall
+  graph changed.
+- **Usable floor area.** 1.5 m is the usual UK convention for floor that counts. The plan draws a
+  dashed 1.5 m line and hatches floor below it; the area is clipped by half-planes, so a very odd
+  concave room is approximate.
+- **Walls under a slope.** Each side of a wall follows its own room's slope (a side facing no room
+  follows the room on the other side). The top is cut with exact breakpoints. Windows and doors are
+  trimmed to 30 mm under the slope line; one that would be under 150 mm tall is dropped from the 3D
+  wall (the plan still shows it).
+- **Walk.** There is no head collision in walk mode, so: eye height is clamped to the headroom minus
+  120 mm (never below 600 mm), and you cannot step into space under 1.1 m unless you are already
+  lower. The sloped ceilings are not collision surfaces for anything else.
+- **`loft-headroom`.** Now reads the real ceiling at the footprint (corners, edge middles, centre) for
+  the top-of-piece check. New measurements only inside rooms with slopes: ceiling 300 mm in from the
+  head of a bed at least 1300 mm (tip up to 1500 mm), and ceiling 450 mm in front of a storage,
+  kitchen, bath or utility piece at least 1800 mm. Rooms with flat ceilings behave as before.
+- **Chimney breast.** The old "Chimney breast block" item is now "Chimney breast": wall-mounted, in
+  the masonry colour, with a `measureNote` and `PlacedItem.estimated`. The seed's solid masses are
+  still drawn as masonry from the wall graph (unchanged); the item sits exactly over each one, so the
+  two overlap in 3D with the same colour. It counts as a floor obstacle (rules, walking), and has the
+  door-swing and window rules.
+- **Kitchen onto the route (escape).** A kitchen node is one named kitchen or holding cooking; it is
+  "open plan" when 20 m² or more or named with a living space. It is reported when it joins, by a door
+  or cased opening, the open space outside any room (stairs, landing) or a room named hall, landing,
+  stairs, lobby, entrance or corridor that lies on a bedroom's way out. A door gives an info (tip)
+  note; a cased opening, or no leaf, gives a warning. The rule also notes the existing seed kitchen
+  door onto the stair (info only). After the kitchen/reception wall comes out, the merged room keeps
+  one of the two names ("Reception"), so it counts as a kitchen only once a hob is placed in it, or
+  after she renames it.

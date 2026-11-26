@@ -52,6 +52,21 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
         {cat.mount === 'wall' ? ' · fixed to a wall' : cat.mount === 'ceiling' ? ' · hangs from the ceiling' : ''}
         {item.locked ? ' · locked' : ''}
       </p>
+      {cat.measureNote && (
+        <p className="note measure-note" data-testid="item-measure-note">
+          {item.estimated && (
+            <span className="approx" title="Estimated. Measure on site.">
+              ≈{' '}
+            </span>
+          )}
+          {cat.measureNote}{' '}
+          {item.estimated && (
+            <button className="btn small" onClick={() => change(`Confirm ${name} size`, (i) => ({ ...i, estimated: undefined }))}>
+              I have measured it
+            </button>
+          )}
+        </p>
+      )}
       {groupOfItem(level, item.id) && (
         <p className="note" data-testid="item-group-note">
           Part of the group “{groupOfItem(level, item.id)!.name}”.{' '}
@@ -79,7 +94,8 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
                 value={item.dims[axis]}
                 min={r[0]}
                 max={r[1]}
-                onChange={(mm) => change(`Resize ${name}`, (i) => setDimension(i, cat, axis, mm))}
+                estimated={item.estimated}
+                onChange={(mm) => change(`Resize ${name}`, (i) => ({ ...setDimension(i, cat, axis, mm), estimated: undefined }))}
               />
             ) : (
               <span className="value" title={item.locked ? 'Unlock to change' : 'This item comes in one size'}>

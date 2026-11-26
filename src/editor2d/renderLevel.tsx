@@ -14,6 +14,7 @@ import { detectRooms } from '../geometry/rooms';
 import { wallDimensions } from '../geometry/dimensions';
 import { fitView, type View } from './view';
 import { RoomFills } from './layers/RoomLayer';
+import { RoofShapes } from './layers/RoofLayer';
 import { WallShapes } from './layers/WallLayer';
 import { StairShapes } from './layers/StairLayer';
 import { OverlayLayer } from './layers/OverlayLayer';
@@ -104,6 +105,7 @@ function PrintScene({
         <Rect x={0} y={0} width={width} height={height} fill="#ffffff" />
         <Group x={view.x} y={view.y} scaleX={view.scale} scaleY={view.scale}>
           <RoomFills level={level} rooms={rooms} translucent={false} />
+          <RoofShapes level={level} rooms={rooms} scale={view.scale} />
           <WallShapes level={level} joints={joints} ghost={null} />
           <StairShapes stairs={level.stairs} project={project} />
           {(ghostWalls ?? []).map((pts, i) => (

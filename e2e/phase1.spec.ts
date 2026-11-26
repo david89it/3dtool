@@ -48,6 +48,15 @@ test('phase 1: trace, edit, undo, reload, calibrate', async ({ page }) => {
 
   // Trace a 3 x 2.5 m room on the empty loft.
   await page.getByRole('button', { name: 'Loft', exact: true }).click();
+  // The seed loft now has estimated walls; start this trace from an empty floor.
+  await page.evaluate(() =>
+    (window as any).__flatplan.store.getState().editLevel('Clear loft', (L: any) => {
+      L.walls = [];
+      L.nodes = [];
+      L.rooms = [];
+      L.stairs = [];
+    }),
+  );
   await expect(page.getByText('Dimensions unknown, measure on site').first()).toBeVisible();
   await page.keyboard.press('w');
   for (const p of [

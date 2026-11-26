@@ -18,7 +18,9 @@ describe('compare options', () => {
       expect(c.nodes.some((n) => n.id === w.b)).toBe(true);
     }
     expect(c.walls.flatMap((w) => w.openings).length).toBe(first.walls.flatMap((w) => w.openings).length);
-    expect(c.items[0].mountedTo!.wallId).toBe(c.walls[0].id);
+    expect(c.items.find((i) => i.catalogueId === 'radiator')!.mountedTo!.wallId).toBe(c.walls[0].id);
+    // Chimney breasts from the seed follow their wall too.
+    for (const i of c.items) if (i.mountedTo) expect(c.walls.some((w) => w.id === i.mountedTo!.wallId)).toBe(true);
     // Rooms still match their loops, so names survive.
     const det = detectRooms(c).filter((r) => !r.solid);
     for (const r of c.rooms) expect(det.some((d) => d.nodeIds.join('|') === r.boundary.join('|'))).toBe(true);

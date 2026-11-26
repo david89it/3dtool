@@ -4,7 +4,7 @@ import { addWall, defaultWallProps } from '../geometry/wallGraph';
 import { blankLevel } from '../geometry/testUtils';
 import { makeOpening } from '../geometry/openings';
 import { wallEndExtensions, wallProfile } from './wallProfile';
-import { floorHeightAt, levelObstacles, levelUnderFeet, rampHeight, resolveCollision, stairRamps, PLAYER_RADIUS } from './walkPhysics';
+import { eyeHeightFor, headroomAllows, HEAD_CLEARANCE, EYE_HEIGHT, MIN_WALK_HEADROOM, floorHeightAt, levelObstacles, levelUnderFeet, rampHeight, resolveCollision, stairRamps, PLAYER_RADIUS } from './walkPhysics';
 
 function lvl(id: string, elevation: number): Level {
   return { ...blankLevel(), id, name: id, elevation };
@@ -80,5 +80,23 @@ describe('walk physics', () => {
     expect(levelUnderFeet(2700, levels)!.id).toBe('f'); // within a step of the first floor
     expect(levelUnderFeet(1000, levels)!.id).toBe('g');
     expect(floorHeightAt({ x: 9e6, y: 0 }, 5900, levels, [])).toBe(5900);
+  });
+});
+
+describe('walking under a sloped ceiling', () => {
+  it('keeps your eyes under the roof', () => {
+    expect(eyeHeightFor(undefined)).toBe(EYE_HEIGHT);
+    expect(eyeHeightFor(2200)).toBe(EYE_HEIGHT);
+    expect(eyeHeightFor(1500)).toBe(1500 - HEAD_CLEARANCE);
+    for (const h of [1100, 1300, 1700, 2200]) expect(eyeHeightFor(h)).toBeLessThan(h);
+  });
+
+  it('stops you walking into space too low to stand in, but lets you walk out of it', () => {
+    expect(headroomAllows(2000, 1500)).toBe(true);
+    expect(headroomAllows(2000, MIN_WALK_HEADROOM - 1)).toBe(false);
+    expect(headroomAllows(900, 800)).toBe(false); // lower still
+    expect(headroomAllows(900, 1000)).toBe(true); // moving out
+    expect(headroomAllows(undefined, undefined)).toBe(true);
+    expect(headroomAllows(undefined, 500)).toBe(false);
   });
 });

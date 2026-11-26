@@ -1009,15 +1009,17 @@ export const CATALOGUE: CatalogueItem[] = [
   },
   {
     id: 'chimney-breast',
-    name: 'Chimney breast block',
-    aliases: ['chimney', 'chimney breast', 'flue', 'stack'],
+    name: 'Chimney breast',
+    aliases: ['chimney', 'chimney breast', 'breast', 'flue', 'stack', 'chimney block'],
     category: 'structure',
+    // A solid masonry box against a wall, up to the ceiling. Set the height to the ceiling height.
     defaultDims: { w: 1500, d: 350, h: 2700 },
-    resizable: { w: [600, 2500], d: [200, 700], h: [1000, 3500] },
-    mount: 'floor',
-    geometry: [slab(0, 0, 0, 1500, 2700, 350, 'plaster')],
+    resizable: { w: [400, 3000], d: [100, 900], h: [1000, 4000] },
+    mount: 'wall',
+    geometry: [slab(0, 0, 0, 1500, 2700, 350, 'masonry')],
     clearance: [],
-    rules: [],
+    rules: ['door-swing', 'window-obstruction'],
+    measureNote: 'Measure me: how far it sticks out, how wide it is, and which side the flue is on. Sizes here are a guess from the plan and photos.',
   },
   {
     id: 'fireplace',

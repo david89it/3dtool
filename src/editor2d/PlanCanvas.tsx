@@ -18,6 +18,7 @@ import { dimLabelScreenPos } from './hitTest';
 import { structuralPins } from './pins';
 import { UnderlayImage, VectorUnderlayShape } from './layers/UnderlayLayer';
 import { RoomFills } from './layers/RoomLayer';
+import { RoofShapes, ROOF_HATCH, ROOF_LINE } from './layers/RoofLayer';
 import { WallShapes } from './layers/WallLayer';
 import { StairShapes } from './layers/StairLayer';
 import { OverlayLayer } from './layers/OverlayLayer';
@@ -261,6 +262,10 @@ export function PlanCanvas() {
       setView((v) => zoomAt(v, { x: el.clientWidth / 2, y: el.clientHeight / 2 }, factor));
     };
     canvasApi.renderLevelImage = renderLevelImage;
+    canvasApi.roofMarks = () => ({
+      lines: stageRef.current?.find(`.${ROOF_LINE}`).length ?? 0,
+      hatches: stageRef.current?.find(`.${ROOF_HATCH}`).length ?? 0,
+    });
     canvasApi.exportPng = () => stageRef.current?.toDataURL({ pixelRatio: 2 }) ?? null;
     canvasApi.worldToScreen = (p) => {
       const r = wrapRef.current?.getBoundingClientRect();
@@ -675,6 +680,7 @@ export function PlanCanvas() {
               {level.underlay && <UnderlayImage underlay={level.underlay} />}
               {level.vectorUnderlay && <VectorUnderlayShape underlay={level.vectorUnderlay} />}
               <RoomFills level={level} rooms={derived.rooms} selectedRoomId={selectedRoomId} translucent={!!level.underlay} />
+              <RoofShapes level={level} rooms={derived.rooms} scale={view.scale} />
               <ItemShapes
                 level={level}
                 project={project}

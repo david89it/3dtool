@@ -35,7 +35,7 @@ describe('search index', () => {
   });
 
   it('holds placed pieces by catalogue name and the room they are in', () => {
-    const it = index.find((e) => e.kind === 'item')!;
+    const it = index.find((e) => e.kind === 'item' && e.label.startsWith('Murphy'))!;
     expect(it.label).toBe('Murphy bed: Bedroom 1');
     expect(it.detail).toBe('Second floor');
     expect(it.itemId).toBeTruthy();
