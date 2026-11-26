@@ -986,3 +986,23 @@ Pieces on walls that did not change, and pieces with no `mountedTo`, are never t
 resizing a mounted piece still works as before). Not done: walls merged by dragging one corner
 onto another count as deleted (the piece is detached); there is no clamping by the piece's own
 width, so a wide piece can overhang the end of a short wall.
+
+**Distance guides when moving furniture** (`src/editor2d/guides.ts`, drawn by `layers/GuideLayer.tsx`,
+labels in `PlanCanvas.tsx`). In the piece's own frame (so 15° or 30° turns work) its footprint
+edge is swept forward, back, left and right. Obstacles are wall outlines (mitred polygons from
+`computeJoints`, plus junction fillers) and other pieces' floor-level parts (`obstacleRects`).
+Walls are treated as solid, so a door gap in a wall still counts as wall. The nearest hit within
+3 m gives the gap; a gap under 1 mm (touching) or over 3 m draws nothing. Colour: red under the
+catalogue `min` for that side (`all` counts for every side; the largest value wins), amber under
+`ideal`, otherwise the accent blue. Alignment snaps use the moving piece's own axes: its centre
+line or edges against another piece's bounding centre or edges, within 6 px (zoom independent).
+Per axis, if nothing lined up, the gap to the nearest wall rounds to 10 mm, or pulls to the
+clearance min/ideal within 20 mm. Alt turns all of it off; wall-mounted pieces and bookcase
+surrounds keep their own snapping (guides only). A piece the wall snap has just backed flush
+keeps its front/back position (only sideways snaps apply). Pieces in the same group are ignored.
+Speed: wall obstacles are cached on the level's `walls` array, each piece's rectangles on the
+piece object, and the guides live in the overlay (not the store), so no item is redrawn per move.
+After the drop the same distances show for the selected single floor piece; the label is an
+`EditableLength` in a 44 px target. Typing a gap moves the piece along that direction in one
+`editLevel`. Not done: labels for several selected pieces, wall-mounted pieces, locked pieces;
+no guides while resizing or turning; rays do not see through gaps made by openings.

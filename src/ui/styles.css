@@ -2113,3 +2113,40 @@ a.btn.primary {
 .report-details[open] summary::before {
   content: '▾';
 }
+
+/* Distance labels next to the selected piece on the plan: a 44 px target at the middle of each line. */
+.guide-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: var(--hit);
+  min-height: var(--hit);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+.guide-label .editable {
+  position: relative;
+  isolation: isolate;
+  min-width: var(--hit);
+  min-height: var(--hit);
+  padding: 0 8px;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+/* The visible chip is smaller than the 44 px target around it. */
+.guide-label .editable::before {
+  content: '';
+  position: absolute;
+  inset: 8px 0;
+  z-index: -1;
+  border: 1.5px solid currentColor;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.95);
+}
+.guide-label .editable-input {
+  width: 88px;
+  min-height: var(--hit);
+}

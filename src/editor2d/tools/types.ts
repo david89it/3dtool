@@ -5,6 +5,7 @@ import type { WallDimension } from '../../geometry/dimensions';
 import type { SnapResult } from '../../geometry/snapping';
 import type { View } from '../view';
 import type { OpeningLabel } from '../openingLabels';
+import type { GuideSet } from '../guides';
 
 export interface PointerInfo {
   screen: Vec2;
@@ -35,6 +36,8 @@ export interface Overlay {
   draw?: { from: Vec2; to: Vec2 };
   calib?: { p1?: Vec2; cursor?: Vec2 };
   dragging?: boolean;
+  /** Distance and alignment guides while a piece is being moved. */
+  guides?: GuideSet;
   /** Selection box being dragged on empty floor in Furnish mode (plan points). */
   marquee?: { from: Vec2; to: Vec2 };
 }
