@@ -82,3 +82,51 @@ export function watchWidth(): () => void {
     return () => {};
   }
 }
+
+/**
+ * Narrow screens: the details panel opens when something is selected on the plan (once the
+ * finger or pen is lifted, so a drag is not covered by it) and closes when nothing is selected.
+ * Call once, from the app.
+ */
+export function openDetailsOnSelect(getSelection: () => unknown, subscribe: (fn: () => void) => () => void, inPlan: () => boolean): () => void {
+  let down = false;
+  let pending = false;
+  let last = getSelection();
+  const L = () => useLayout.getState();
+  const openNow = () => {
+    pending = false;
+    if (L().narrow && inPlan() && getSelection() !== null) L().setOpen('right', true);
+  };
+  const onDown = () => {
+    down = true;
+  };
+  const onUp = () => {
+    if (!down) return;
+    down = false;
+    if (pending) openNow();
+  };
+  const unsub = subscribe(() => {
+    const sel = getSelection();
+    if (sel === last) return;
+    const wasNone = last === null;
+    last = sel;
+    if (!L().narrow) return;
+    if (sel === null) {
+      pending = false;
+      if (L().right) L().setOpen('right', false);
+    } else if (wasNone || !L().right) {
+      // A new selection: wait for the pointer to be lifted if one is down (a drag in progress).
+      if (down) pending = true;
+      else openNow();
+    }
+  });
+  window.addEventListener('pointerdown', onDown, true);
+  window.addEventListener('pointerup', onUp, true);
+  window.addEventListener('pointercancel', onUp, true);
+  return () => {
+    unsub();
+    window.removeEventListener('pointerdown', onDown, true);
+    window.removeEventListener('pointerup', onUp, true);
+    window.removeEventListener('pointercancel', onUp, true);
+  };
+}

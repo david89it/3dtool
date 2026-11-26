@@ -102,6 +102,14 @@ read "↺ 90° left" and "↻ 90° right".
 - Pop-up lists (`select`) have the same border and radius as the other fields,
   including the "Compare with" list in the print view.
 
+## Fixed since (iPad and keyboard pass)
+
+P2 items 1 to 4 and P3 items 1 and 2 below are fixed (`e2e/ipad-ux.spec.ts`): details panel opens on
+selection under 1000 px (on pointer-up) and closes on deselect; windows take focus, trap Tab and give
+focus back (`useWindowFocus`); Esc on a window leaves the selection; measure-note length and plan image
+rotation are click-to-type and one-size items say "one size"; at 1100 px and under the chrome is two
+rows with a "More" menu, and the hint sits in its own strip under the plan.
+
 ## Remaining issues
 
 ### P1: broken
@@ -111,22 +119,22 @@ screen overflows sideways at the three sizes.
 
 ### P2: confusing
 
-1. **Under 1000 px (iPad upright) selecting something shows nothing.** Both side
+1. **(Fixed) Under 1000 px (iPad upright) selecting something shows nothing.** Both side
    panels start closed, so tapping an item or a wall does not show its details
    until she taps the "Details" rail. `ui/layoutState.ts` and `ui/App.tsx`:
    open the right panel when something is selected on a narrow screen (and
    close it on deselect).
-2. **Windows do not take the focus and do not keep it.** Tab can reach the plan
+2. **(Fixed) Windows do not take the focus and do not keep it.** Tab can reach the plan
    behind a window. `ui/SettingsDialog.tsx`, `VersionsPanel.tsx`, `BudgetPanel.tsx`
    and others: focus the window when it opens, trap Tab inside it, give the
    focus back to the button that opened it.
-3. **Some numbers cannot be clicked and typed.** "Turned 0°" for an item
+3. **(Fixed) Some numbers cannot be clicked and typed.** "Turned 0°" for an item
    (`ui/ItemPanel.tsx`), the length of a measure note (`ui/Inspector.tsx`),
    the plan image "Rotate 0°" (`ui/LeftPanel.tsx`, slider only), and the height of
    items that come in one size (shows plain text, tooltip only). Suggested fix:
    use `EditableLength` (or a small angle field) for the first three and a
    visible note "One size" for the last.
-4. **Esc closing a window also deselects what is selected on the plan**,
+4. **(Fixed) Esc closing a window also deselects what is selected on the plan**,
    because the plan listens for Esc too (`ui/App.tsx`, `useShortcuts`). Ignore
    Esc there while a window is open.
 5. **No shortcuts for the modes** except Tab for 3D. Suggested: keys 1 to 5
@@ -134,10 +142,10 @@ screen overflows sideways at the three sizes.
 
 ### P3: polish
 
-1. **Three rows of top chrome upright on an iPad** (two top bar rows and the
+1. **(Fixed) Three rows of top chrome upright on an iPad** (two top bar rows and the
    mode bar, about 165 px). Suggest putting the mode buttons on the floors row
    at 768 px and under (`ui/TopBar.tsx`, `ui/ModeBar.tsx`).
-2. **The hint at the bottom left of the plan** runs to three lines at 768 and
+2. **(Fixed) The hint at the bottom left of the plan** runs to three lines at 768 and
    sits on top of the plan labels. Suggest a narrower width with a soft
    background, or a dismissible chip (`.tool-hint` in `ui/styles.css`).
 3. **3D panel takes 320 px of 768** upright. Suggest a bottom sheet under 900 px

@@ -84,6 +84,7 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
             ) : (
               <span className="value" title={item.locked ? 'Unlock to change' : 'This item comes in one size'}>
                 {formatLength(item.dims[axis], units, 'small')}
+                {!item.locked && <span className="muted"> · one size</span>}
               </span>
             )}
           </div>

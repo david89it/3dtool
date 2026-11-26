@@ -173,26 +173,41 @@ for (const size of SIZES) {
       await page.mouse.click(Math.round(size.width / 2), Math.round(size.height / 2));
       await expect(page.getByRole('menu', { name: 'File' })).toHaveCount(0);
 
+      // On an iPad (1100 px and under) the secondary buttons sit under "More"; the names stay the same.
+      const compact = size.width <= 1100;
+      const pick = async (name: string, button: () => ReturnType<Page['getByRole']>) => {
+        if (!compact) return button().click();
+        await page.getByTestId('more-button').click();
+        await page.getByRole('menuitem', { name, exact: true }).click();
+      };
+      if (compact) {
+        await page.getByTestId('more-button').click();
+        await expect(page.getByRole('menu', { name: 'More' })).toBeVisible();
+        await expectClean(page, 'More menu');
+        await closeWithEsc();
+        await expect(page.getByRole('menu', { name: 'More' })).toHaveCount(0);
+      }
+
       // Settings, Versions, Budget, Shortcuts, Search: each closes with Esc.
-      await page.getByRole('button', { name: 'Settings', exact: true }).click();
+      await pick('Settings', () => page.getByRole('button', { name: 'Settings', exact: true }));
       await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
       await expectClean(page, 'Settings');
       await closeWithEsc();
       await expect(page.getByRole('dialog', { name: 'Settings' })).toHaveCount(0);
 
-      await page.getByRole('button', { name: 'Versions', exact: true }).click();
+      await pick('Versions', () => page.getByRole('button', { name: 'Versions', exact: true }));
       await expect(page.getByRole('dialog', { name: 'Versions' })).toBeVisible();
       await expectClean(page, 'Versions');
       await closeWithEsc();
       await expect(page.getByRole('dialog', { name: 'Versions' })).toHaveCount(0);
 
-      await page.getByTestId('budget-button').click();
+      await pick('Budget and shopping list', () => page.getByTestId('budget-button'));
       await expect(page.getByRole('dialog', { name: /Budget/ })).toBeVisible();
       await expectClean(page, 'Budget');
       await closeWithEsc();
       await expect(page.getByRole('dialog', { name: /Budget/ })).toHaveCount(0);
 
-      await page.getByRole('button', { name: 'Keyboard shortcuts' }).click();
+      await pick('Keyboard shortcuts', () => page.getByRole('button', { name: 'Keyboard shortcuts' }));
       await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
       await expectClean(page, 'Shortcuts');
       await closeWithEsc();
