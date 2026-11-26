@@ -7,6 +7,7 @@ import { useSiteMeasure } from '../sitemeasure/state';
 import { useDialogEsc } from './useDialogEsc';
 import { useReportUi, saveReportTo } from '../report/state';
 import { isValidEmail } from '../report/address';
+import { RecoveredBackups } from './RecoveredBackups';
 
 /** Params that are ratios, not lengths (e.g. 1.5 × the screen size). */
 const isFactor = (key: string) => /factor/i.test(key);
@@ -278,6 +279,7 @@ export function SettingsDialog() {
         <OnSiteSettings />
         <ClaudeSettings />
         <ReportSettings />
+        <RecoveredBackups />
         <RuleSettings />
       </div>
     </div>

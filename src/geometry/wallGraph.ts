@@ -23,14 +23,53 @@ export function defaultWallProps(kind: WallKind = 'internal'): WallProps {
   return { thickness: DEFAULT_THICKNESS[kind], kind, structural: 'unknown' };
 }
 
-export function nodePos(level: Level, id: Id): Vec2 {
-  const n = level.nodes.find((x) => x.id === id);
-  if (!n) throw new Error(`Missing node ${id}`);
-  return n.pos;
+/** The corner with this id, or undefined if the plan has no such corner (a damaged plan). Never throws. */
+export function findNodePos(level: Level, id: Id): Vec2 | undefined {
+  return level.nodes.find((x) => x.id === id)?.pos;
 }
 
+const warnedMissing = new Set<string>();
+function warnMissingOnce(what: string): void {
+  if (warnedMissing.has(what)) return;
+  warnedMissing.add(what);
+  console.warn(`Flat Planner: ${what} points at a corner that is not in the plan; it is drawn as a zero-length wall.`);
+}
+
+/** Forget which damaged walls were already reported (tests). */
+export function resetMissingNodeWarnings(): void {
+  warnedMissing.clear();
+}
+
+/**
+ * The position of a corner. A corner that is missing (only possible in a damaged plan, since loading repairs
+ * those) never crashes the drawing: it logs once and answers the plan's origin. Prefer `findNodePos` where a
+ * missing corner should mean "skip this", and `wallEnds` for walls.
+ */
+export function nodePos(level: Level, id: Id): Vec2 {
+  const p = findNodePos(level, id);
+  if (p) return p;
+  warnMissingOnce(`corner ${id}`);
+  return { x: 0, y: 0 };
+}
+
+/** Both ends of a wall, or undefined if either corner is missing. Use this to skip a damaged wall. */
+export function findWallEnds(level: Level, wall: Wall): [Vec2, Vec2] | undefined {
+  const a = findNodePos(level, wall.a);
+  const b = findNodePos(level, wall.b);
+  return a && b ? [a, b] : undefined;
+}
+
+/**
+ * Both ends of a wall. If a corner is missing the wall collapses to a zero-length wall at the end that is
+ * still there (which every drawing and rule path already treats as "nothing to draw"), and this logs once.
+ */
 export function wallEnds(level: Level, wall: Wall): [Vec2, Vec2] {
-  return [nodePos(level, wall.a), nodePos(level, wall.b)];
+  const a = findNodePos(level, wall.a);
+  const b = findNodePos(level, wall.b);
+  if (a && b) return [a, b];
+  warnMissingOnce(`wall ${wall.id}`);
+  const p = a ?? b ?? { x: 0, y: 0 };
+  return [p, p];
 }
 
 export function wallLength(level: Level, wall: Wall): number {

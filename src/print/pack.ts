@@ -6,7 +6,7 @@ import type { Id, Level, Opening, Project, Structural, Wall, WallKind } from '..
 import { activeLevels } from '../model/schemes';
 import { computeJoints, type JointData } from '../geometry/joints';
 import { detectRooms } from '../geometry/rooms';
-import { nodePos } from '../geometry/wallGraph';
+import { wallEnds } from '../geometry/wallGraph';
 import {
   endDistances,
   MIN_NIB,
@@ -33,8 +33,7 @@ export const STRUCT_LABEL: Record<Structural, string> = {
 
 /** Which end of a wall is on the left or top of the screen, the way the plan shows it. */
 export function wallEndNames(level: Level, wall: Wall): [string, string] {
-  const a = nodePos(level, wall.a);
-  const b = nodePos(level, wall.b);
+  const [a, b] = wallEnds(level, wall);
   if (Math.abs(b.x - a.x) >= Math.abs(b.y - a.y)) return a.x <= b.x ? ['left', 'right'] : ['right', 'left'];
   return a.y <= b.y ? ['top', 'bottom'] : ['bottom', 'top'];
 }

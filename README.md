@@ -217,6 +217,18 @@ Hosting). The email link is kept under about 1800 characters so iPad and
 macOS Mail open it; her words come first and the details are trimmed to fit
 (device first, then the change list, then the oldest errors).
 
+## Using it: keeping your plan safe
+
+- **Save a copy reminder.** Your plan lives only in this browser. After 7 days without a saved copy (and a few edits), or 200
+  edits since the last copy, a small note offers *Save a copy* or *Later* (asks again in 3 days). It never shows on an empty
+  plan. The last-copy time and the snooze are remembered per browser.
+- **One tab at a time.** If the plan is open in two tabs, only one edits. The other shows *This plan is open in another tab*.
+  Press *Use this tab* there: the other tab saves, stops editing and shows the same message, and this one reloads the plan
+  from storage first so nothing is lost.
+- **Recovered backups.** If a saved plan ever cannot be opened, the raw data is kept. *Settings → Recovered backups* lists
+  them with date and size; *Download* saves one as a JSON file, *Delete* (click twice) removes it. The section is hidden when
+  there are none.
+
 ## Using it: on site and scans
 
 | Do this | How |

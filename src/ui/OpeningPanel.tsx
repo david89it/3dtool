@@ -14,14 +14,13 @@ import {
   usableRange,
 } from '../geometry/openings';
 import { deleteOpening, editOpening, type OpeningField } from '../geometry/openingEdits';
-import { nodePos } from '../geometry/wallGraph';
+import { wallEnds } from '../geometry/wallGraph';
 import { formatLength } from '../model/units';
 import { EditableLength } from './EditableLength';
 
 /** Name the wall's two ends the way she sees them on screen. */
 function endNames(level: Level, wall: Wall): [string, string] {
-  const a = nodePos(level, wall.a);
-  const b = nodePos(level, wall.b);
+  const [a, b] = wallEnds(level, wall);
   if (Math.abs(b.x - a.x) >= Math.abs(b.y - a.y)) return a.x <= b.x ? ['left', 'right'] : ['right', 'left'];
   return a.y <= b.y ? ['top', 'bottom'] : ['bottom', 'top'];
 }

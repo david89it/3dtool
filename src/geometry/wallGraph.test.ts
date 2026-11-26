@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Level } from '../model/types';
 import {
   addWall,
   defaultWallProps,
   deleteWall,
+  findNodePos,
+  findWallEnds,
+  resetMissingNodeWarnings,
+  wallEnds,
   mergeNodes,
   nodePos,
   setNodePos,
@@ -134,5 +138,45 @@ describe('wall graph', () => {
     // the far wall moved with it: room is still a rectangle
     const rooms = detectRooms(L).filter((r) => !r.solid);
     expect(rooms[0].area).toBeCloseTo(3320 * 2900, -2);
+  });
+});
+
+describe('a plan with a missing corner', () => {
+  function damaged() {
+    const L = blankLevel();
+    square(L);
+    const w = L.walls[0];
+    L.nodes = L.nodes.filter((n) => n.id !== w.b);
+    return { L, w };
+  }
+
+  it('answers undefined from findNodePos and findWallEnds instead of throwing', () => {
+    const { L, w } = damaged();
+    expect(findNodePos(L, w.b)).toBeUndefined();
+    expect(findWallEnds(L, w)).toBeUndefined();
+    expect(findWallEnds(L, L.walls[2])).toBeDefined();
+  });
+
+  it('never throws from nodePos or wallEnds, and logs once per wall', () => {
+    resetMissingNodeWarnings();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { L, w } = damaged();
+    expect(() => nodePos(L, w.b)).not.toThrow();
+    const [a, b] = wallEnds(L, w);
+    expect(b).toEqual(a);
+    wallEnds(L, w);
+    wallEnds(L, w);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes(w.id))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it('lets rooms, joints and dimensions run on the damaged plan', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { L } = damaged();
+    expect(() => {
+      const J = computeJoints(L);
+      wallDimensions(L, J, detectRooms(L, J));
+    }).not.toThrow();
+    warn.mockRestore();
   });
 });

@@ -28,6 +28,9 @@ import { useVersionsUi } from './versionsUi';
 import { useBudgetUi } from './budgetUi';
 import { EmptyStart, UnlockDialog } from './UnlockDialog';
 import { ReportDialog } from './ReportDialog';
+import { CopyReminder } from './CopyReminder';
+import { TabOverlay } from './TabOverlay';
+import { isEditorTab, useTabRole } from '../model/tabLock';
 import { usePrint } from '../print/state';
 
 // three.js only loads when she first opens 3D, so the plan editor starts fast.
@@ -114,6 +117,8 @@ function useShortcuts() {
         usePalette.getState().toggle();
         return;
       }
+      // Another tab is the editor: this one only looks.
+      if (!isEditorTab()) return;
       if (isTyping(e)) return;
       // The print view is on top: it handles its own keys (Esc closes it) and the plan must not react.
       if (usePrint.getState().open) return;
@@ -213,12 +218,13 @@ export function App() {
   const left = useLayout((s) => s.left);
   const right = useLayout((s) => s.right);
   const narrow = useLayout((s) => s.narrow);
+  const role = useTabRole((s) => s.role);
   useShortcuts();
   useEffect(() => watchWidth(), []);
   if (!ready) return <div className="loading">Opening your plan…</div>;
   return (
     <>
-    <div className="app">
+    <div className="app" inert={role === 'viewer' || role === 'claiming'}>
       <TopBar />
       <ModeBar />
       {mode === '3d' ? (
@@ -249,12 +255,14 @@ export function App() {
       <Tour />
       <Shortcuts />
       <EmptyStart />
+      <CopyReminder />
       <UnlockDialog />
       <ReportDialog />
       <DeferredPanels />
       <DeferredPalette />
     </div>
     <DeferredPrint />
+    <TabOverlay />
     </>
   );
 }

@@ -16,10 +16,10 @@ import type { UnitSystem } from './units';
 import { parseHistory, type HistoryFile } from './versions';
 import { repairProject } from './repair';
 import { uid } from './ids';
+import { UNREADABLE_PREFIX } from './backups';
 
 export const PROJECT_KEY = 'flatplan:project:v1';
 const SETTINGS_KEY = 'flatplan:settings:v1';
-const UNREADABLE_PREFIX = 'flatplan:unreadable:';
 
 interface Settings {
   units: UnitSystem;
@@ -85,6 +85,7 @@ let paused = false;
 let writeChain: Promise<void> = Promise.resolve();
 let lastWarn = 0;
 let pausedByOtherTab = false;
+let watchOtherWindow = true;
 let channel: BroadcastChannel | undefined;
 const TAB_ID = uid('tab');
 
@@ -102,6 +103,14 @@ export function resumeSaving(): void {
 }
 
 export const savingPaused = () => paused;
+
+/**
+ * The older guard: stop saving when another window saves. The tab lock (`tabLock.ts`) replaces it when the browser
+ * supports it, because that one hands over on purpose; this stays on as the fallback.
+ */
+export function setOtherWindowWatch(on: boolean): void {
+  watchOtherWindow = on;
+}
 
 /** Tell autosave that `p` is what storage already holds, so loading it does not trigger a write. */
 export function markSaved(p: Project): void {
@@ -177,7 +186,7 @@ export function startAutosave(): () => void {
     if (channel) {
       channel.onmessage = (e: MessageEvent) => {
         if ((e.data as { tab?: string } | null)?.tab === TAB_ID) return;
-        if (!useStore.getState().ready) return;
+        if (!watchOtherWindow || !useStore.getState().ready) return;
         pausedByOtherTab = true;
         pauseSaving();
         warnOtherTab();
@@ -241,6 +250,7 @@ export function resetPersistenceForTests(): void {
   lastSaved = undefined;
   paused = false;
   pausedByOtherTab = false;
+  watchOtherWindow = true;
   writeChain = Promise.resolve();
   lastWarn = 0;
 }
@@ -388,6 +398,11 @@ export async function readPlanFile(file: File): Promise<{ project: Project; hist
 
 export async function readProjectFile(file: File): Promise<Project> {
   return (await readPlanFile(file)).project;
+}
+
+/** Save text that is already JSON as a file. */
+export function downloadJsonText(text: string, filename: string): void {
+  download(new Blob([text], { type: 'application/json' }), filename);
 }
 
 export function downloadDataUrl(dataUrl: string, filename: string): void {

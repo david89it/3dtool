@@ -4,8 +4,8 @@ import { useSiteMeasure } from '../sitemeasure/state';
 import { useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../model/store';
-import { exportProjectFile, readPlanFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
-import { exportHistory, runJob } from '../model/versions';
+import { readPlanFile, downloadDataUrl, safeFileName, flushSave } from '../model/persistence';
+import { saveCopyToFile } from './saveCopy';
 import { useVersionsUi } from './versionsUi';
 import { createStartProject, PUBLIC_BUILD } from '../model/firstRun';
 import { useSeedAvailable, useUnlock } from './UnlockDialog';
@@ -188,9 +188,7 @@ export function TopBar() {
                 role="menuitem"
                 onClick={async () => {
                   setMenu(false);
-                  const withVersions = useVersionsUi.getState().includeHistory;
-                  const history = withVersions ? await runJob('Could not read your versions, so the copy has none.', (kv) => exportHistory(kv)) : undefined;
-                  exportProjectFile(useStore.getState().project, history);
+                  await saveCopyToFile();
                 }}
               >
                 Save a copy to my computer
