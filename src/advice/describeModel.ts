@@ -30,11 +30,40 @@ export interface ItemDescription {
   material: string;
   sizeConfidence: SizeConfidence;
   notes: string;
+  /** Price in £ for one, only when a shop page states it. */
+  price?: number;
 }
 
 export interface DescribeInput {
   text: string;
+  /** A direct picture link, sent to Claude as an image. */
   imageUrl?: string;
+  /** A shop product page, which Claude opens with the web fetch tool. */
+  pageUrl?: string;
+}
+
+const IMAGE_EXT = /\.(?:jpe?g|png|webp|gif)$/i;
+
+/**
+ * One link box takes either kind: a direct picture (by extension, query
+ * string allowed, or a known image host) or a shop product page.
+ * 'invalid' is anything that is not an http(s) address.
+ */
+export function classifyLink(raw: string | undefined): 'image' | 'page' | 'invalid' {
+  const url = cleanUrl(raw);
+  if (!url) return 'invalid';
+  const u = new URL(url);
+  if (IMAGE_EXT.test(u.pathname)) return 'image';
+  if (/(?:^|\.)pinimg\.com$/i.test(u.hostname) || /^(?:i\.imgur\.com|images\.unsplash\.com)$/i.test(u.hostname)) return 'image';
+  return 'page';
+}
+
+/** The wording under a new item: how sure its size is, and where it came from. */
+export function confidenceLabel(conf: string, kind: 'description' | 'image' | 'link' = 'description'): string {
+  if (conf === 'stated' && kind === 'link') return 'Sizes from the shop page';
+  if (conf === 'stated') return 'Size as you described it';
+  if (conf === 'typical') return 'A typical size for this kind of item';
+  return 'A rough guess. Check it against the real thing';
 }
 
 const catalogueIds = () => CATALOGUE.map((c) => c.id);
@@ -63,8 +92,9 @@ export function describeSchema(ids: string[] = catalogueIds()): Record<string, u
       material: { type: 'string', description: 'Main material, e.g. "tan leather, walnut legs".' },
       sizeConfidence: { type: 'string', enum: [...SIZE_CONFIDENCE], description: '"stated" if the size was given, "typical" for a usual retail size, "guess" otherwise.' },
       notes: { type: 'string', description: 'One short sentence on anything uncertain.' },
+      price: { anyOf: [{ type: 'number' }, { type: 'null' }], description: 'Price in pounds sterling for one, only if the shop page clearly states it in £. Otherwise null. Never guess.' },
     },
-    required: ['name', 'aliases', 'category', 'baseItemId', 'dims', 'mount', 'colorHex', 'material', 'sizeConfidence', 'notes'],
+    required: ['name', 'aliases', 'category', 'baseItemId', 'dims', 'mount', 'colorHex', 'material', 'sizeConfidence', 'notes', 'price'],
     additionalProperties: false,
   };
 }
@@ -144,6 +174,7 @@ export function validateDescription(raw: unknown): ItemDescription {
     material: str(r.material, 120),
     sizeConfidence: missing ? 'guess' : sizeConfidence,
     notes: str(r.notes, 240),
+    ...(typeof r.price === 'number' && Number.isFinite(r.price) && r.price > 0 && r.price < 100000 ? { price: Math.round(r.price * 100) / 100 } : {}),
   };
 }
 
@@ -172,7 +203,7 @@ function resizeRange(base: CatalogueItem | undefined, axis: keyof Dims, v: numbe
  * Turn a checked description into a catalogue item for project.catalogueOverrides.
  * Shape and clearances come from the base item, scaled to the sizes.
  */
-export function buildAiItem(desc: ItemDescription, source: { text?: string; url?: string }, id: string = `ai-${uid('c')}`): CatalogueItem {
+export function buildAiItem(desc: ItemDescription, source: { text?: string; url?: string; kind?: 'image' | 'link' }, id: string = `ai-${uid('c')}`): CatalogueItem {
   const base = CATALOGUE.find((c) => c.id === desc.baseItemId);
   const dims = { ...desc.dims };
   const baseNames = base?.states ? Object.keys(base.states) : [];
@@ -194,7 +225,7 @@ export function buildAiItem(desc: ItemDescription, source: { text?: string; url?
 
   const ownName = desc.name.toLowerCase();
   const aliases = [...new Set([ownName, ...desc.aliases, 'my item'])];
-  const kind = source.url ? 'image' : 'description';
+  const kind = source.url ? (source.kind ?? 'image') : 'description';
   return {
     id,
     name: desc.name,
@@ -214,5 +245,6 @@ export function buildAiItem(desc: ItemDescription, source: { text?: string; url?
       ...(source.url ? { url: source.url } : {}),
       sizeConfidence: desc.sizeConfidence,
     },
+    ...(desc.price !== undefined && kind === 'link' ? { price: desc.price } : {}),
   };
 }

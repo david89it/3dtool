@@ -77,12 +77,12 @@ test('describe a piece: preview, edit a size, add, find under Your items, place,
 
   await page.getByRole('button', { name: 'Furnish', exact: true }).click();
 
-  // Not switched on yet: one line of hint, no box.
-  await expect(page.getByTestId('describe-hint')).toContainText('Ask Claude');
+  // No key yet: one line of hint with a Settings button, no fields.
+  await expect(page.getByTestId('describe-hint')).toContainText('Add your Claude key in Settings to make items from a description or a shop link');
   await expect(page.getByTestId('describe-box')).toHaveCount(0);
 
   // Switch Ask Claude on, with a fake key, from the hint's Settings link.
-  await page.getByTestId('describe-hint').getByRole('button', { name: 'Settings' }).click();
+  await page.getByTestId('describe-hint').getByRole('button', { name: 'Open Settings' }).click();
   const dialog = page.getByRole('dialog', { name: 'Settings' });
   await dialog.getByLabel('Turn on “Ask for advice”').check();
   await dialog.getByLabel('Anthropic API key').fill('sk-ant-test-key');
@@ -206,4 +206,96 @@ test('describe a piece: an empty request is refused, an odd answer is repaired, 
   await expect(card).toContainText('400 cm'); // clamped from 99999 mm
   await card.getByRole('button', { name: 'Try again' }).click();
   await expect.poll(() => calls).toBe(2);
+});
+
+const PAGE_URL = 'https://www.ikea.com/gb/en/p/strandmon-wing-chair-12345/';
+
+async function mockApi(page: Page, reply: (body: any) => object) {
+  const seen: any[] = [];
+  await page.route('https://api.anthropic.com/**', async (route) => {
+    const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers });
+      return;
+    }
+    const body = route.request().postDataJSON();
+    seen.push(body);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers,
+      body: JSON.stringify({ id: 'msg_test', type: 'message', role: 'assistant', model: 'claude-opus-5-5', stop_sequence: null, usage: { input_tokens: 10, output_tokens: 10 }, ...reply(body) }),
+    });
+  });
+  return seen;
+}
+
+async function enableClaude(page: Page) {
+  await page.getByRole('button', { name: 'Furnish', exact: true }).click();
+  await page.getByTestId('describe-hint').getByRole('button', { name: 'Open Settings' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Settings' });
+  await dialog.getByLabel('Turn on “Ask for advice”').check();
+  await dialog.getByLabel('Anthropic API key').fill('sk-ant-test-key');
+  await dialog.getByRole('button', { name: 'Save key' }).click();
+  await expect(dialog).toContainText('A key is saved in this browser.');
+  await dialog.getByRole('button', { name: 'Done' }).click();
+}
+
+test('shop page link: real sizes, colour and shape from the page, link and price kept', async ({ page }) => {
+  const seen = await mockApi(page, () => ({
+    content: [
+      { type: 'text', text: 'Fetching the page.' },
+      { type: 'web_fetch_tool_result', tool_use_id: 'srvtoolu_1', content: { type: 'web_fetch_result', url: PAGE_URL, content: { type: 'document', source: { type: 'text', media_type: 'text/plain', data: 'x' } } } },
+      { type: 'text', text: JSON.stringify({ ...CHAIR, name: 'Strandmon wing chair', dims: { w: 820, d: 960, h: 1010 }, sizeConfidence: 'stated', price: 275 }) },
+    ],
+    stop_reason: 'end_turn',
+  }));
+  await freshStart(page);
+  await enableClaude(page);
+
+  await page.getByLabel('Shop link or picture link (optional)').fill(PAGE_URL);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  const card = page.getByTestId('describe-preview');
+  await expect(card.getByLabel('Item name')).toHaveValue('Strandmon wing chair');
+  await expect(card).toContainText('82 cm');
+  await expect(card).toContainText('Sizes from the shop page');
+  await expect(card.getByTestId('describe-price')).toContainText('£275');
+
+  expect(seen).toHaveLength(1);
+  expect(seen[0].tools).toEqual([{ type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 3 }]);
+  expect(JSON.stringify(seen[0].messages)).toContain(PAGE_URL);
+  expect(seen[0].output_config.format.type).toBe('json_schema');
+
+  await card.getByRole('button', { name: 'Add to my items' }).click();
+  const added = await overrides(page);
+  expect(added[0].source).toEqual({ kind: 'link', url: PAGE_URL, sizeConfidence: 'stated' });
+  expect(added[0].price).toBe(275);
+
+  await page.getByLabel('Search furniture').fill('strandmon');
+  await page.getByTestId(`catalogue-${added[0].id}`).click();
+  const s = await screen(page, { x: 2200, y: 4300 });
+  await page.mouse.move(s.x - 4, s.y);
+  await page.mouse.move(s.x, s.y);
+  await page.mouse.click(s.x, s.y);
+  const placed = await items(page);
+  expect(placed[0].link).toBe(PAGE_URL);
+  expect(placed[0].price).toBe(275);
+  await expect(page.getByTestId('item-source')).toContainText('Made from a shop link');
+  await expect(page.getByTestId('item-source')).toContainText('Sizes from the shop page');
+});
+
+test('shop page link: a page that cannot be opened gives a plain message', async ({ page }) => {
+  await mockApi(page, () => ({
+    content: [
+      { type: 'web_fetch_tool_result', tool_use_id: 'srvtoolu_1', content: { type: 'web_fetch_tool_result_error', error_code: 'url_not_accessible' } },
+      { type: 'text', text: 'I could not open the page.' },
+    ],
+    stop_reason: 'end_turn',
+  }));
+  await freshStart(page);
+  await enableClaude(page);
+  await page.getByLabel('Shop link or picture link (optional)').fill(PAGE_URL);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('That shop page could not be opened');
+  await expect(page.getByRole('alert')).toContainText('Paste the picture link instead');
 });
