@@ -47,6 +47,8 @@ export function CommitInput({
       onChange={(e) => setText(e.target.value)}
       onBlur={finish}
       onKeyDown={(e) => {
+        // Esc with nothing typed goes on to close the window; with an edit it only undoes the edit.
+        if (e.key === 'Escape' && text === value) return;
         e.stopPropagation();
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
         if (e.key === 'Escape') {

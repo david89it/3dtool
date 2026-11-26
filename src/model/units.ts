@@ -35,7 +35,8 @@ export function formatScale(mmPerPx: number): string {
 /**
  * Read what she typed. Accepts "3.32", "3,32 m", "332cm", "3320 mm",
  * "10' 11\"", "10ft 11in", "131\"". A bare number is read in the unit the
- * value was shown in, with sanity fallbacks (a 332 m wall is 332 cm).
+ * value was shown in: cm for small sizes; for wall lengths, with sanity
+ * fallbacks (a 332 m wall is 332 cm).
  * Returns millimetres, or null if it cannot be read.
  */
 export function parseLength(text: string, sys: UnitSystem, ctx: LengthContext = 'length'): number | null {
@@ -61,7 +62,13 @@ export function parseLength(text: string, sys: UnitSystem, ctx: LengthContext = 
     if (val <= 1000) return val * 10;
     return val;
   }
-  // Small sizes: "2.4" (a decimal under 10) means metres, "45" means cm, "450" mm.
-  if (/\./.test(m[1]) && val < 10) return val * 1000;
-  return val < 100 ? val * 10 : val;
+  // Small sizes (furniture, gaps) are shown in cm, so a plain number is always cm:
+  // "45" is 45 cm, "120" is 120 cm. Type "mm" or "m" after it for those.
+  return val * 10;
+}
+
+/** One line under a size box saying how a plain number is read. */
+export function lengthHint(sys: UnitSystem, ctx: LengthContext = 'length'): string {
+  if (sys === 'imperial') return ctx === 'length' ? 'Plain numbers are feet. Or type 10′ 11″' : 'Plain numbers are inches. Or type 2′ 6″';
+  return ctx === 'length' ? 'Plain numbers: 3.32 is metres, 332 is cm. Or type cm, mm or m' : 'Plain numbers are cm. Or type mm or m after the number';
 }

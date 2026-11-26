@@ -1094,3 +1094,12 @@ no guides while resizing or turning; rays do not see through gaps made by openin
   door onto the stair (info only). After the kitchen/reception wall comes out, the merged room keeps
   one of the two names ("Reception"), so it counts as a kitchen only once a hob is placed in it, or
   after she renames it.
+
+## Plain numbers in size boxes are cm
+
+- Small sizes (furniture, gaps, heights; `ctx: 'small'`) are shown in cm, so a plain number is
+  always cm. The old guess ("2.4" was metres, "450" was mm) surprised her: "120" for a table
+  diameter gave 12 cm. Wall lengths keep their rule (3.32 m, 332 cm). `lengthHint` writes the
+  rule under every size box while typing and in *Add custom item*.
+- Budget leaves out pieces of the building (chimney breast, pillar). Esc from a field with no
+  unsaved edit closes the window it is in.

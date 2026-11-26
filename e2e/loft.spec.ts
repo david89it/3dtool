@@ -62,7 +62,7 @@ test('sloped ceiling: add in the room panel, see the 1.5 m line, build 3D', asyn
 
   // Type the real knee height: the guess mark goes, and a knee wall of 1.6 m has no 1.5 m line.
   await section.getByRole('button', { name: /Knee wall height/ }).click();
-  await section.getByLabel('Knee wall height').fill('1.6');
+  await section.getByLabel('Knee wall height').fill('160');
   await section.getByLabel('Knee wall height').press('Enter');
   const slope = () =>
     page.evaluate(() => {

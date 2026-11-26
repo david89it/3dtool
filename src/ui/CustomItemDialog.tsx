@@ -4,7 +4,7 @@ import { useStore } from '../model/store';
 import { uid } from '../model/ids';
 import { CATEGORY_LABEL, customGeometry } from '../catalogue/items';
 import { cyl, roundTable } from '../catalogue/parts';
-import { formatLength, parseLength } from '../model/units';
+import { formatLength, lengthHint, parseLength } from '../model/units';
 import { parsePrice } from '../model/costs';
 
 type Cat = CatalogueItem['category'];
@@ -125,6 +125,7 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
               <option value="round">Round</option>
             </select>
           </label>
+          <p className="field-hint">{lengthHint(units, 'small')}.</p>
           {SIZE_FIELDS.filter((f) => !round || f.key !== 'd').map((f) => (
             <label key={f.key} className="form-row">
               <span className="field-label">{round && f.key === 'w' ? 'Diameter' : f.label}</span>

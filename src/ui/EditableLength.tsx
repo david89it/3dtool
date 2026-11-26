@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../model/store';
-import { formatLength, parseLength, type LengthContext } from '../model/units';
+import { formatLength, parseLength, type LengthContext, lengthHint } from '../model/units';
 
 interface Props {
   value: number; // mm
@@ -60,6 +60,7 @@ export function EditableLength({ value, onChange, label, ctx = 'length', min = 1
       <input
         className="editable-input"
         aria-label={label}
+        title={lengthHint(units, ctx)}
         autoFocus
         value={text}
         onFocus={(e) => e.currentTarget.select()}
@@ -82,7 +83,7 @@ export function EditableLength({ value, onChange, label, ctx = 'length', min = 1
           }
         }}
       />
-      {error && <span className="field-error">{error}</span>}
+      {error ? <span className="field-error">{error}</span> : <span className="field-hint">{lengthHint(units, ctx)}</span>}
     </span>
   );
 }

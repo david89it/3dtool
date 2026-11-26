@@ -11,6 +11,9 @@ import { computeJoints } from '../geometry/joints';
 import { detectRooms, type DetectedRoom } from '../geometry/rooms';
 import { dist } from '../geometry/vec';
 import { findCatalogueItem } from '../catalogue/catalogue';
+
+/** Catalogue pieces that are part of the building, left out of the budget. */
+const BUILDING_PARTS = new Set(['chimney-breast', 'column']);
 import { defaultFloorId, FLOOR_FINISHES } from '../view3d/finishes';
 import { formatLength, type UnitSystem } from './units';
 
@@ -238,6 +241,8 @@ function furnitureForLevel(project: Project, level: Level): FurnitureFloorGroup 
   for (const d of detected) ensure(storedRoom(level, d)?.name ?? 'Room');
   for (const item of level.items) {
     const cat = findCatalogueItem(project, item.catalogueId);
+    // Parts of the building (a chimney breast, a pillar) are not things to buy.
+    if (cat && BUILDING_PARTS.has(cat.id)) continue;
     const home = detected.find((d) => pointIn(d.inner, item.pos));
     const room = home ? (storedRoom(level, home)?.name ?? 'Room') : ELSEWHERE;
     ensure(room);

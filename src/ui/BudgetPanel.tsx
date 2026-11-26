@@ -46,7 +46,8 @@ function PanelBody() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)) setOpen(false);
+      // A field with an unsaved edit stops Esc itself (it undoes the edit first), so any Esc that gets here closes.
+      if (e.key === 'Escape') setOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
