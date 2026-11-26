@@ -2113,3 +2113,49 @@ a.btn.primary {
 .report-details[open] summary::before {
   content: '▾';
 }
+
+/* ---- save-a-copy reminder, other-tab overlay, recovered backups ---------- */
+.copy-reminder {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 9;
+  width: min(340px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+}
+.copy-reminder p {
+  margin: 0;
+  line-height: 1.4;
+}
+.copy-reminder-actions {
+  display: flex;
+  gap: 8px;
+}
+.tab-overlay {
+  z-index: 60;
+  background: rgba(20, 20, 20, 0.45);
+}
+.backup-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.backup-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.backup-what {
+  flex: 1;
+  min-width: 0;
+}

@@ -185,6 +185,11 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
   download; the address comes from Settings (per browser) or `Project.reportTo`, set only by the
   encrypted seed from the `REPORT_EMAIL` secret. `noAddress.test.ts` keeps addresses out of the repo.
 
+- Safety batch: "Save a copy" reminder (`model/copyReminder.ts`, `ui/CopyReminder.tsx`), one editor tab
+  at a time with an overlay and "Use this tab" (`model/tabOwnership.ts`, `tabLock.ts`, `ui/TabOverlay.tsx`),
+  Settings → Recovered backups (`model/backups.ts`, `ui/RecoveredBackups.tsx`), and `nodePos` no longer throws
+  (`findNodePos`, `findWallEnds`, `wallEnds` degrade to zero length). `e2e/safety.spec.ts`.
+
 **In flight:** none.
 
 **Blocked:**
@@ -209,11 +214,6 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
     image rotation, and the height of one-size items.
   - Esc closing a window should not also deselect on the plan.
   - On an iPad upright there are three rows of chrome, and the hint text overlaps labels.
-- From `CODE_REVIEW.md`:
-  - A periodic "Save a copy" reminder (everything lives in one browser's storage).
-  - `nodePos` (`geometry/wallGraph.ts`) throws on a missing corner.
-  - No screen for backups of unreadable records (`flatplan:unreadable:*`).
-  - A second tab stops saving and needs a reload.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
 side-by-side compare, live Pinterest sync, fps meter.
@@ -266,6 +266,9 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-26 · safety · Copy reminder, single editor tab (BroadcastChannel hand-over, flush before release, reload from
+  storage), Recovered backups in Settings, `nodePos` made safe; tests `copyReminder`, `tabOwnership`, `backups`,
+  `wallGraph`, `e2e/safety.spec.ts`. See DECISIONS.
 - 2026-11-20 · report · Report a problem by email: `src/report` (address priority, console ring buffer
   installed first in `main.tsx`, details, `buildMailto` capped at 1800 characters), `ReportDialog`,
   Settings → Problem reports go to, `Project.reportTo` from the `REPORT_EMAIL` secret via

@@ -9,9 +9,15 @@ import { createEmptyProject, createStartProject } from './model/firstRun';
 import { loadAdviceEnabled, loadApiKey } from './advice/keyStore';
 import { canvasApi } from './editor2d/canvasApi';
 import { loadReportTo, useReportUi } from './report/state';
+import { startTabLock } from './model/tabLock';
+import { startCopyReminder } from './model/copyReminder';
+import { pauseSaving } from './model/persistence';
 import './ui/styles.css';
 
 async function boot() {
+  // Is another tab already editing this plan? If so this one only looks, and writes nothing.
+  const role = await startTabLock();
+  if (role === 'viewer') pauseSaving();
   const settings = await loadSettings();
   if (settings.units) useStore.getState().setUnits(settings.units);
   if (settings.showMarkers !== undefined) useStore.getState().setShowMarkers(settings.showMarkers);
@@ -33,6 +39,7 @@ async function boot() {
   // Writes the starting plan on a first visit; does nothing when saving is paused or the plan came from storage.
   await flushSave();
   startAutosave();
+  startCopyReminder();
   for (const n of notices) useStore.getState().toast(n.text, n.tone);
   // First run: a short tour. `?notour` in the address skips it (tests, demos).
   if (!settings.tourSeen && !/[?&]notour\b/.test(window.location.search)) useStore.getState().setTourStep(0);

@@ -935,3 +935,26 @@ challenged.
 - **No key:** the box shows one line and an Open Settings button, no fields.
 - **Not verifiable without a real key:** how well each shop's page text
   yields dimensions, and whether some shops (bot-blocking) refuse the fetch.
+
+## Safety: copy reminder, one editor tab, recovered backups, damaged corners (2026-11-26)
+
+- **Reminder rule** (`model/copyReminder.ts`, pure): show when there are at least 5 edits and 7 days since the last copy
+  (or since the first edit if she never saved one), or 200 edits since the last copy. "Later" snoozes 3 days. Never on a
+  blank plan, during the tour, or in a tab that is only looking. An edit is one undo entry (a drag counts once). The record
+  (`flatplan:copyreminder:v1`: last copy, snooze, edit count) is per browser, in IndexedDB, written only by the editing tab.
+  Only File, Save a copy (and the banner button) count as a copy; the error-screen rescue copy does not.
+- **One editor tab** (`model/tabOwnership.ts` pure, `tabLock.ts` BroadcastChannel `flatplan:editor`). A new tab says hello and
+  waits 250 ms; an editor answers and this tab becomes a viewer (overlay, app `inert`, shortcuts and saving off). Taking over:
+  the claim carries a time later than any seen, the old editor flushes its pending save, pauses and replies "released"; only
+  then the claimant reads the plan from storage and edits (undo history of that tab is reset by the reload; 2.5 s timeout
+  if the other tab is frozen or gone). Simultaneous starts: later time wins, tie goes to the larger tab id. No
+  BroadcastChannel: the tab edits as before and the older "another window saved" guard stays as the fallback (it is switched
+  off when the tab lock runs, because it would fire during a planned hand-over). No Web Locks or storage-event fallback.
+  A reload of the editing tab keeps the role (the viewer never answers hello).
+- **Recovered backups** (`model/backups.ts`) read `flatplan:unreadable:*` records; the date is the time in the key, the size
+  is the JSON size. Deleting needs a second click. They are never deleted automatically.
+- **Damaged corners.** `nodePos` no longer throws: a missing corner logs once and answers the origin. `findNodePos` and
+  `findWallEnds` return undefined; `wallEnds` collapses a wall with a missing corner to zero length at the end that exists
+  (logged once per wall), which the drawing code already treats as nothing to draw. `repairProject` already drops such
+  walls on load. Callers inside `editor2d`, `rules` and `advice` were not changed (owned by other work); they now get the
+  fallback instead of an exception.
