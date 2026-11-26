@@ -49,7 +49,7 @@ beats feature count.
 | `src/geometry` | Wall graph, mitred joints, room detection, dimensions, snapping, openings rules and edits, calibration | `wallGraph.ts`, `rooms.ts`, `openings.ts` |
 | `src/catalogue` | 84 items as data, shape helpers, state sizes, footprints, `obstacleRects`, parametric builders (bookcase surround), colours | `items.ts`, `catalogue.ts` |
 | `src/editor2d` | Konva canvas, layers, tools for each mode, hit testing, `canvasApi` bridge (also used by tests) | `PlanCanvas.tsx`, `tools/*` |
-| `src/rules` | 22 layout rules (one registry file), engine, fixers | `registry.ts`, `engine.ts` |
+| `src/rules` | 23 layout rules (one registry file), engine, fixers | `registry.ts`, `engine.ts` |
 | `src/view3d` | 3D scene, wall profiles with holes, walk physics, materials and finishes | `View3D.tsx`, `sceneBuild.ts` |
 | `src/advice` | Optional Claude API client (`claude-opus-5-5`, key kept in the browser): advice and describe-a-piece | `claudeAdvice.ts`, `describeItem.ts` |
 | `src/report` | Report a problem: address priority, console ring buffer, details, mailto builder | `report.ts`, `address.ts` |
@@ -236,7 +236,8 @@ side-by-side compare, live Pinterest sync, fps meter.
   between two rooms takes the woodwork colour of the room on the wall's left;
   skirting is straight boxes (no mitres at corners); the face-click path has
   unit tests but no end-to-end click test; paint colours are chosen by eye.
-- Wall-hung items don't follow their wall when it moves.
+- Wall-hung items follow their wall (`src/model/mounted.ts`), but one on a wall removed by merging corners is detached, and a wide one can overhang the end of a short wall.
+- Fire escape rule (`src/rules/escape.ts`) is guidance only: it checks routes through the kitchen, not distances, door ratings or a kitchen open to the stair. The seed does not warn after opening the kitchen into the reception (its bedrooms leave by the stair, not through the kitchen).
 - The building floats in 3D because only the entrance hall is modelled at
   ground level.
 - Seed stairs are rough.
@@ -266,6 +267,7 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-26 · fire-escape · Rule `fire-escape` (room graph through doors, openings and stairs; `escape.ts`, `escape.test.ts`), `Opening.isEntrance` ("Front door of the flat"), `on` switch in Settings; wall-hung items follow wall/node moves, thickness and splits (`model/mounted.ts`, `mounted.test.ts`).
 - 2026-11-20 · report · Report a problem by email: `src/report` (address priority, console ring buffer
   installed first in `main.tsx`, details, `buildMailto` capped at 1800 characters), `ReportDialog`,
   Settings → Problem reports go to, `Project.reportTo` from the `REPORT_EMAIL` secret via

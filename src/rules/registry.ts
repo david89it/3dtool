@@ -15,6 +15,8 @@ import { itemParts } from '../catalogue/catalogue';
 import { needsStructuralBadge, STRUCTURAL_BADGE_TEXT } from '../geometry/openings';
 import { dist, dot, sub } from '../geometry/vec';
 import { makePlaced, solidDistance, solidsOverlap, type Placed, type RuleContext, type Hit } from './context';
+import { activeLevelsResolved, groupOf } from '../model/schemes';
+import { blockedBedrooms, buildEscapeGraph, escapeGeometry, escapeWords, newKitchenJoins } from './escape';
 import { convexOverlap, pointPolyDistance, polyDistance, strip } from './poly';
 
 export type Severity = 'error' | 'warning' | 'tip';
@@ -633,6 +635,70 @@ export const RULES: Rule[] = [
           key: w.id,
         };
       }),
+  },
+  {
+    id: 'fire-escape',
+    title: 'Way out in a fire',
+    scope: 'level',
+    severity: 'warning',
+    fixable: false,
+    params: { on: 1 },
+    paramLabels: { on: 'Check the way out from bedrooms (1 = on, 0 = off)' },
+    measureLevel: (ctx, { on }) => {
+      if (on < 0.5) return [];
+      // Guidance only: see DECISIONS.md "Fire escape". Uses every floor showing, so a
+      // bedroom upstairs is traced down the stairs to the front door.
+      const all = ctx.project.levels ? activeLevelsResolved({ levels: ctx.project.levels, activeSchemes: ctx.project.activeSchemes }) : [];
+      const group = groupOf(ctx.level);
+      const levels = [...all.filter((l) => l.id !== ctx.level.id && groupOf(l) !== group), ctx.level];
+      const g = buildEscapeGraph(levels, ctx.project, (l) => (l === ctx.level ? ctx.geo : escapeGeometry(l)));
+      const out: Finding[] = [];
+      const ground = Math.min(...levels.map((l) => l.elevation));
+      const high = ctx.level.elevation - ground > 4500;
+      for (const { node, kitchen } of blockedBedrooms(g, ctx.level.id)) {
+        out.push({
+          itemIds: [],
+          measured: 1,
+          required: 0,
+          severity: 'warning',
+          message:
+            `The way out from ${node.name} goes through ${escapeWords(kitchen)}. In a flat this usually needs a fire door, a heat alarm and a protected route, or sprinklers. Ask Building Control. ` +
+            `Ways to fix it: keep a protected hall with fire doors between the bedroom and the kitchen; or move the cooking away from the way out; or fit a mains-wired heat alarm in the kitchen and smoke alarms along the route; or a sprinkler or mist system (BS 8458 or BS 9251) designed by a fire engineer.` +
+            (high ? ' This floor is more than 4.5 m up, which makes the rules stricter.' : '') +
+            ' This is guidance, not a compliance check.',
+          roomName: node.name,
+          roomId: node.roomId,
+          key: node.id,
+        });
+      }
+      for (const { edge, kitchen, other } of newKitchenJoins(g, ctx.level.id)) {
+        out.push({
+          itemIds: [],
+          wallIds: edge.wallId ? [edge.wallId] : [],
+          measured: 1,
+          required: 0,
+          severity: 'tip',
+          message:
+            `This new opening joins ${escapeWords(kitchen)} to ${other.outside ? 'the hall or stairs' : other.name}. ` +
+            `If anyone has to pass the cooking to get out, a fire door, a heat alarm or sprinklers may be needed. Ask Building Control. This is guidance, not a compliance check.`,
+          roomName: kitchen.name,
+          roomId: kitchen.roomId,
+          key: edge.openingId,
+        });
+      }
+      if (!g.entranceFound && ctx.level.rooms.some((r) => /bed/i.test(r.name))) {
+        out.push({
+          itemIds: [],
+          measured: 1,
+          required: 0,
+          severity: 'tip',
+          message: 'The front door of the flat is not marked, so the way out from the bedrooms is not checked. Select the door and tick "Front door of the flat".',
+          roomName: 'Walls',
+          key: 'no-entrance',
+        });
+      }
+      return out;
+    },
   },
   {
     id: 'loft-headroom',

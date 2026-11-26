@@ -935,3 +935,54 @@ challenged.
 - **No key:** the box shows one line and an Open Settings button, no fields.
 - **Not verifiable without a real key:** how well each shop's page text
   yields dimensions, and whether some shops (bot-blocking) refuse the fetch.
+
+## Fire escape check and wall-hung pieces
+
+**Guidance, not compliance.** The rule `fire-escape` ("Way out in a fire", `src/rules/escape.ts`
+and `registry.ts`) is advice in plain words. It is not a check against Approved Document B and
+must not be read as one; every message says "Ask Building Control". Open-plan flats usually need a
+protected entrance hall, or the cooking kept away from the way to the front door, a mains-wired
+heat alarm in the kitchen and smoke alarms on the route, or a sprinkler or mist system (BS 8458 or
+BS 9251) designed by a fire engineer. Above 4.5 m with a loft room it is stricter; the message adds
+a line when the floor is more than 4.5 m above the lowest floor shown.
+
+- **Graph.** Each closed room is a node, and so is "open space outside any room" on each floor
+  (called "Hall or stairs": a stair well, landing or the street). Doors and cased openings that
+  sit below 100 mm above the floor join the two sides (found by sampling a point 150 mm off each
+  face). Windows never count. A stair joins the space it stands in to the space where the stair
+  with the opposite direction on the floor it leads to stands (by the stair's centre point).
+  All floors showing (the chosen option of each) are used, so a bedroom upstairs is followed down
+  the stairs. Rooms on the same floor joined only through the outside space are treated as joined
+  (a balcony door and the stair well are not told apart).
+- **Kitchen.** A room is a kitchen if its name contains "kitchen", or it holds a hob or a
+  cooker/oven item (centre of the item inside the room). **Bedroom:** name contains "bed", or it
+  holds a `bed-*` item.
+- **Front door.** EXTENSION `Opening.isEntrance`, set with *Front door of the flat* in the opening
+  panel (doors only). If none is marked: any door between a room and the open space outside rooms,
+  on the lowest floor that has one (several are all accepted as exits). The room side of that door
+  is where the route ends; if that room is the kitchen, every way out passes the kitchen. If both
+  sides are rooms (a marked door between two rooms) both count as the exit.
+- **Warning** on a bedroom when a route to the front door exists but every route passes through a
+  kitchen. A bedroom with no drawn route to the door at all is not reported (that is a missing
+  door, not this rule's concern). **Tip** (info) on a new door or opening (not `existing`) that
+  joins a kitchen to another space. **Tip** when bedrooms exist but no front door can be found.
+- **Not covered:** distance to the exit, door ratings, inner-room geometry beyond "passes the
+  kitchen", the 9 m travel limit, whether a stair is protected, or whether the kitchen and the
+  stair are separated by a door or are open to each other. A kitchen that opens straight onto the
+  stair (a living room door on the stair) is not flagged, only routes that go through it.
+- **Switching off.** There was no on/off for rules, so the rule has one setting, `on` (1 or 0),
+  keep their numbers only.
+- **Other floors and caching.** The rule reads other floors through `RuleContext.project.levels`
+  (optional), so the issue memo in `runRules` also compares the other floors and `activeSchemes`.
+
+**Wall-hung pieces follow their wall** (`src/model/mounted.ts`, called by `editLevel` and
+`updateGesture` in the store, so it is inside the same undo step and works during a drag). For
+each piece with `mountedTo`, if its wall's corners or thickness changed (or the wall was split),
+position and rotation are recomputed: same offset along the wall from node a (clamped to the wall
+length), flat on the face it was on (the face its front looked away from, read before the edit),
+`pos` = face + half the piece's depth. After a split the piece goes to whichever half now holds
+its offset. If the wall no longer exists `mountedTo` is cleared and the piece stays where it was.
+Pieces on walls that did not change, and pieces with no `mountedTo`, are never touched (so
+resizing a mounted piece still works as before). Not done: walls merged by dragging one corner
+onto another count as deleted (the piece is detached); there is no clamping by the piece's own
+width, so a wide piece can overhang the end of a short wall.

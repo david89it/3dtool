@@ -188,6 +188,10 @@ export interface Opening {
   // EXTENSION: she chose to allow piers under 100 mm in a structural wall
   // (brief: "with an override and a warning").
   nibOverride?: boolean;
+  // EXTENSION (fire escape check): she marked this door as the front door of
+  // the flat, so the "way out" rule knows where the escape route ends. When no
+  // opening is marked the rule guesses (see src/rules/escape.ts).
+  isEntrance?: boolean;
 }
 
 export interface Room {

@@ -1,8 +1,8 @@
 // Runs the rules registry over a level and turns findings into issues she
 // can read: grouped by room, worst first.
 
-import type { Id, Level, Project } from '../model/types';
-import { buildGeometry, RuleContext, type Fmt, type LevelGeometry, type RuleOverrides } from './context';
+import type { Id, Level } from '../model/types';
+import { buildGeometry, RuleContext, type Fmt, type LevelGeometry, type RuleOverrides, type RuleProject } from './context';
 import { RULES, type Finding, type Rule, type Severity } from './registry';
 
 export interface Issue {
@@ -48,7 +48,7 @@ export function levelGeometry(level: Level): LevelGeometry {
   return g;
 }
 
-export function makeContext(level: Level, project: Pick<Project, 'catalogueOverrides'>, opts: RunOptions = {}): RuleContext {
+export function makeContext(level: Level, project: RuleProject, opts: RunOptions = {}): RuleContext {
   return new RuleContext(level, project, levelGeometry(level), opts.overrides ?? {}, opts.fmt);
 }
 
@@ -104,14 +104,27 @@ export function runInContext(ctx: RuleContext, only?: Set<string>): Issue[] {
   return sortIssues([...out.values()]);
 }
 
-const memo = new WeakMap<Level, { project: unknown; overrides: unknown; fmt: unknown; issues: Issue[] }>();
+const memo = new WeakMap<Level, { project: unknown; overrides: unknown; fmt: unknown; others: unknown[]; schemes: unknown; issues: Issue[] }>();
+
+/** The other floors: the fire-escape rule follows stairs, so a change on another floor can change this one. */
+const othersOf = (level: Level, project: RuleProject): Level[] => (project.levels ?? []).filter((l) => l !== level);
+const sameList = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 /** All issues on a level, worst first. Memoised per level object. */
-export function runRules(level: Level, project: Pick<Project, 'catalogueOverrides'>, opts: RunOptions = {}): Issue[] {
+export function runRules(level: Level, project: RuleProject, opts: RunOptions = {}): Issue[] {
   const hit = memo.get(level);
-  if (hit && hit.project === project.catalogueOverrides && hit.overrides === opts.overrides && hit.fmt === opts.fmt) return hit.issues;
+  const others = othersOf(level, project);
+  if (
+    hit &&
+    hit.project === project.catalogueOverrides &&
+    hit.overrides === opts.overrides &&
+    hit.fmt === opts.fmt &&
+    hit.schemes === project.activeSchemes &&
+    sameList(hit.others, others)
+  )
+    return hit.issues;
   const issues = runInContext(makeContext(level, project, opts));
-  memo.set(level, { project: project.catalogueOverrides, overrides: opts.overrides, fmt: opts.fmt, issues });
+  memo.set(level, { project: project.catalogueOverrides, overrides: opts.overrides, fmt: opts.fmt, others, schemes: project.activeSchemes, issues });
   return issues;
 }
 

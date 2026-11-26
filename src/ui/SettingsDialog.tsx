@@ -74,7 +74,14 @@ function RuleSettings() {
                     {label}
                     {isChanged && <span className="changed"> (changed)</span>}
                   </span>
-                  {isFactor(key) ? (
+                  {key === 'on' ? (
+                    <input
+                      type="checkbox"
+                      aria-label={`${r.title}: ${label}`}
+                      checked={v >= 0.5}
+                      onChange={(e) => set(r.id, key, e.target.checked ? 1 : 0)}
+                    />
+                  ) : isFactor(key) ? (
                     <span className="factor-wrap">
                       <FactorField label={`${r.title}: ${label}`} value={v} onChange={(x) => set(r.id, key, x)} />× screen size
                     </span>

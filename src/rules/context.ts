@@ -23,6 +23,9 @@ import {
 } from '../catalogue/catalogue';
 import { convexOverlap, polyDistance } from './poly';
 
+/** What the rules need of the project; `levels` lets a rule look at other floors (the fire-escape rule). */
+export type RuleProject = Pick<Project, 'catalogueOverrides'> & Partial<Pick<Project, 'levels' | 'activeSchemes'>>;
+
 export type Side = 'front' | 'back' | 'left' | 'right';
 
 /** A placed item with everything the rules need, worked out once. */
@@ -225,7 +228,7 @@ export class RuleContext {
 
   constructor(
     readonly level: Level,
-    readonly project: Pick<Project, 'catalogueOverrides'>,
+    readonly project: RuleProject,
     readonly geo: LevelGeometry,
     readonly overrides: RuleOverrides = {},
     readonly fmt: Fmt = (mm) => `${Math.round(mm)} mm`,
