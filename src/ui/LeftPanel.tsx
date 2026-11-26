@@ -9,6 +9,7 @@ import { canvasApi } from '../editor2d/canvasApi';
 import { toWorld } from '../editor2d/view';
 import { OpeningsPalette } from './OpeningsPalette';
 import { FurnishPanel } from './FurnishPanel';
+import { CommitInput } from './budgetFields';
 
 function ToolButton({ tool, label, keyHint, desc }: { tool: Tool; label: string; keyHint: string; desc: string }) {
   const current = useStore((s) => s.tool);
@@ -118,7 +119,21 @@ function UnderlayPanel() {
             />
           </label>
           <label className="slider">
-            <span className="field-label">Rotate {Math.round(u.rotationDeg)}°</span>
+            <span className="field-label">Rotate</span>
+            <CommitInput
+              value={String(Math.round(u.rotationDeg * 10) / 10)}
+              label="Image rotation in degrees"
+              inputMode="decimal"
+              className="text-field angle-field"
+              testId="image-angle"
+              disabled={u.locked}
+              onCommit={(text) => {
+                const v = Number(text.replace(/[°\s]/g, '').replace(',', '.'));
+                if (!Number.isFinite(v)) return;
+                const deg = Math.max(-180, Math.min(180, v));
+                editLevel('Rotate image', (L) => void (L.underlay && (L.underlay.rotationDeg = deg)));
+              }}
+            />
             <input
               type="range"
               min={-180}

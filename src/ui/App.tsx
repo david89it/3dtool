@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useStore } from '../model/store';
-import { useLayout, watchWidth } from './layoutState';
+import { openDetailsOnSelect, useLayout, watchWidth } from './layoutState';
+import { keyWasForWindow, useWindowFocus } from './useDialogEsc';
 import { PanelSlot } from './PanelSlot';
 import { PlanCanvas } from '../editor2d/PlanCanvas';
 import { canvasApi } from '../editor2d/canvasApi';
@@ -155,6 +156,8 @@ function useShortcuts() {
         void markTourSeen();
         return;
       }
+      // A window is open: Esc and Tab belong to it (Esc closing a window must not also deselect on the plan).
+      if (keyWasForWindow(e)) return;
       if (e.key === 'Tab' && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         toggleThreeD();
@@ -218,9 +221,20 @@ export function App() {
   const left = useLayout((s) => s.left);
   const right = useLayout((s) => s.right);
   const narrow = useLayout((s) => s.narrow);
+  const hasSelection = useStore((s) => s.selection !== null);
   const role = useTabRole((s) => s.role);
   useShortcuts();
+  useWindowFocus();
   useEffect(() => watchWidth(), []);
+  useEffect(
+    () =>
+      openDetailsOnSelect(
+        () => useStore.getState().selection,
+        (fn) => useStore.subscribe(fn),
+        () => useStore.getState().mode !== '3d',
+      ),
+    [],
+  );
   if (!ready) return <div className="loading">Opening your plan…</div>;
   return (
     <>
@@ -248,7 +262,8 @@ export function App() {
               <Inspector />
             </SelectionBoundary>
           </PanelSlot>
-          {narrow && (left || right) && <div className="panel-scrim" data-testid="panel-scrim" onPointerDown={() => useLayout.getState().closeAll()} />}
+          {/* With the details panel open on a selection the plan stays live: tapping empty plan deselects, which closes it. */}
+          {narrow && (left || (right && !hasSelection)) && <div className="panel-scrim" data-testid="panel-scrim" onPointerDown={() => useLayout.getState().closeAll()} />}
         </main>
       )}
       <Toasts />

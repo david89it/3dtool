@@ -193,7 +193,7 @@ The 3D view, stairs and walking use the option that is on.
 a tap selects. In *Draw walls*, *Set scale* and when placing things, a tap places
 and a drag moves the plan instead. The Apple Pencil works like a mouse: tap to
 place corners, press and drag to move walls and furniture. Long-press doesn't
-pop up the copy menu. Add the page to the Home Screen for full-screen use.
+pop up the copy menu. On a narrow screen (an iPad upright) the Details panel slides in when you tap something and goes when you tap empty plan; Versions, Budget, units, Report a problem, Shortcuts and Settings are under *More*. Add the page to the Home Screen for full-screen use.
 
 `?notour` in the address skips the tour (used by the tests).
 

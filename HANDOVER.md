@@ -120,6 +120,13 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
 
 - Brief phases 1–6: trace, openings, furniture, rules and advice, 3D walk,
   tour, shortcuts, options, touch.
+- iPad and keyboard fixes from `UX_REVIEW.md`: under 1000 px the details panel opens on selection
+  (on pointer-up, not during a drag) and closes on deselect; every `role="dialog"` takes focus, traps Tab
+  and returns focus (`useWindowFocus` in `ui/useDialogEsc.ts`, called once from `App`); Esc on a window no
+  longer deselects (`keyWasForWindow`); measure-note length and plan image rotation are click-to-type, one-size
+  items say "one size"; at 1100 px and under the top chrome is two rows (name and floors, then modes and
+  everyday buttons) with Versions, Budget, units, Report, Shortcuts and Settings under "More", and the tool
+  hint has its own strip under the plan. Tests: `e2e/ipad-ux.spec.ts`.
 - Clearer opening placement: explains full walls and fits openings into
   leftover space.
 - Bookcase surround that frames an opening, a colour for each item,
@@ -207,13 +214,7 @@ VITE_PUBLIC_BUILD=1 npm run build    # public build: empty start, no seed (see �
    chimney-breast objects).
 **Backlog (tracked, not scheduled):**
 
-- From `UX_REVIEW.md`:
-  - The right panel should open on selection on narrow screens (under 1000 px).
-  - Focus should start inside a window, and Tab should stay in it.
-  - Make the remaining numbers typeable: item rotation, a measure note's length, the plan
-    image rotation, and the height of one-size items.
-  - Esc closing a window should not also deselect on the plan.
-  - On an iPad upright there are three rows of chrome, and the hint text overlaps labels.
+- From `UX_REVIEW.md`: no P2 items left except keys 1 to 5 for the modes and the P3 polish list.
 
 **Parked:** path-traced photo render, dark mode, electrics layer,
 side-by-side compare, live Pinterest sync, fps meter.
@@ -243,8 +244,7 @@ side-by-side compare, live Pinterest sync, fps meter.
 - Seed stairs are rough.
 - A painted item's white parts (pillows) take its finish.
 - Not tested on a real MacBook or iPad.
-- UX review leftovers (details panel does not open on selection under 1000 px,
-  no focus trap in windows, a few numbers not click-to-edit): `UX_REVIEW.md`.
+- UX review leftovers (mode keys 1 to 5, 3D panel as a bottom sheet, other P3 polish): `UX_REVIEW.md`. The tool hint strip needs `:has()` (Safari 15.4+).
 - Ask Claude (advice and describe-a-piece) was tested only with a mock; the structured-output reply and URL image blocks have not met the real API. A tinted item has one colour for all its body materials.
 - Scan import has not been tried on a real RoomPlan export. Scans line up
   only by their top-left corner. The site-measure checklist is long (192
@@ -267,6 +267,7 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-26 · ipad-ux · Details panel on selection under 1000 px, window focus trap and Esc fix, typeable note length and image rotation, two-row top chrome with a More menu at 1100 px and under; `e2e/ipad-ux.spec.ts`.
 - 2026-11-26 · safety · Copy reminder, single editor tab (BroadcastChannel hand-over, flush before release, reload from
   storage), Recovered backups in Settings, `nodePos` made safe; tests `copyReminder`, `tabOwnership`, `backups`,
   `wallGraph`, `e2e/safety.spec.ts`. See DECISIONS.

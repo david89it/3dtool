@@ -12,6 +12,7 @@ export function CommitInput({
   inputMode,
   className = 'text-field',
   testId,
+  disabled,
 }: {
   value: string;
   onCommit: (text: string) => void;
@@ -20,6 +21,7 @@ export function CommitInput({
   inputMode?: 'decimal' | 'numeric' | 'text' | 'url';
   className?: string;
   testId?: string;
+  disabled?: boolean;
 }) {
   const [text, setText] = useState(value);
   const skip = useRef(false);
@@ -38,6 +40,7 @@ export function CommitInput({
       className={className}
       aria-label={label}
       data-testid={testId}
+      disabled={disabled}
       value={text}
       placeholder={placeholder}
       inputMode={inputMode}

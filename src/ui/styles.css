@@ -163,6 +163,86 @@ button {
   }
 }
 
+/* An iPad (either way up): two rows of chrome in all. Row 1 is the name, the floors and Options;
+   row 2 is the modes and the everyday buttons (the rest are under "More", see TopBar). */
+@media (max-width: 1100px) {
+  .app {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .topbar {
+    display: contents;
+  }
+  .brand,
+  .topbar-floors,
+  .topbar-right {
+    background: var(--panel);
+    min-width: 0;
+  }
+  .brand {
+    grid-column: 1;
+    grid-row: 1;
+    flex: none;
+    max-width: 180px;
+    padding: 6px 4px 6px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-floors {
+    grid-column: 2 / 4;
+    grid-row: 1;
+    order: 0;
+    padding: 6px 10px 6px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .modebar {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
+  .modebar {
+    min-width: 0;
+    padding: 6px 8px 6px 12px;
+    gap: 4px;
+  }
+  .modebar .mode {
+    min-width: 70px;
+    padding: 0 6px;
+    flex: 1 1 0;
+  }
+  .topbar-right {
+    grid-column: 3;
+    grid-row: 2;
+    order: 0;
+    padding: 6px 10px 6px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .app > main {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  /* The hint gets its own strip under the plan instead of lying over its labels. */
+  .app:has(.tool-hint) {
+    padding-bottom: 46px;
+  }
+  .app .tool-hint {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 46px;
+    box-sizing: border-box;
+    padding: 5px 14px;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    line-height: 1.35;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    z-index: 5;
+  }
+}
+
 /* ---- mode bar ------------------------------------------------------ */
 .modebar {
   display: flex;

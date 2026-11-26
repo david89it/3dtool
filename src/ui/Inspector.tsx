@@ -402,7 +402,6 @@ function NoteText({ noteId, value, focus }: { noteId: string; value: string; foc
 function NotePanel({ level, noteId }: { level: Level; noteId: string }) {
   const editLevel = useStore((s) => s.editLevel);
   const select = useStore((s) => s.select);
-  const units = useStore((s) => s.units);
   const n = findNote(level, noteId);
   if (!n) return null;
   const current = noteColor(n);
@@ -412,7 +411,22 @@ function NotePanel({ level, noteId }: { level: Level; noteId: string }) {
       {n.kind === 'measure' && (
         <div className="field">
           <span className="field-label">Length</span>
-          <span className="value">{formatLength(noteLength(n), units)}</span>
+          <EditableLength
+            label="Measurement length"
+            value={noteLength(n)}
+            min={10}
+            max={200000}
+            onChange={(mm) =>
+              editLevel('Set measurement length', (L) => {
+                const note = findNote(L as Level, n.id);
+                if (!note?.to) return;
+                const len = noteLength(note);
+                if (len < 1) return;
+                const k = mm / len;
+                note.to = { x: note.pos.x + (note.to.x - note.pos.x) * k, y: note.pos.y + (note.to.y - note.pos.y) * k };
+              })
+            }
+          />
         </div>
       )}
       <div className="field column">
