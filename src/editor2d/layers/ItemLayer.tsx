@@ -3,7 +3,7 @@ import { memo } from 'react';
 import { Circle, Group, Label, Line, Rect, Tag, Text } from 'react-konva';
 import type { CatalogueItem, Level, PlacedItem, Project, Vec2 } from '../../model/types';
 import type { ItemGhost } from '../../model/store';
-import { findCatalogueItem, footprint, itemParts, localToPlan, newPlacedItem } from '../../catalogue/catalogue';
+import { findCatalogueItem, footprint, itemParts, outline, localToPlan, newPlacedItem } from '../../catalogue/catalogue';
 import { partColor } from '../../catalogue/colors';
 import { clearanceShapes } from '../clearanceShapes';
 import { itemHandles } from '../itemHit';
@@ -53,7 +53,7 @@ function ItemShapeImpl({ item, cat, opacity = 1, highlight }: { item: PlacedItem
         );
       })}
       <Line
-        points={flat(footprint(item, cat))}
+        points={flat(outline(item, cat))}
         closed
         stroke={highlight ? COLORS.accent : '#3d4148'}
         strokeWidth={highlight === 'selected' ? 2.5 : highlight === 'hover' ? 2 : 1}

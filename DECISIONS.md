@@ -1040,3 +1040,14 @@ After the drop the same distances show for the selected single floor piece; the 
 `EditableLength` in a 44 px target. Typing a gap moves the piece along that direction in one
 `editLevel`. Not done: labels for several selected pieces, wall-mounted pieces, locked pieces;
 no guides while resizing or turning; rays do not see through gaps made by openings.
+
+## Round pieces
+
+- **Round is worked out from the shape** (`isRound` in `catalogue.ts`): a cylinder part at least
+  90 % of the piece's width and depth. `CatalogueItem.round` (EXTENSION) overrides it; her own
+  items set it from *Shape: Round*, *Make it round*, or a round base shape from Claude.
+- **One diameter:** round pieces are kept with width = depth. Ovals are not modelled. The outline
+  on the plan is a circle; rules and distance guides still use the square around it (slightly
+  cautious near corners).
+- *Make it round* rebuilds her item as a round table (tables) or a drum, at the larger of width and
+  depth, and resizes every placed copy, in one undo step.

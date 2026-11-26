@@ -130,6 +130,33 @@ test('phase 3: find, place, fold down, resize, turn, duplicate, lock, custom ite
   const custom = await page.evaluate(() => (window as any).__flatplan.store.getState().project.catalogueOverrides[0]);
   expect(custom.defaultDims).toEqual({ w: 900, d: 500, h: 450 });
 
+  // A round one: one diameter, no depth.
+  await page.getByRole('button', { name: 'Add custom item…' }).click();
+  await page.getByLabel('Item name').fill('Burl table');
+  await page.getByLabel('Category').selectOption('table');
+  await page.getByLabel('Shape').selectOption('round');
+  await expect(page.getByLabel('Depth', { exact: true })).toHaveCount(0);
+  await page.getByLabel('Diameter', { exact: true }).fill('120 cm');
+  await page.getByLabel('Height', { exact: true }).fill('74');
+  await page.getByRole('button', { name: 'Add to the list' }).click();
+  const roundCat = await page.evaluate(() => (window as any).__flatplan.store.getState().project.catalogueOverrides[1]);
+  expect(roundCat.round).toBe(true);
+  expect(roundCat.defaultDims, JSON.stringify(roundCat)).toEqual({ w: 1200, d: 1200, h: 740 });
+
+  // The trunk placed, then made round from the item panel; it is sized by a diameter.
+  await page.getByLabel('Search furniture').fill('trunk');
+  await page.getByTestId(`catalogue-${custom.id}`).click();
+  await clickPlan(page, { x: 2600, y: 4300 });
+  await page.getByRole('button', { name: /Make it round/ }).click();
+  await expect(page.getByRole('button', { name: /Item diameter/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Item width/ })).toHaveCount(0);
+  await page.getByRole('button', { name: /Item diameter/ }).click();
+  await page.getByRole('textbox', { name: 'Item diameter' }).fill('70 cm');
+  await page.getByRole('textbox', { name: 'Item diameter' }).press('Enter');
+  const placed = (await items(page)).find((i: any) => i.catalogueId === custom.id);
+  expect(placed.dims.w).toBe(700);
+  expect(placed.dims.d).toBe(700);
+
   // Clearance toggle is remembered in settings state.
   await page.getByLabel('Show space needed around everything').check();
   expect(await page.evaluate(() => (window as any).__flatplan.store.getState().showAllClearances)).toBe(true);

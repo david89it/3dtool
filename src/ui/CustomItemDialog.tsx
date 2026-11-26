@@ -3,6 +3,7 @@ import type { CatalogueItem, Clearance } from '../model/types';
 import { useStore } from '../model/store';
 import { uid } from '../model/ids';
 import { CATEGORY_LABEL, customGeometry } from '../catalogue/items';
+import { cyl, roundTable } from '../catalogue/parts';
 import { formatLength, parseLength } from '../model/units';
 import { parsePrice } from '../model/costs';
 
@@ -40,6 +41,7 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
   );
   const [error, setError] = useState<string | null>(null);
   const [priceText, setPriceText] = useState('');
+  const [round, setRound] = useState(false);
 
   const save = () => {
     if (!name.trim()) {
@@ -53,6 +55,7 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
     }
     const v: Record<string, number> = {};
     for (const f of [...SIZE_FIELDS, ...CLEAR_FIELDS]) {
+      if (round && f.key === 'd') continue;
       const mm = parseLength(text[f.key] ?? '', units, 'small');
       if (mm === null || mm < f.min || mm > f.max) {
         setError(`${f.label}: type a size like 60 cm or 600 mm (between ${formatLength(f.min, units, 'small')} and ${formatLength(f.max, units)}).`);
@@ -60,6 +63,7 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
       }
       v[f.key] = Math.round(mm);
     }
+    if (round) v.d = v.w; // one diameter
     const clearance: Clearance[] = [];
     if (v.frontMin > 0 || v.frontIdeal > 0) clearance.push({ side: 'front', min: v.frontMin, ideal: Math.max(v.frontIdeal, v.frontMin), reason: reason.trim() || 'Room to use it' });
     if (v.sideMin > 0 || v.sideIdeal > 0) {
@@ -73,7 +77,12 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
       defaultDims: { w: v.w, d: v.d, h: v.h },
       resizable: { w: [Math.max(50, Math.round(v.w / 2)), v.w * 2], d: [Math.max(20, Math.round(v.d / 2)), v.d * 2], h: [Math.max(5, Math.round(v.h / 2)), v.h * 2] },
       mount,
-      geometry: customGeometry(v.w, v.d, v.h, mount),
+      geometry: round && mount !== 'wall'
+        ? category === 'table'
+          ? roundTable(v.w, v.h)
+          : [cyl(0, v.h / 2, 0, v.w, v.h, 'custom')]
+        : customGeometry(v.w, v.d, v.h, mount),
+      ...(round && mount !== 'wall' ? { round: true } : {}),
       clearance,
       rules: ['door-swing', 'loft-headroom'],
       ...(price !== undefined ? { price } : {}),
@@ -109,10 +118,17 @@ export function CustomItemDialog({ onClose }: { onClose: () => void }) {
           <input className="text-field" aria-label="Price in pounds" inputMode="decimal" value={priceText} onChange={(e) => setPriceText(e.target.value)} placeholder="e.g. 250" />
         </label>
         <div className="form-grid">
-          {SIZE_FIELDS.map((f) => (
+          <label className="form-row">
+            <span className="field-label">Shape</span>
+            <select className="text-field" aria-label="Shape" value={round ? 'round' : 'rect'} onChange={(e) => setRound(e.target.value === 'round')}>
+              <option value="rect">Square or rectangular</option>
+              <option value="round">Round</option>
+            </select>
+          </label>
+          {SIZE_FIELDS.filter((f) => !round || f.key !== 'd').map((f) => (
             <label key={f.key} className="form-row">
-              <span className="field-label">{f.label}</span>
-              <input className="text-field" aria-label={f.label} value={text[f.key]} onChange={(e) => setText({ ...text, [f.key]: e.target.value })} />
+              <span className="field-label">{round && f.key === 'w' ? 'Diameter' : f.label}</span>
+              <input className="text-field" aria-label={round && f.key === 'w' ? 'Diameter' : f.label} value={text[f.key]} onChange={(e) => setText({ ...text, [f.key]: e.target.value })} />
             </label>
           ))}
         </div>

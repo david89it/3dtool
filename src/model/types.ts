@@ -288,6 +288,9 @@ export interface CatalogueItem {
   // EXTENSION (costs): a default price in £ for her own items, copied onto a
   // piece when she places it.
   price?: number;
+  // EXTENSION (round pieces): drawn as a circle on the plan and sized by one
+  // diameter. Missing = worked out from the shape (a full-size cylinder).
+  round?: boolean;
 }
 
 export interface PrimitivePart {

@@ -5,6 +5,7 @@
 import type { CatalogueItem } from '../model/types';
 import { uid } from '../model/ids';
 import { CATALOGUE, CATEGORY_LABEL, customGeometry } from '../catalogue/items';
+import { isRound } from '../catalogue/catalogue';
 
 type Cat = CatalogueItem['category'];
 type Mount = CatalogueItem['mount'];
@@ -157,6 +158,8 @@ export function validateDescription(raw: unknown): ItemDescription {
     const [lo, hi] = dimRange(base, axis, sizeConfidence);
     dims[axis] = Math.round(clamp(Number.isFinite(v) && v > 0 ? v : fallback, lo, hi));
   }
+  // A round shape has one size across: its diameter.
+  if (base && isRound(base)) dims.w = dims.d = Math.max(dims.w, dims.d);
 
   const hex = typeof r.colorHex === 'string' ? r.colorHex.trim().toLowerCase() : '';
   const aliases = Array.isArray(r.aliases)
@@ -235,6 +238,7 @@ export function buildAiItem(desc: ItemDescription, source: { text?: string; url?
     resizable: { w: resizeRange(base, 'w', dims.w), d: resizeRange(base, 'd', dims.d), h: resizeRange(base, 'h', dims.h) },
     mount: desc.mount,
     geometry,
+    ...(useBase && isRound(base!) ? { round: true } : {}),
     ...(states ? { states } : {}),
     clearance: useBase ? base!.clearance.map((c) => ({ ...c })) : [],
     rules: useBase && base!.rules ? [...base!.rules] : ['door-swing', 'loft-headroom'],

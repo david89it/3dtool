@@ -2,7 +2,8 @@ import { useLevelIssues } from './useIssues';
 import { IssueCard } from './AdvicePanel';
 import type { CatalogueItem, Level, PlacedItem } from '../model/types';
 import { useStore } from '../model/store';
-import { currentState, effectiveDims, findCatalogueItem, itemParts, STATE_LABEL, stateNames } from '../catalogue/catalogue';
+import { currentState, effectiveDims, findCatalogueItem, isRound, itemParts, STATE_LABEL, stateNames } from '../catalogue/catalogue';
+import { cyl, roundTable } from '../catalogue/parts';
 import { FINISHABLE, FINISH_SWATCHES } from '../catalogue/colors';
 import { MODULE, moduleDims, moduleGrid, SURROUND, surroundLayout } from '../catalogue/builders';
 import { computeJoints } from '../geometry/joints';
@@ -67,7 +68,34 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
 
       {cat.builder === 'opening-surround' && <SurroundFields level={level} item={item} change={change} locked={!!item.locked} />}
 
-      {cat.builder !== 'opening-surround' && (['w', 'd', 'h'] as const).map((axis) => {
+      {isRound(cat) && cat.resizable.w && cat.resizable.d && !item.locked && (
+        <div className="field">
+          <span className="field-label">Diameter</span>
+          <EditableLength
+            label="Item diameter"
+            ctx="small"
+            value={Math.max(item.dims.w, item.dims.d)}
+            min={Math.max(cat.resizable.w[0], cat.resizable.d[0])}
+            max={Math.min(cat.resizable.w[1], cat.resizable.d[1])}
+            onChange={(mm) => change(`Resize ${name}`, (i) => setDimension(setDimension(i, cat, 'w', mm), cat, 'd', mm))}
+          />
+        </div>
+      )}
+      {isRound(cat) && (!cat.resizable.w || !cat.resizable.d || item.locked) && (
+        <div className="field">
+          <span className="field-label">Diameter</span>
+          <span className="value" title={item.locked ? 'Unlock to change' : 'This item comes in one size'}>
+            {formatLength(Math.max(item.dims.w, item.dims.d), units, 'small')}
+          </span>
+        </div>
+      )}
+      {!isRound(cat) && isMine(cat) && !item.locked && (
+        <button className="btn" title="Turn your item into a round piece, sized by its diameter" onClick={() => makeRound(cat, item)}>
+          ◯ Make it round
+        </button>
+      )}
+
+      {cat.builder !== 'opening-surround' && (['w', 'd', 'h'] as const).filter((axis) => !isRound(cat) || axis === 'h').map((axis) => {
         const r = cat.resizable[axis];
         return (
           <div className="field" key={axis}>
@@ -217,6 +245,31 @@ function ItemIssues({ itemId }: { itemId: string }) {
 }
 
 type Change = (label: string, fn: (i: PlacedItem) => PlacedItem) => void;
+
+const isMine = (c: CatalogueItem) => c.id.startsWith('custom-') || c.id.startsWith('ai-');
+
+/**
+ * Make one of her own items round: a round top (tables) or a drum, as wide as
+ * it was wide or deep, and every placed copy resized to match. One undo step.
+ */
+function makeRound(cat: CatalogueItem, item: PlacedItem) {
+  const dia = Math.max(item.dims.w, item.dims.d);
+  const h = item.dims.h;
+  const lo = Math.max(100, Math.round(dia / 2));
+  const hi = Math.max(dia * 2, lo + 100);
+  useStore.getState().commit(`Make “${cat.name}” round`, (draft) => {
+    const c = draft.catalogueOverrides.find((x) => x.id === cat.id);
+    if (!c) return;
+    c.round = true;
+    c.defaultDims = { w: dia, d: dia, h };
+    c.resizable = { ...c.resizable, w: [lo, hi], d: [lo, hi] };
+    const token = c.geometry[0]?.colorToken ?? 'custom';
+    c.geometry = c.category === 'table' ? roundTable(dia, h, token === 'custom' ? 'wood' : token) : [cyl(0, h / 2, 0, dia, h, token)];
+    for (const L of draft.levels) {
+      for (const it of L.items) if (it.catalogueId === cat.id) it.dims = { ...it.dims, w: dia, d: dia };
+    }
+  });
+}
 
 /** Modules across and high (stacked). Each module is a fixed 75 x 75 cm, 37 cm deep. */
 function ModuleFields({ item, change, locked }: { item: PlacedItem; change: Change; locked: boolean }) {

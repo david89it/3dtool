@@ -90,6 +90,29 @@ export function footprint(item: PlacedItem, cat: CatalogueItem): Vec2[] {
 }
 
 /**
+ * True for round pieces (round table, round rug, side table): the main part is
+ * a cylinder as wide and deep as the piece. `CatalogueItem.round` overrides it.
+ */
+export function isRound(cat: CatalogueItem): boolean {
+  if (cat.round !== undefined) return cat.round;
+  if (cat.builder || cat.states) return false;
+  const big = 0.9 * Math.max(cat.defaultDims.w, cat.defaultDims.d);
+  return cat.geometry.some((p) => p.shape === 'cylinder' && p.size[0] >= big && p.size[2] >= big);
+}
+
+/** The outline drawn round a piece on the plan: its footprint, or a circle for round pieces. */
+export function outline(item: PlacedItem, cat: CatalogueItem, n = 48): Vec2[] {
+  if (!isRound(cat)) return footprint(item, cat);
+  const { w, d } = effectiveDims(item, cat);
+  const pts: Vec2[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    pts.push(localToPlan(item, cat, (Math.cos(a) * w) / 2, (Math.sin(a) * d) / 2));
+  }
+  return pts;
+}
+
+/**
  * Primitive parts for the item as it is now, scaled from the catalogue's
  * reference size to the effective size. Positions are in the item frame
  * centred on the current footprint (use localToPlan / footprintCentre).

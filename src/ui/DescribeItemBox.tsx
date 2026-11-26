@@ -1,3 +1,4 @@
+import { isRound } from '../catalogue/catalogue';
 import { useMemo, useState } from 'react';
 import { useStore } from '../model/store';
 import { loadApiKey } from '../advice/keyStore';
@@ -125,6 +126,7 @@ function PreviewCard({
   onDone: () => void;
 }) {
   const base = CATALOGUE.find((c) => c.id === desc.baseItemId);
+  const round = !!base && isRound(base);
   const item = useMemo(() => buildAiItem(desc, source, 'ai-preview'), [desc, source]);
 
   const setDim = (axis: 'w' | 'd' | 'h', mm: number) => onChange({ ...desc, dims: { ...desc.dims, [axis]: Math.round(mm) } });
@@ -155,12 +157,22 @@ function PreviewCard({
           </span>
         </div>
       </div>
-      {(['w', 'd', 'h'] as const).map((axis) => (
-        <div className="field" key={axis}>
-          <span className="field-label">{axis === 'w' ? 'Width' : axis === 'd' ? 'Depth' : 'Height'}</span>
-          <EditableLength label={`New item ${axis === 'w' ? 'width' : axis === 'd' ? 'depth' : 'height'}`} ctx="small" value={desc.dims[axis]} min={50} max={6000} onChange={(mm) => setDim(axis, mm)} />
-        </div>
-      ))}
+      {(['w', 'd', 'h'] as const).filter((axis) => !round || axis !== 'd').map((axis) => {
+        const label = round && axis === 'w' ? 'Diameter' : axis === 'w' ? 'Width' : axis === 'd' ? 'Depth' : 'Height';
+        return (
+          <div className="field" key={axis}>
+            <span className="field-label">{label}</span>
+            <EditableLength
+              label={`New item ${label.toLowerCase()}`}
+              ctx="small"
+              value={desc.dims[axis]}
+              min={50}
+              max={6000}
+              onChange={(mm) => (round && axis === 'w' ? onChange({ ...desc, dims: { ...desc.dims, w: Math.round(mm), d: Math.round(mm) } }) : setDim(axis, mm))}
+            />
+          </div>
+        );
+      })}
       <div className="field">
         <span className="field-label">Colour</span>
         <span className="value describe-colour">
