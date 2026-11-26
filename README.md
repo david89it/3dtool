@@ -324,6 +324,8 @@ item…*). These are saved in the project's `catalogueOverrides`.
 | Find something | Type in the search box (it understands other words: "wall bed" finds the Murphy bed), or pick a category |
 | Place it | Click it, then click the plan. Or drag it onto the plan. Near a wall it turns to back onto the wall. Alt: no snapping |
 | Move | Drag it. It slides along a wall it is backed onto |
+| See gaps while you move | Drag a piece: thin lines show the gap to the nearest wall or piece in front, behind, left and right of it (up to 3 m), in your units. Red: closer than the space it needs; amber: less than the comfortable space. Dashed lines show it lining up with another piece's middle or edge. It snaps to those, to round 10 mm gaps from a wall, and to the needed space. Alt: no snapping |
+| Set a gap by typing | Leave the piece selected: the gaps stay on the plan. Click one (a 44 px target), type e.g. 60 cm and Enter: the piece moves that way until the gap is right. One undo step ("Move sofa 60 cm from wall"). Hidden while another tool is on |
 | Resize | Drag the dots on its edges (the other edge stays put), or type sizes in the right panel |
 | Modular storage | Search *usm* or *modular*. Each module is a fixed 75 × 75 cm, 37 cm deep. In the item panel, *Across* and *Stacked high* add or remove whole modules (− and +); the panel shows how many modules it is. Colour sets the panels |
 | Turn | Drag the round handle (15° steps; Alt for any angle), type the angle in the item panel, use the 15° and 90° buttons, or press R (90°) or Alt R (15°); Shift turns the other way |

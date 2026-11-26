@@ -20,6 +20,7 @@ import { detectRooms } from '../../geometry/rooms';
 import { hitItem, hitItemHandle, itemHandles } from '../itemHit';
 import { expandToGroup, selectionIds, selectionOf } from '../../model/groups';
 import { toggleInSelection } from '../selectionActions';
+import { computeMoveGuides, guideWorld, itemRect, type GuideSet } from '../guides';
 import { DRAG_START_PX, type ToolCtx, type ToolHandler } from './types';
 
 /** Steps the rotate handle snaps to; Alt turns freely in 1° steps. */
@@ -116,6 +117,7 @@ let dragging = false;
 let startScreen: Vec2 = { x: 0, y: 0 };
 let lastScreen: Vec2 = { x: 0, y: 0 };
 let warnedLocked = false;
+let dragGuides: GuideSet | undefined;
 
 /** Pieces whose middle lies inside the box between two plan points, with whole groups. */
 export function marqueeIds(level: Level, project: Project, a: Vec2, b: Vec2): Id[] {
@@ -152,6 +154,7 @@ export const furnishSelectTool: ToolHandler = {
   reset() {
     pending = null;
     dragging = false;
+    dragGuides = undefined;
   },
 
   down(ctx, p) {
@@ -261,9 +264,11 @@ export const furnishSelectTool: ToolHandler = {
       return;
     }
     let next: PlacedItem = pend.item;
+    dragGuides = undefined;
     if (pend.kind === 'move') {
       const want = sub(p.world, pend.grab);
       next = { ...pend.item, pos: round10(want), mountedTo: undefined };
+      let flush = false; // backed flat onto a wall by the wall snap
       if (!p.alt) {
         const faces = wallFaces(ctx.level, computeJoints(ctx.level));
         const tol = Math.max(150, 20 / ctx.view.scale);
@@ -271,6 +276,7 @@ export const furnishSelectTool: ToolHandler = {
           tol: pend.cat.mount === 'wall' ? 1000 : tol,
           autoRotate: pend.cat.mount === 'wall',
         });
+        flush = !!snap;
         if (snap) next = { ...next, pos: snap.pos, rotationDeg: snap.rotationDeg, mountedTo: pend.cat.mount === 'wall' ? snap.mountedTo : undefined };
         if (pend.cat.builder === 'opening-surround') {
           const J = computeJoints(ctx.level);
@@ -278,6 +284,18 @@ export const furnishSelectTool: ToolHandler = {
           const os = snapToOpening(ctx.level, J, want, pend.item.dims.d, side, Math.max(300, 30 / ctx.view.scale));
           if (os) next = fitSurround(next, os, side, ceilingAt(ctx.level, detectRooms(ctx.level, J), os.pos));
         }
+      }
+      if (pend.cat.mount !== 'ceiling') {
+        // Distance and alignment guides (and their snapping; Alt turns the snapping off).
+        const world = guideWorld(ctx.level, store.project, ctx.derived.joints, expandToGroup(ctx.level, pend.item.id));
+        const g = computeMoveGuides(itemRect(next, pend.cat), pend.cat, world, {
+          scale: ctx.view.scale,
+          snap: !p.alt,
+          noSnap: pend.cat.mount === 'wall' || pend.cat.builder === 'opening-surround',
+          lockZ: flush,
+        });
+        if (g.shift.x !== 0 || g.shift.y !== 0) next = { ...next, pos: { x: Math.round((next.pos.x + g.shift.x) * 10) / 10, y: Math.round((next.pos.y + g.shift.y) * 10) / 10 } };
+        dragGuides = { distances: g.distances, aligns: g.aligns };
       }
     } else if (pend.kind === 'resize') {
       const c = footprintCentre(pend.item, pend.cat);
@@ -300,7 +318,7 @@ export const furnishSelectTool: ToolHandler = {
       const i = L.items.findIndex((x) => x.id === id);
       if (i >= 0) L.items[i] = next;
     });
-    ctx.setOverlay({ dragging: true, hoverItem: id });
+    ctx.setOverlay({ dragging: true, hoverItem: id, guides: dragGuides });
   },
 
   up(ctx, p) {

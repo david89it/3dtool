@@ -31,6 +31,10 @@ import { renderLevelImage } from './renderLevel';
 import { furnishSelectTool, placeItemTool, computeItemGhost, placeItemFromGhost } from './tools/itemTools';
 import { ItemOverlay, ItemShapes } from './layers/ItemLayer';
 import { HighlightShapes } from './layers/HighlightLayer';
+import { GuideShapes, guideLabelScreen, GUIDE_COLORS } from './layers/GuideLayer';
+import { guidesForItem, moveToGap, type DistanceGuide, type GuideSet } from './guides';
+import { findCatalogueItem } from '../catalogue/catalogue';
+import { EditableLength } from '../ui/EditableLength';
 import type { Overlay, PointerInfo, ToolCtx, ToolHandler } from './tools/types';
 import { openingLabels, type OpeningLabel } from './openingLabels';
 import { editOpening } from '../geometry/openingEdits';
@@ -631,6 +635,13 @@ export function PlanCanvas() {
   const selectedWallId = selection?.kind === 'wall' ? selection.id : undefined;
   const selectedRoomId = selection?.kind === 'room' ? selection.id : undefined;
 
+  // Distances to the nearest wall or piece, kept while the selected piece sits still in Furnish mode.
+  const guideItem = mode === 'furnish' && tool === 'select' && !overlay.dragging && !labelEdit && selection?.kind === 'item' ? level.items.find((i) => i.id === selection.id) : undefined;
+  const guideCat = guideItem ? findCatalogueItem(project, guideItem.catalogueId) : undefined;
+  const restGuides: DistanceGuide[] =
+    guideItem && guideCat && guideCat.mount === 'floor' ? guidesForItem(level, project, derived.joints, guideItem.id) : [];
+  const shownGuides: GuideSet | undefined = overlay.guides && overlay.dragging ? overlay.guides : restGuides.length ? { distances: restGuides, aligns: [] } : undefined;
+
   return (
     <div
       className="canvas-wrap"
@@ -712,10 +723,16 @@ export function PlanCanvas() {
               ghost={itemGhost}
               marquee={overlay.marquee}
             />
+            {shownGuides && <GuideShapes guides={shownGuides} view={view} units={units} labels={!!overlay.dragging} />}
             </ErrorBoundary>
           </Layer>
         </Stage>
       )}
+
+      {guideItem && guideCat && !guideItem.locked && restGuides.length > 0 &&
+        restGuides.map((g) => (
+          <GuideLabel key={g.side} g={g} view={view} itemId={guideItem.id} itemName={guideCat.name.toLowerCase()} />
+        ))}
 
       {level.walls.length === 0 && !level.underlay && tool !== 'draw' && (
         <div className="canvas-empty">
@@ -839,4 +856,37 @@ function ToolHint() {
           ? 'Drag the plan image to line it up. Lock it when you are done.'
           : 'Click a wall to edit it. Drag to move it. Click a measurement to type a length. Double-click a wall to split it.';
   return <div className="tool-hint">{text}</div>;
+}
+
+const SIDE_WORDS = { front: 'in front', back: 'behind', left: 'to the left', right: 'to the right' } as const;
+
+/** A distance label you can tap to type a new gap; the piece moves along that direction. */
+function GuideLabel({ g, view, itemId, itemName }: { g: DistanceGuide; view: View; itemId: string; itemName: string }) {
+  const units = useStore((s) => s.units);
+  const p = guideLabelScreen(g, view);
+  const color = GUIDE_COLORS[g.status];
+  const apply = (mm: number) => {
+    const st = useStore.getState();
+    const lvl = st.project.levels.find((l) => l.id === st.levelId);
+    const it = lvl?.items.find((i) => i.id === itemId);
+    if (!it) return;
+    const to = moveToGap(it, g.side, g.gap, mm);
+    st.editLevel(`Move ${itemName} ${formatLength(mm, units)} from ${g.kind === 'wall' ? 'wall' : 'other item'}`, (L) => {
+      const i = L.items.find((x) => x.id === itemId);
+      if (i) i.pos = to;
+    });
+  };
+  return (
+    <div
+      className="guide-label"
+      data-testid={`guide-${g.side}`}
+      data-gap={Math.round(g.gap)}
+      style={{ left: p.x, top: p.y, borderColor: color, color }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
+      <EditableLength value={g.gap} onChange={apply} label={`Space ${SIDE_WORDS[g.side]} the ${itemName}`} min={0} max={20000} />
+    </div>
+  );
 }
