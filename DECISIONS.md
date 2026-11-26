@@ -907,3 +907,31 @@ challenged.
 - **Works on the error screen.** The dialog is also mounted inside the crash fallback and reads the
   store defensively, so a broken plan still gives a report (the crash is in the error list).
 - **A tap outside does not close it** (she may have typed a lot); Esc and Close do.
+
+## Shop page links in "describe a piece"
+
+- **One link box.** It takes a picture link or a shop product page. A link
+  is a picture if its path ends .jpg .jpeg .png .webp .gif (query string
+  allowed) or its host is i.pinimg.com / i.imgur.com / images.unsplash.com;
+  anything else http(s) is a page. A link pasted into the description is
+  picked up the same way. Wrong guesses cost one failed request with a plain
+  message.
+- **Pages are read by Claude's server-side web fetch tool**
+  (`web_fetch_20260209`, `max_uses: 3`), not by the browser, so no CORS issue.
+  Citations are off because they cannot be combined with
+  `output_config.format`. `pause_turn` is handled by re-sending with the
+  assistant content appended, at most 3 calls; the JSON is read from the
+  last text block. A fetch error comes back as HTTP 200 with a
+  `web_fetch_tool_result_error` block, which we turn into a plain message.
+  The installed SDK already types this tool, so no casts beyond the loop's
+  message params.
+- **Sizes from a shop page use `sizeConfidence: 'stated'`**, with
+  `source.kind: 'link'` the panel says "Sizes from the shop page" (for a
+  typed description, 'stated' still reads "as you described it"). Page URL
+  is `source.url` and is copied to `PlacedItem.link`.
+- **Price** is taken only if the page clearly states it in £ (schema allows
+  null); it goes to `CatalogueItem.price` and is copied when placed. Never
+  guessed. She can edit it in the item panel.
+- **No key:** the box shows one line and an Open Settings button, no fields.
+- **Not verifiable without a real key:** how well each shop's page text
+  yields dimensions, and whether some shops (bot-blocking) refuse the fetch.

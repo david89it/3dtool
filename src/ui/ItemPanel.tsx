@@ -307,12 +307,13 @@ function ItemSource({ source }: { source: NonNullable<CatalogueItem['source']> }
   return (
     <div className="item-source" data-testid="item-source">
       <p className="note">
-        {source.kind === 'image' ? 'Made from an image link' : 'Made from your description'}
-        {source.text ? `: “${source.text}”` : ''}. {SOURCE_NOTE[source.sizeConfidence as keyof typeof SOURCE_NOTE] ?? 'Sizes are estimates.'}
+        {source.kind === 'link' ? 'Made from a shop link' : source.kind === 'image' ? 'Made from an image link' : 'Made from your description'}
+        {source.text ? `: “${source.text}”` : ''}.{' '}
+        {source.kind === 'link' && source.sizeConfidence === 'stated' ? 'Sizes from the shop page.' : (SOURCE_NOTE[source.sizeConfidence as keyof typeof SOURCE_NOTE] ?? 'Sizes are estimates.')}
       </p>
       {link && (
         <a href={link} target="_blank" rel="noopener noreferrer" className="source-link">
-          Open the image link
+          {source.kind === 'link' ? 'Open the shop page' : 'Open the image link'}
         </a>
       )}
     </div>

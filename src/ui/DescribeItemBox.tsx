@@ -2,17 +2,11 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../model/store';
 import { loadApiKey } from '../advice/keyStore';
 import { CATALOGUE, CATEGORY_LABEL } from '../catalogue/items';
-import { buildAiItem, cleanUrl, splitUrl, type ItemDescription } from '../advice/describeModel';
+import { buildAiItem, classifyLink, cleanUrl, confidenceLabel, splitUrl, type ItemDescription } from '../advice/describeModel';
 import { EditableLength } from './EditableLength';
 import { ItemPreview } from './FurnishPanel';
 
-const CONFIDENCE_LABEL = {
-  stated: 'Size as you described it',
-  typical: 'A typical size for this kind of item',
-  guess: 'A rough guess. Check it against the real thing',
-} as const;
-
-type Source = { text?: string; url?: string };
+type Source = { text?: string; url?: string; kind?: 'image' | 'link' };
 type Phase = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'preview'; desc: ItemDescription; source: Source };
 
 /** Top of the Furnish panel: describe a piece, or paste an image link, and get an item to place. */
@@ -26,11 +20,10 @@ export function DescribeItemBox() {
   if (!enabled || !keySaved) {
     return (
       <p className="note describe-hint" data-testid="describe-hint">
-        To add an item by describing it or pasting an image link, turn on Ask Claude in{' '}
-        <button title="Open Settings to turn on Ask Claude" className="link-btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
-          Settings
+        Add your Claude key in Settings to make items from a description or a shop link{' '}
+        <button title="Open Settings to add your Claude key" className="link-btn" onClick={() => useStore.getState().setSettingsOpen(true)}>
+          Open Settings
         </button>
-        .
       </p>
     );
   }
@@ -38,14 +31,15 @@ export function DescribeItemBox() {
   const run = async () => {
     const split = splitUrl(text);
     const typedUrl = url.trim();
-    const imageUrl = typedUrl ? cleanUrl(typedUrl) : cleanUrl(split.url);
-    if (typedUrl && !imageUrl) {
-      setPhase({ kind: 'error', message: 'That image link does not look right. It should start with https://' });
+    const link = typedUrl ? cleanUrl(typedUrl) : cleanUrl(split.url);
+    if (typedUrl && !link) {
+      setPhase({ kind: 'error', message: 'That link does not look right. It should start with https://' });
       return;
     }
+    const isPage = !!link && classifyLink(link) === 'page';
     const description = typedUrl ? text.trim() : split.text;
-    if (!description && !imageUrl) {
-      setPhase({ kind: 'error', message: 'Describe the item, for example “tan leather lounge chair”, or paste an image link.' });
+    if (!description && !link) {
+      setPhase({ kind: 'error', message: 'Describe the item, for example “tan leather lounge chair”, or paste a shop link.' });
       return;
     }
     setPhase({ kind: 'loading' });
@@ -53,8 +47,8 @@ export function DescribeItemBox() {
       const key = await loadApiKey();
       if (!key) throw new Error('No API key saved. Add one in Settings.');
       const { describeItem } = await import('../advice/describeItem');
-      const desc = await describeItem(key, { text: description, imageUrl });
-      setPhase({ kind: 'preview', desc, source: { ...(description ? { text: description } : {}), ...(imageUrl ? { url: imageUrl } : {}) } });
+      const desc = await describeItem(key, { text: description, ...(isPage ? { pageUrl: link } : { imageUrl: link }) });
+      setPhase({ kind: 'preview', desc, source: { ...(description ? { text: description } : {}), ...(link ? { url: link, kind: isPage ? ('link' as const) : ('image' as const) } : {}) } });
     } catch (e) {
       setPhase({ kind: 'error', message: (e as Error).message });
     }
@@ -63,7 +57,7 @@ export function DescribeItemBox() {
   return (
     <section className="describe-box" aria-label="Add an item by description" data-testid="describe-box">
       <label className="field column">
-        <span className="field-label">Describe an item or paste an image link…</span>
+        <span className="field-label">Describe the item</span>
         <textarea
           className="text-field describe-text"
           aria-label="Describe an item"
@@ -78,8 +72,8 @@ export function DescribeItemBox() {
         className="text-field"
         type="url"
         inputMode="url"
-        aria-label="Image link (optional)"
-        placeholder="Image link (optional): a product photo or Pinterest image"
+        aria-label="Shop link or picture link (optional)"
+        placeholder="Shop link or picture link (optional)"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         onKeyDown={(e) => {
@@ -92,7 +86,7 @@ export function DescribeItemBox() {
       </button>
       {phase.kind === 'loading' && (
         <p className="note" role="status" data-testid="describe-loading">
-          Working out the size and colour…
+          Working out the size and colour… A shop page can take up to a minute.
         </p>
       )}
       {phase.kind === 'error' && (
@@ -182,8 +176,16 @@ function PreviewCard({
       </div>
       <p className={desc.sizeConfidence === 'guess' ? 'note warn' : 'note'}>
         {desc.sizeConfidence === 'guess' ? '? ' : ''}
-        {CONFIDENCE_LABEL[desc.sizeConfidence]}.{desc.notes ? ` ${desc.notes}` : ''}
+        {confidenceLabel(desc.sizeConfidence, source.kind === 'link' ? 'link' : 'description')}.{desc.notes ? ` ${desc.notes}` : ''}
       </p>
+      {item.price !== undefined && (
+        <div className="field">
+          <span className="field-label">Price</span>
+          <span className="value" data-testid="describe-price">
+            £{item.price} (from the shop page)
+          </span>
+        </div>
+      )}
       <div className="actions">
         <button className="btn primary" disabled={!desc.name.trim()} onClick={add}>
           Add to my items

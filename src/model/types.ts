@@ -278,7 +278,9 @@ export interface CatalogueItem {
   tint?: string;
   // EXTENSION: where an item made from a description or an image link came
   // from, so the item panel can show the link and say how sure the size is.
-  source?: { kind: 'description' | 'image'; text?: string; url?: string; sizeConfidence: string };
+  // EXTENSION: kind 'link' is a shop product page whose stated sizes were read
+  // by Claude (sizeConfidence 'stated'); `url` is then the page address.
+  source?: { kind: 'description' | 'image' | 'link'; text?: string; url?: string; sizeConfidence: string };
   // EXTENSION (costs): a default price in £ for her own items, copied onto a
   // piece when she places it.
   price?: number;
