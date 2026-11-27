@@ -1,6 +1,6 @@
 // Finding furniture under the pointer, and where its handles are.
 
-import type { Id, Level, PlacedItem, Project, Vec2 } from '../model/types';
+import type { Level, PlacedItem, Project, Vec2 } from '../model/types';
 import { effectiveDims, findCatalogueItem, footprint, itemAxes, localToPlan, obstacleRects } from '../catalogue/catalogue';
 import { dist, pointInPolygon, signedArea } from '../geometry/vec';
 import { toScreen, type View } from './view';
@@ -56,6 +56,3 @@ export function hitItemHandle(handles: ItemHandle[], screen: Vec2): ItemHandle |
   return best;
 }
 
-export function itemById(level: Level, id: Id): PlacedItem | undefined {
-  return level.items.find((i) => i.id === id);
-}

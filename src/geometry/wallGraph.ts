@@ -308,9 +308,3 @@ export function clampOpenings(level: Level): void {
   }
 }
 
-/** Walls in this level that the given walls are connected to (for highlighting). */
-export function connectedWalls(level: Level, wallId: Id): Wall[] {
-  const w = level.walls.find((x) => x.id === wallId);
-  if (!w) return [];
-  return level.walls.filter((x) => x.id !== wallId && (x.a === w.a || x.b === w.a || x.a === w.b || x.b === w.b));
-}

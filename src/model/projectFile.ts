@@ -82,10 +82,6 @@ export async function readPlanFile(file: File): Promise<{ project: Project; hist
   return { project: validateProject(data), history: parseHistory(raw) };
 }
 
-export async function readProjectFile(file: File): Promise<Project> {
-  return (await readPlanFile(file)).project;
-}
-
 /** Save text that is already JSON as a file. */
 export function downloadJsonText(text: string, filename: string): void {
   download(new Blob([text], { type: 'application/json' }), filename);

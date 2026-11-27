@@ -21,7 +21,6 @@ export const perpL = (a: Vec2): Vec2 => ({ x: -a.y, y: a.x });
 /** Rotate -90° in maths convention: (x, y) -> (y, -x). */
 export const perpR = (a: Vec2): Vec2 => ({ x: a.y, y: -a.x });
 export const angleOf = (a: Vec2): number => Math.atan2(a.y, a.x);
-export const eq = (a: Vec2, b: Vec2, tol = 1e-6): boolean => dist(a, b) <= tol;
 
 export function rotate(p: Vec2, deg: number, about: Vec2 = { x: 0, y: 0 }): Vec2 {
   const r = (deg * Math.PI) / 180;

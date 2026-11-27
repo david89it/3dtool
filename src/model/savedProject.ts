@@ -47,12 +47,6 @@ export async function readSavedProject(): Promise<SavedProjectResult> {
   }
 }
 
-/** Compatibility wrapper: the plan, or undefined when there is none or it cannot be used. */
-export async function loadSavedProject(): Promise<Project | undefined> {
-  const r = await readSavedProject();
-  return r.status === 'ok' ? r.project : undefined;
-}
-
 export async function loadSettings(): Promise<Partial<Settings>> {
   try {
     return (await get<Settings>(SETTINGS_KEY)) ?? {};

@@ -340,11 +340,3 @@ export class RuleContext {
   }
 }
 
-export function lowerFirst(s: string): string {
-  return s ? s[0].toLowerCase() + s.slice(1) : s;
-}
-
-export function capFirst(s: string): string {
-  return s ? s[0].toUpperCase() + s.slice(1) : s;
-}
-

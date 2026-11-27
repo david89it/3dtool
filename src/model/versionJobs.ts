@@ -71,9 +71,3 @@ export function noteChange(before: Project): void {
   );
 }
 
-/** Test hook: forget what the helpers remember between calls. */
-export function resetVersionMemory(): void {
-  lastSnapshotOf = undefined;
-  dailyDone = '';
-  warnedAuto = false;
-}

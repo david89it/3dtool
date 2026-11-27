@@ -10,7 +10,6 @@ import { dist } from '../../geometry/vec';
 import type { PointerInfo, ToolCtx, ToolHandler } from './types';
 
 let chain: Vec2 | null = null;
-let segments = 0;
 
 function snapFor(ctx: ToolCtx, p: PointerInfo): SnapResult {
   return snapPoint(ctx.level, p.world, {
@@ -22,14 +21,12 @@ function snapFor(ctx: ToolCtx, p: PointerInfo): SnapResult {
 
 function end(ctx: ToolCtx) {
   chain = null;
-  segments = 0;
   ctx.setOverlay({});
 }
 
 export const traceTool: ToolHandler = {
   reset() {
     chain = null;
-    segments = 0;
   },
 
   down() {},
@@ -45,7 +42,6 @@ export const traceTool: ToolHandler = {
     const pt = snap.point;
     if (!chain) {
       chain = pt;
-      segments = 0;
       ctx.setOverlay({ snap, draw: { from: pt, to: pt } });
       return;
     }
@@ -56,7 +52,6 @@ export const traceTool: ToolHandler = {
     store.editLevel('Draw wall', (L) => {
       addWall(L as Level, from, pt, { kind, thickness: DEFAULT_THICKNESS[kind], structural: 'unknown' }, 1);
     });
-    segments += 1;
     const closes = snap.kind === 'node' || snap.kind === 'wall' || snap.kind === 'midpoint';
     if (closes) {
       end(ctx);
@@ -75,14 +70,7 @@ export const traceTool: ToolHandler = {
   },
 };
 
-export function isTracing(): boolean {
-  return chain !== null;
-}
-
 export function finishTrace(ctx: ToolCtx): void {
   end(ctx);
 }
 
-export function traceSegments(): number {
-  return segments;
-}

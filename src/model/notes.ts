@@ -86,11 +86,6 @@ export function noteLength(n: PlanNote): number {
   return n.to ? Math.hypot(n.to.x - n.pos.x, n.to.y - n.pos.y) : 0;
 }
 
-/** Points that belong to a note, for fitting the view and the print. */
-export function notePoints(n: PlanNote): Vec2[] {
-  return n.to ? [n.pos, n.to] : [n.pos];
-}
-
 /** Notes with something to say, in the order she placed them (for the print list). */
 export function notesWithText(level: Pick<Level, 'notes'>): PlanNote[] {
   return (level.notes ?? []).filter((n) => !!n.text?.trim());
