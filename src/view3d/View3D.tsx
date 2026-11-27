@@ -15,6 +15,11 @@ import { wallDir } from './wallProfile';
 import { roomViewBridge, type RoomView3D } from './captureBridge';
 import { SunRig, SunHeatmap } from './SunRig';
 import { SunPanel } from './SunPanel';
+import { StudioEnvironment } from './StudioEnvironment';
+import { BeautifulPost } from './postfx';
+import { PhotoRig } from './Photo';
+import { QualityPanel } from './QualityPanel';
+import { useProfile } from './quality';
 import './view3d.css';
 
 // The plan's north offset lives in sun.ts (PLAN_UP_BEARING); re-exported here for older imports.
@@ -211,6 +216,7 @@ export function View3D() {
   const [cutaway, setCutaway] = useState(true);
   const [frame, setFrame] = useState<RoomFrame | null>(null);
   const [spawn, setSpawn] = useState<{ stand: { x: number; y: number }; face: { x: number; y: number }; n: number } | null>(null);
+  const profile = useProfile();
   const touch = useMemo(() => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches, []);
 
   useEffect(() => {
@@ -270,15 +276,19 @@ export function View3D() {
       <div className="view3d-stage">
         <Canvas
           shadows="percentage"
-          dpr={[1, 2]}
+          dpr={[1, profile.maxDpr]}
           gl={{ antialias: true, preserveDrawingBuffer: true }}
           camera={{ fov: 60, near: 0.05, far: 300, position: [8, 12, 14] }}
           onCreated={({ gl }) => {
             // Neutral tone mapping keeps paint and timber colours true to the swatches.
             gl.toneMapping = THREE.NeutralToneMapping;
+            gl.toneMappingExposure = 0.85;
           }}
         >
+          <StudioEnvironment />
           <SunRig box={shadowBox} />
+          <PhotoRig />
+          {profile.ao && <BeautifulPost msaa={profile.msaa} />}
           <SunHeatmap levelId={level.id} />
           {visible.map((L) => (
             <LevelMesh
@@ -286,6 +296,7 @@ export function View3D() {
               level={L}
               project={project}
               lightsOn={lightsOn}
+              bevelMm={profile.bevelMm}
               cutHeight={L.id === level.id || L.elevation >= level.elevation - 1 ? cut : undefined}
               onPickRoom={(lid, rid) => {
                 if (lid !== useStore.getState().levelId) useStore.getState().setLevel(lid);
@@ -306,7 +317,7 @@ export function View3D() {
           {/* Ground plane around the building */}
           <mesh rotation-x={-Math.PI / 2} position={[centre.x, -0.02, centre.z]} receiveShadow>
             <planeGeometry args={[80, 80]} />
-            <meshStandardMaterial color="#d9dccf" roughness={1} />
+            <meshStandardMaterial color="#c8c5bf" roughness={1} envMapIntensity={0.5} />
           </mesh>
           {view === 'orbit' ? (
             <OrbitRig level={level} frame={frame} />
@@ -373,6 +384,8 @@ export function View3D() {
             </label>
           )}
         </section>
+
+        <QualityPanel levelName={level.name} />
 
         <SunPanel project={project} level={level} lightsOn={lightsOn} onLights={setLightsOn} />
 

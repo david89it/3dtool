@@ -1114,3 +1114,12 @@ no guides while resizing or turning; rays do not see through gaps made by openin
   to the Undo list.
 - Toolbar labels avoid the names the side panels use ("Duplicate", "Open up this wall") so each button has
   one accessible name on the page.
+## 3D render quality (Fast / Beautiful)
+
+- No separate render agent existed; the 3D view and the print-pack offscreen renderer were the whole pipeline.
+- Lighting comes from three.js RoomEnvironment baked once into a PMREM map (no downloads). Flat hemisphere and ambient lights were cut so sun shadows still read.
+- Tone mapping stays Neutral (not ACES or AgX) so paint and timber match their swatches; exposure 0.85.
+- Ambient occlusion uses three built-in GTAOPass, so no new dependency. Beautiful only.
+- Furniture is merged boxes, so UVs are box-projected in metres (uvProject.ts); textures are generated greyscale canvases (proceduralTextures.ts) used as colour multiplier and bump map.
+- Default quality: Beautiful on a mouse device, Fast on touch or under automation; remembered in localStorage only, never in the project. Photo width 1920 (Fast) or 3840 (Beautiful).
+- Not done: per-room default camera angles beyond frame-room, glass transmission, light shafts.

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { currentSun, useSunUi } from './sunState';
 import { sunPlanDirection } from './sun';
 import { buildHeatGeometry } from './sunHours';
+import { useProfile } from './quality';
 
 const smooth = (a: number, b: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
@@ -31,6 +32,7 @@ export function SunRig({ box }: { box: THREE.Box3 }) {
   const helper = useMemo(() => new THREE.OrthographicCamera(), []);
   const corners = useMemo(() => Array.from({ length: 8 }, () => new THREE.Vector3()), []);
   const centre = useMemo(() => box.getCenter(new THREE.Vector3()), [box]);
+  const profile = useProfile();
 
   useFrame(({ scene }) => {
     const light = sun.current;
@@ -66,25 +68,35 @@ export function SunRig({ box }: { box: THREE.Box3 }) {
     sc.far = -Math.min(...corners.map((c) => c.z)) + 1;
     sc.updateProjectionMatrix();
 
-    if (hemi.current) hemi.current.intensity = 0.3 + 1.4 * day;
-    if (amb.current) amb.current.intensity = 0.14 + 0.21 * day;
+    // The environment map carries most of the soft fill light, so the flat hemisphere and
+    // ambient lights are kept low: that leaves the sun's shadows and the occlusion readable.
+    if (hemi.current) hemi.current.intensity = 0.12 + 0.5 * day;
+    if (amb.current) amb.current.intensity = 0.04 + 0.08 * day;
+    scene.environmentIntensity = 0.06 + 0.5 * day;
     // Background: night blue to pale daylight, with a warm tint when the sun is low.
     bg.copy(NIGHT_BG).lerp(DAY_BG, day).lerp(DUSK_BG, 0.35 * day * (1 - smooth(2, 14, el)));
     scene.background = bg;
+    // Distance haze in the colour of the sky: the ground plane melts into the horizon.
+    if (!scene.fog) scene.fog = new THREE.Fog(bg.clone(), 40, 95);
+    (scene.fog as THREE.Fog).color.copy(bg);
   });
+
 
   return (
     <>
       {/* Soft daylight bouncing around the rooms; the ground colour is a pale floor tone so ceilings stay white. */}
       <hemisphereLight ref={hemi} args={['#f4f7fb', '#e6dfd3', 1.7]} />
       <ambientLight ref={amb} intensity={0.35} />
+      {/* Re-created when the quality changes, so the shadow map is allocated at the new size. */}
       <directionalLight
+        key={profile.shadowMap}
         ref={sun}
         intensity={2.6}
         color="#fff4e2"
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={profile.shadowMap}
+        shadow-mapSize-height={profile.shadowMap}
+        shadow-radius={profile.shadowRadius}
         shadow-bias={-0.0004}
         shadow-normalBias={0.02}
       />

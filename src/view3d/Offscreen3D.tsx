@@ -100,7 +100,7 @@ function Shot({ job }: { job: Job }) {
       ))}
       <mesh rotation-x={-Math.PI / 2} position={[centre.x, -0.02, centre.z]}>
         <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#d9dccf" roughness={1} />
+        <meshStandardMaterial color="#c8c5bf" roughness={1} />
       </mesh>
     </>
   );
@@ -154,6 +154,7 @@ export function Offscreen3D() {
         camera={{ fov: 60, near: 0.05, far: 300, position: [8, 12, 14] }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.NeutralToneMapping;
+          gl.toneMappingExposure = 0.85;
         }}
       >
         {job && <Shot key={job.id} job={job} />}

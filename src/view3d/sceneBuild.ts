@@ -7,6 +7,8 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { boxProjectUVs } from './uvProject';
 import type { Level, Opening, Project, Vec2, Wall } from '../model/types';
 import { computeJoints } from '../geometry/joints';
 import { detectRooms, type DetectedRoom } from '../geometry/rooms';
@@ -32,6 +34,8 @@ export const CUTAWAY_HEIGHT = 1200;
 export interface BuildOptions {
   /** Cut walls (and what is in them) at this height above the floor. */
   cutHeight?: number;
+  /** Round the edges of furniture parts by this many mm (0 or unset: sharp boxes). */
+  bevelMm?: number;
 }
 
 export interface MeshSpec {
@@ -418,7 +422,7 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
   for (const s of level.stairs) {
     const target = byId.get(s.toLevelId);
     if (!target) continue;
-    for (const g of stairGeometry(level, s, target.elevation)) push(groups, 'token:stair', g);
+    for (const g of stairGeometry(level, s, target.elevation)) push(groups, 'token:stair', boxProjectUVs(g.toNonIndexed()));
   }
 
   for (const it of level.items) {
@@ -428,13 +432,15 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
     for (const p of itemParts(it, cat)) {
       const g =
         p.shape === 'cylinder'
-          ? new THREE.CylinderGeometry((p.size[0] / 2) * MM, (p.size[0] / 2) * MM, p.size[1] * MM, 20)
-          : new THREE.BoxGeometry(p.size[0] * MM, p.size[1] * MM, p.size[2] * MM);
+          ? new THREE.CylinderGeometry((p.size[0] / 2) * MM, (p.size[0] / 2) * MM, p.size[1] * MM, opts.bevelMm ? 32 : 20)
+          : opts.bevelMm
+            ? new RoundedBoxGeometry(p.size[0] * MM, p.size[1] * MM, p.size[2] * MM, 2, opts.bevelMm * MM)
+            : new THREE.BoxGeometry(p.size[0] * MM, p.size[1] * MM, p.size[2] * MM);
       g.rotateY(rot);
       const c = localToPlan(it, cat, p.pos[0], p.pos[2]);
       g.translate(c.x * MM, (level.elevation + p.pos[1]) * MM, c.y * MM);
       const tinted = overrideColor(p.colorToken, it.finish, cat.tint);
-      push(groups, tinted ? `tint:${p.colorToken}|${tinted}` : `token:${p.colorToken}`, g.index ? g.toNonIndexed() : g);
+      push(groups, tinted ? `tint:${p.colorToken}|${tinted}` : `token:${p.colorToken}`, boxProjectUVs(g.index ? g.toNonIndexed() : g));
     }
   }
 
