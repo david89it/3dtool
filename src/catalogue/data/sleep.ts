@@ -1,0 +1,96 @@
+// Catalogue items: sleep.
+import type { CatalogueItem } from '../../model/types';
+import { cabinet, slab, sofa } from '../parts';
+import { front, side, ANY, bedItem } from './helpers';
+
+export const SLEEP_ITEMS: CatalogueItem[] = [
+  bedItem('bed-single', 'Single bed', ['single', 'kids bed', '3ft bed', 'twin bed'], 950, 2050, [800, 1100]),
+  bedItem('bed-double', 'Double bed', ['double', '4ft6 bed', 'queen'], 1450, 2050, [1300, 1600]),
+  bedItem('bed-king', 'King size bed', ['king', '5ft bed'], 1600, 2150, [1500, 1750]),
+  bedItem('bed-superking', 'Super king bed', ['super king', '6ft bed', 'emperor'], 1900, 2150, [1800, 2100]),
+  {
+    id: 'bed-murphy',
+    name: 'Murphy bed',
+    aliases: ['wall bed', 'fold-down bed', 'fold away bed', 'pull down bed', 'hideaway bed', 'cabinet bed'],
+    category: 'sleep',
+    defaultDims: { w: 1550, d: 450, h: 2100 },
+    resizable: { w: [1000, 1800] },
+    mount: 'floor',
+    geometry: [slab(0, 0, 0, 1550, 2100, 450, 'white'), slab(0, 2050, 0, 1550, 50, 460, 'wood')],
+    states: {
+      folded: { dims: { w: 1550, d: 450, h: 2100 }, geometry: [slab(0, 0, 0, 1550, 2100, 450, 'white'), slab(0, 2050, 0, 1550, 50, 460, 'wood')] },
+      deployed: {
+        dims: { w: 1550, d: 2150, h: 2100 },
+        geometry: [
+          slab(0, 0, -850, 1550, 2100, 450, 'white'),
+          slab(0, 0, 225, 1550, 350, 1700, 'white'),
+          slab(0, 350, 225, 1490, 200, 1660, 'linen'),
+          slab(0, 550, -400, 1100, 110, 380, 'white'),
+        ],
+      },
+    },
+    clearance: [front(1800, 1900, 'The bed folds down here: keep it clear', 'deploy'), side('left', 0, 500, 'Space to get in once it is down')],
+    rules: ['murphy-deploy', 'bed-foot', 'door-swing', 'loft-headroom'],
+  },
+  {
+    id: 'bed-bunk',
+    name: 'Bunk bed',
+    aliases: ['bunks', 'kids bunk', 'double decker'],
+    category: 'sleep',
+    defaultDims: { w: 1000, d: 2000, h: 1600 },
+    resizable: { w: [900, 1100] },
+    mount: 'floor',
+    geometry: [
+      slab(0, 150, 0, 1000, 250, 2000, 'wood'),
+      slab(0, 400, 0, 940, 150, 1940, 'linen'),
+      slab(0, 1050, 0, 1000, 250, 2000, 'wood'),
+      slab(0, 1300, 0, 940, 150, 1940, 'linen'),
+      ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => slab((sx * 950) / 2, 0, (sz * 1950) / 2, 50, 1600, 50, 'wood'))),
+    ],
+    clearance: [side('right', 600, 700, 'Space to climb in'), front(600, 800, 'Space at the end')],
+    rules: ['bed-foot', 'window-obstruction', 'door-swing', 'loft-headroom'],
+  },
+  {
+    id: 'sofa-bed',
+    name: 'Sofa bed',
+    aliases: ['sofabed', 'pull-out bed', 'futon', 'guest bed'],
+    category: 'sleep',
+    defaultDims: { w: 2000, d: 950, h: 850 },
+    resizable: { w: [1600, 2200] },
+    mount: 'floor',
+    geometry: sofa(2000, 950),
+    states: {
+      sofa: { dims: { w: 2000, d: 950, h: 850 }, geometry: sofa(2000, 950) },
+      bed: {
+        dims: { w: 2000, d: 2150, h: 850 },
+        geometry: [...sofa(2000, 950).map((p) => ({ ...p, pos: [p.pos[0], p.pos[1], p.pos[2] - 600] as [number, number, number] })), slab(0, 0, 450, 1600, 450, 1250, 'linen')],
+      },
+    },
+    clearance: [front(1300, 1400, 'Pulls out into a bed here', 'deploy')],
+    rules: ['murphy-deploy', 'radiator-blocked', 'sofa-tv-distance', 'door-swing'],
+  },
+  {
+    id: 'cot',
+    name: 'Cot',
+    aliases: ['crib', 'baby bed', 'cot bed'],
+    category: 'sleep',
+    defaultDims: { w: 740, d: 1340, h: 900 },
+    resizable: {},
+    mount: 'floor',
+    geometry: [slab(0, 0, 0, 740, 900, 1340, 'white'), slab(0, 350, 0, 660, 120, 1260, 'linen')],
+    clearance: [side('left', 500, 600, 'Space to reach in')],
+    rules: ANY,
+  },
+  {
+    id: 'bedside-table',
+    name: 'Bedside table',
+    aliases: ['nightstand', 'bedside cabinet', 'night table'],
+    category: 'storage',
+    defaultDims: { w: 450, d: 400, h: 550 },
+    resizable: { w: [300, 600], d: [300, 500], h: [400, 700] },
+    mount: 'floor',
+    geometry: cabinet(450, 400, 550, 'wood', 60),
+    clearance: [],
+    rules: ANY,
+  },
+];
