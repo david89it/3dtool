@@ -1,32 +1,22 @@
-import { useLevelIssues } from './useIssues';
-import { IssueCard } from './AdvicePanel';
-import type { CatalogueItem, Level, PlacedItem } from '../model/types';
+import type { Level, PlacedItem } from '../model/types';
 import { useStore } from '../model/store';
-import { currentState, effectiveDims, findCatalogueItem, isRound, itemParts, STATE_LABEL, stateNames } from '../catalogue/catalogue';
-import { cyl, roundTable } from '../catalogue/parts';
-import { FINISHABLE, FINISH_SWATCHES } from '../catalogue/colors';
-import { MODULE, moduleDims, moduleGrid, SURROUND, surroundLayout } from '../catalogue/builders';
-import { computeJoints } from '../geometry/joints';
-import { detectRooms } from '../geometry/rooms';
-import { ceilingAt, fitSurround, snapToOpening } from '../editor2d/itemOps';
-import { CATEGORY_LABEL } from '../catalogue/items';
-import { canResize, setDimension } from '../editor2d/itemOps';
-import { formatLength } from '../model/units';
-import { EditableLength } from './EditableLength';
-import { ItemPreview } from './FurnishPanel';
-import { CommitInput } from './budgetFields';
-import { isWebLink, normaliseLink, parsePrice, STATUSES, STATUS_LABEL } from '../model/costs';
-import { useBudgetUi } from './budgetUi';
-import { groupOfItem } from '../model/groups';
-import { deleteSelected, duplicateSelected, lockSelected, turnSelected } from '../editor2d/selectionActions';
-
-const AXIS_LABEL = { w: 'Width', d: 'Depth', h: 'Height' } as const;
+import { findCatalogueItem, itemParts } from '../catalogue/catalogue';
+import { FINISHABLE } from '../catalogue/colors';
+import { ItemHeader } from './itempanel/ItemHeader';
+import { SizeFields } from './itempanel/SizeFields';
+import { TurnFields } from './itempanel/TurnFields';
+import { ClearanceList } from './itempanel/ClearanceList';
+import { ItemActions } from './itempanel/ItemActions';
+import { ItemIssues } from './itempanel/ItemIssues';
+import { ModuleFields } from './itempanel/ModuleFields';
+import { SurroundFields } from './itempanel/SurroundFields';
+import { FinishPicker } from './itempanel/FinishPicker';
+import { ItemSource } from './itempanel/ItemSource';
+import { CostSection } from './itempanel/CostSection';
 
 export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
   const project = useStore((s) => s.project);
-  const units = useStore((s) => s.units);
   const editLevel = useStore((s) => s.editLevel);
-  const select = useStore((s) => s.select);
   const item = level.items.find((i) => i.id === itemId);
   const cat = item ? findCatalogueItem(project, item.catalogueId) : undefined;
   if (!item || !cat) return null;
@@ -37,45 +27,11 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
       if (idx >= 0) L.items[idx] = fn(L.items[idx] as PlacedItem);
     });
 
-  const states = stateNames(cat);
-  const state = currentState(item, cat);
-  const eff = effectiveDims(item, cat);
   const name = cat.name.toLowerCase();
 
   return (
     <div className="panel-section" data-testid="item-panel">
-      <div className="row">
-        <h2>{cat.name}</h2>
-        <ItemPreview item={cat} size={40} />
-      </div>
-      <p className="note">
-        {CATEGORY_LABEL[cat.category]}
-        {cat.mount === 'wall' ? ' · fixed to a wall' : cat.mount === 'ceiling' ? ' · hangs from the ceiling' : ''}
-        {item.locked ? ' · locked' : ''}
-      </p>
-      {cat.measureNote && (
-        <p className="note measure-note" data-testid="item-measure-note">
-          {item.estimated && (
-            <span className="approx" title="Estimated. Measure on site.">
-              ≈{' '}
-            </span>
-          )}
-          {cat.measureNote}{' '}
-          {item.estimated && (
-            <button className="btn small" onClick={() => change(`Confirm ${name} size`, (i) => ({ ...i, estimated: undefined }))}>
-              I have measured it
-            </button>
-          )}
-        </p>
-      )}
-      {groupOfItem(level, item.id) && (
-        <p className="note" data-testid="item-group-note">
-          Part of the group “{groupOfItem(level, item.id)!.name}”.{' '}
-          <button className="link-btn" onClick={() => select({ kind: 'items', ids: groupOfItem(level, item.id)!.itemIds })}>
-            Select the whole group
-          </button>
-        </p>
-      )}
+      <ItemHeader level={level} item={item} cat={cat} change={change} name={name} />
 
       {cat.source && <ItemSource source={cat.source} />}
 
@@ -83,433 +39,19 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
 
       {cat.builder === 'opening-surround' && <SurroundFields level={level} item={item} change={change} locked={!!item.locked} />}
 
-      {isRound(cat) && cat.resizable.w && cat.resizable.d && !item.locked && (
-        <div className="field">
-          <span className="field-label">Diameter</span>
-          <EditableLength
-            label="Item diameter"
-            ctx="small"
-            value={Math.max(item.dims.w, item.dims.d)}
-            min={Math.max(cat.resizable.w[0], cat.resizable.d[0])}
-            max={Math.min(cat.resizable.w[1], cat.resizable.d[1])}
-            onChange={(mm) => change(`Resize ${name}`, (i) => setDimension(setDimension(i, cat, 'w', mm), cat, 'd', mm))}
-          />
-        </div>
-      )}
-      {isRound(cat) && (!cat.resizable.w || !cat.resizable.d || item.locked) && (
-        <div className="field">
-          <span className="field-label">Diameter</span>
-          <span className="value" title={item.locked ? 'Unlock to change' : 'This item comes in one size'}>
-            {formatLength(Math.max(item.dims.w, item.dims.d), units, 'small')}
-          </span>
-        </div>
-      )}
-      {!isRound(cat) && isMine(cat) && !item.locked && (
-        <button className="btn" title="Turn your item into a round piece, sized by its diameter" onClick={() => makeRound(cat, item)}>
-          ◯ Make it round
-        </button>
-      )}
-
-      {cat.builder !== 'opening-surround' && (['w', 'd', 'h'] as const).filter((axis) => !isRound(cat) || axis === 'h').map((axis) => {
-        const r = cat.resizable[axis];
-        return (
-          <div className="field" key={axis}>
-            <span className="field-label">{AXIS_LABEL[axis]}</span>
-            {r && !item.locked ? (
-              <EditableLength
-                label={`Item ${AXIS_LABEL[axis].toLowerCase()}`}
-                ctx="small"
-                value={item.dims[axis]}
-                min={r[0]}
-                max={r[1]}
-                estimated={item.estimated}
-                onChange={(mm) => change(`Resize ${name}`, (i) => ({ ...setDimension(i, cat, axis, mm), estimated: undefined }))}
-              />
-            ) : (
-              <span className="value" title={item.locked ? 'Unlock to change' : 'This item comes in one size'}>
-                {formatLength(item.dims[axis], units, 'small')}
-                {!item.locked && <span className="muted"> · one size</span>}
-              </span>
-            )}
-          </div>
-        );
-      })}
-      {states.length > 0 && state !== states[0] && (
-        <p className="note">
-          Sizes are for “{STATE_LABEL[states[0]] ?? states[0]}”. Now it takes {formatLength(eff.w, units)} × {formatLength(eff.d, units)}.
-        </p>
-      )}
-
-      {states.length > 0 && (
-        <div className="field column">
-          <span className="field-label">Position</span>
-          <div className="segmented" role="radiogroup" aria-label="Position">
-            {states.map((st) => (
-              <button
-                key={st}
-                role="radio"
-                aria-checked={state === st}
-                className={state === st ? 'on' : ''}
-                onClick={() => change(`${STATE_LABEL[st] ?? st}: ${name}`, (i) => ({ ...i, state: st }))}
-              >
-                {STATE_LABEL[st] ?? st}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <SizeFields item={item} cat={cat} change={change} name={name} />
 
       <FinishPicker item={item} change={change} name={name} hasFinish={itemParts(item, cat).some((p) => FINISHABLE.has(p.colorToken))} />
 
-      <div className="field">
-        <span className="field-label">Turned</span>
-        {item.locked ? (
-          <span className="value">{Math.round(item.rotationDeg)}°</span>
-        ) : (
-          <CommitInput
-            value={String(Math.round(item.rotationDeg * 10) / 10)}
-            label="Angle in degrees"
-            inputMode="decimal"
-            className="text-field angle-field"
-            testId="item-angle"
-            onCommit={(text) => {
-              const v = Number(text.replace(/[°\s]/g, '').replace(',', '.'));
-              if (!Number.isFinite(v)) return;
-              const deg = ((v % 360) + 360) % 360;
-              change(`Turn ${name} to ${Math.round(deg)}°`, (i) => ({ ...i, rotationDeg: deg, mountedTo: undefined }));
-            }}
-          />
-        )}
-      </div>
-      <div className="actions turn-actions">
-        <button title="Turn 15° left (Alt Shift R)" className="btn" disabled={item.locked} onClick={() => turnSelected(-15)} aria-label="Turn 15° anticlockwise">
-          ↺ 15°
-        </button>
-        <button title="Turn 15° right (Alt R)" className="btn" disabled={item.locked} onClick={() => turnSelected(15)} aria-label="Turn 15° clockwise">
-          ↻ 15°
-        </button>
-        <button title="Turn 90° left (Shift R)" className="btn" disabled={item.locked} onClick={() => turnSelected(-90)} aria-label="Turn 90° anticlockwise">
-          ↺ 90°
-        </button>
-        <button title="Turn 90° right (R)" className="btn" disabled={item.locked} onClick={() => turnSelected(90)} aria-label="Turn 90° clockwise">
-          ↻ 90°
-        </button>
-      </div>
+      <TurnFields item={item} name={name} change={change} />
 
-      {cat.clearance.length > 0 && (
-        <div className="field column">
-          <span className="field-label">Space it needs</span>
-          <ul className="clearance-list">
-            {cat.clearance.map((c, i) => (
-              <li key={i}>
-                <strong>{c.side === 'all' ? 'All round' : c.side === 'front' ? 'In front' : c.side === 'back' ? 'Behind' : 'At the side'}:</strong>{' '}
-                {c.reason}. At least {formatLength(c.min, units)}
-                {c.ideal > c.min ? `, ideally ${formatLength(c.ideal, units)}` : ''}.
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <ClearanceList cat={cat} />
 
       <CostSection item={item} change={change} name={name} />
 
       <ItemIssues itemId={itemId} />
 
-      <div className="actions">
-        <button title="Make a copy of this item (Ctrl/⌘ D)"
-          className="btn"
-          onClick={() => duplicateSelected()}
-        >
-          Duplicate
-        </button>
-        <button
-          className={item.locked ? 'btn on' : 'btn'}
-          aria-pressed={!!item.locked}
-          title={item.locked ? 'Let this item move again' : 'Lock this item so it cannot move by accident'}
-          onClick={() => lockSelected()}
-        >
-          {item.locked ? 'Unlock' : 'Lock'}
-        </button>
-        <button title="Remove this item from the plan (Delete)"
-          className="btn danger"
-          onClick={() => deleteSelected()}
-        >
-          Remove
-        </button>
-      </div>
-      {!canResize(cat, 'w') && !canResize(cat, 'd') && <p className="note">This item comes in one size.</p>}
-    </div>
-  );
-}
-
-/** Layout problems that involve this item (from the same checks as Advice mode). */
-function ItemIssues({ itemId }: { itemId: string }) {
-  const issues = useLevelIssues().filter((i) => i.itemIds.includes(itemId));
-  return (
-    <div className="field column" data-testid="item-issues">
-      <span className="field-label">Layout check</span>
-      {issues.length === 0 ? (
-        <p className="note">No problems with this one.</p>
-      ) : (
-        <ul className="issue-list">
-          {issues.map((i) => (
-            <IssueCard key={i.id} issue={i} compact />
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-type Change = (label: string, fn: (i: PlacedItem) => PlacedItem) => void;
-
-const isMine = (c: CatalogueItem) => c.id.startsWith('custom-') || c.id.startsWith('ai-');
-
-/**
- * Make one of her own items round: a round top (tables) or a drum, as wide as
- * it was wide or deep, and every placed copy resized to match. One undo step.
- */
-function makeRound(cat: CatalogueItem, item: PlacedItem) {
-  const dia = Math.max(item.dims.w, item.dims.d);
-  const h = item.dims.h;
-  const lo = Math.max(100, Math.round(dia / 2));
-  const hi = Math.max(dia * 2, lo + 100);
-  useStore.getState().commit(`Make “${cat.name}” round`, (draft) => {
-    const c = draft.catalogueOverrides.find((x) => x.id === cat.id);
-    if (!c) return;
-    c.round = true;
-    c.defaultDims = { w: dia, d: dia, h };
-    c.resizable = { ...c.resizable, w: [lo, hi], d: [lo, hi] };
-    const token = c.geometry[0]?.colorToken ?? 'custom';
-    c.geometry = c.category === 'table' ? roundTable(dia, h, token === 'custom' ? 'wood' : token) : [cyl(0, h / 2, 0, dia, h, token)];
-    for (const L of draft.levels) {
-      for (const it of L.items) if (it.catalogueId === cat.id) it.dims = { ...it.dims, w: dia, d: dia };
-    }
-  });
-}
-
-/** Modules across and high (stacked). Each module is a fixed 75 x 75 cm, 37 cm deep. */
-function ModuleFields({ item, change, locked }: { item: PlacedItem; change: Change; locked: boolean }) {
-  const { cols, rows } = moduleGrid(item);
-  const set = (label: string, next: { cols?: number; rows?: number }) =>
-    change(label, (i) => {
-      const cur = moduleGrid(i);
-      const g = moduleGrid({ params: { cols: next.cols ?? cur.cols, rows: next.rows ?? cur.rows } });
-      // Keep the back edge and the left end where they are when it grows or shrinks.
-      const dims = moduleDims(g.cols, g.rows);
-      const dw = (dims.w - i.dims.w) / 2;
-      const a = (i.rotationDeg * Math.PI) / 180;
-      const pos = { x: i.pos.x + dw * Math.cos(a), y: i.pos.y + dw * Math.sin(a) };
-      return { ...i, pos, params: { ...(i.params ?? {}), cols: g.cols, rows: g.rows }, dims };
-    });
-  const stepper = (label: string, value: number, max: number, key: 'cols' | 'rows', unit: string) => (
-    <div className="field" key={key}>
-      <span className="field-label">{label}</span>
-      <div className="stepper">
-        <button className="btn" disabled={locked || value <= 1} aria-label={`One fewer ${unit}`} title={`One fewer ${unit}`} onClick={() => set(`Modules ${label.toLowerCase()}`, { [key]: value - 1 })}>
-          −
-        </button>
-        <span className="value" data-testid={`modules-${key}`}>{value}</span>
-        <button className="btn" disabled={locked || value >= max} aria-label={`One more ${unit}`} title={`One more ${unit}`} onClick={() => set(`Modules ${label.toLowerCase()}`, { [key]: value + 1 })}>
-          +
-        </button>
-      </div>
-    </div>
-  );
-  return (
-    <>
-      {stepper('Across', cols, MODULE.maxAcross, 'cols', 'module across')}
-      {stepper('Stacked high', rows, MODULE.maxHigh, 'rows', 'module on top')}
-      <p className="note">
-        {cols * rows} module{cols * rows === 1 ? '' : 's'}, each {MODULE.w / 10} × {MODULE.h / 10} cm and {MODULE.d / 10} cm deep.
-      </p>
-    </>
-  );
-}
-
-/** Sizes for a bookcase surround: the opening it frames, the towers either side, depth and height. */
-function SurroundFields({ level, item, change, locked }: { level: Level; item: PlacedItem; change: Change; locked: boolean }) {
-  const units = useStore((s) => s.units);
-  const { side, gapW, gapH } = surroundLayout(item, item.dims);
-  const set = (label: string, next: { side?: number; gapW?: number; gapH?: number; d?: number; h?: number }) =>
-    change(label, (i) => {
-      const cur = surroundLayout(i, i.dims);
-      const s2 = Math.max(SURROUND.minSide, Math.round(next.side ?? cur.side));
-      const g = Math.max(SURROUND.minGap, Math.round(next.gapW ?? cur.gapW));
-      const h = Math.round(next.h ?? i.dims.h);
-      const gh = Math.min(Math.round(next.gapH ?? cur.gapH), h - 250);
-      return { ...i, params: { ...(i.params ?? {}), gapW: g, gapH: gh }, dims: { w: g + 2 * s2, d: Math.round(next.d ?? i.dims.d), h } };
-    });
-  const field = (label: string, value: number, onChange: (mm: number) => void, min: number, max: number) => (
-    <div className="field" key={label}>
-      <span className="field-label">{label}</span>
-      {locked ? (
-        <span className="value">{formatLength(value, units, 'small')}</span>
-      ) : (
-        <EditableLength label={label} ctx="small" value={value} min={min} max={max} onChange={onChange} />
-      )}
-    </div>
-  );
-  return (
-    <>
-      {field('Opening width', gapW, (mm) => set('Change surround opening', { gapW: mm }), SURROUND.minGap, 4000)}
-      {field('Opening height', gapH, (mm) => set('Change surround opening', { gapH: mm }), 1200, 3000)}
-      {field('Shelving each side', side, (mm) => set('Change surround towers', { side: mm }), SURROUND.minSide, 1500)}
-      {field('Depth', item.dims.d, (mm) => set('Change surround depth', { d: mm }), 250, 500)}
-      {field('Total height', item.dims.h, (mm) => set('Change surround height', { h: mm }), 2200, 3500)}
-      <button title="Resize it to fit the nearest door or opening"
-        className="btn"
-        disabled={locked}
-        onClick={() => {
-          const J = computeJoints(level);
-          const snap = snapToOpening(level, J, item.pos, item.dims.d, side, 1500);
-          if (!snap) {
-            useStore.getState().toast('No door or opening close enough. Move it next to one first.');
-            return;
-          }
-          change('Fit surround to opening', (i) => fitSurround(i, snap, side, ceilingAt(level, detectRooms(level, J), snap.pos)));
-        }}
-      >
-        Fit to opening
-      </button>
-    </>
-  );
-}
-
-/** Paint or timber colour for the piece's painted and wooden parts. */
-function FinishPicker({ item, change, name, hasFinish }: { item: PlacedItem; change: Change; name: string; hasFinish: boolean }) {
-  if (!hasFinish) return null;
-  const setFinish = (hex: string | undefined, label: string) =>
-    change(`${label}: ${name}`, (i) => {
-      const next = { ...i };
-      if (hex) next.finish = hex;
-      else delete next.finish;
-      return next;
-    });
-  return (
-    <div className="field column">
-      <span className="field-label">Colour</span>
-      <div className="swatches" role="radiogroup" aria-label="Colour">
-        <button
-          type="button"
-          role="radio"
-          aria-checked={!item.finish}
-          className={!item.finish ? 'swatch on' : 'swatch'}
-          title="As made"
-          aria-label="As made"
-          onClick={() => setFinish(undefined, 'Original colour')}
-        >
-          <span className="swatch-chip as-made" />
-        </button>
-        {FINISH_SWATCHES.map((sw) => (
-          <button
-            key={sw.hex}
-            type="button"
-            role="radio"
-            aria-checked={item.finish === sw.hex}
-            className={item.finish === sw.hex ? 'swatch on' : 'swatch'}
-            title={sw.name}
-            aria-label={sw.name}
-            onClick={() => setFinish(sw.hex, sw.name)}
-          >
-            <span className="swatch-chip" style={{ background: sw.hex }} />
-          </button>
-        ))}
-        <label className="swatch custom" title="Any colour">
-          <input
-            type="color"
-            aria-label="Any colour"
-            value={item.finish ?? '#e7e1d6'}
-            onChange={(e) => setFinish(e.target.value, 'Colour')}
-          />
-        </label>
-      </div>
-    </div>
-  );
-}
-
-const SOURCE_NOTE = {
-  stated: 'The size is as described.',
-  typical: 'The size is a typical one for this kind of item.',
-  guess: 'The size is a rough guess, so check it against the real thing.',
-} as const;
-
-/** Where an item made from a description came from, and how sure its size is. */
-function ItemSource({ source }: { source: NonNullable<CatalogueItem['source']> }) {
-  const link = source.url && /^https?:\/\//i.test(source.url) ? source.url : undefined;
-  return (
-    <div className="item-source" data-testid="item-source">
-      <p className="note">
-        {source.kind === 'link' ? 'Made from a shop link' : source.kind === 'image' ? 'Made from an image link' : 'Made from your description'}
-        {source.text ? `: “${source.text}”` : ''}.{' '}
-        {source.kind === 'link' && source.sizeConfidence === 'stated' ? 'Sizes from the shop page.' : (SOURCE_NOTE[source.sizeConfidence as keyof typeof SOURCE_NOTE] ?? 'Sizes are estimates.')}
-      </p>
-      {link && (
-        <a href={link} target="_blank" rel="noopener noreferrer" className="source-link">
-          {source.kind === 'link' ? 'Open the shop page' : 'Open the image link'}
-        </a>
-      )}
-    </div>
-  );
-}
-
-/** Price, where to buy it and whether it is bought. Feeds the Budget and shopping list. */
-function CostSection({ item, change, name }: { item: PlacedItem; change: Change; name: string }) {
-  const status = item.status ?? 'idea';
-  const set = (label: string, patch: Partial<Pick<PlacedItem, 'price' | 'supplier' | 'link' | 'status'>>) =>
-    change(`${label}: ${name}`, (i) => {
-      const next: PlacedItem = { ...i, ...patch };
-      for (const k of Object.keys(patch) as (keyof typeof patch)[]) if (patch[k] === undefined) delete next[k];
-      return next;
-    });
-  return (
-    <div className="field column cost-section" data-testid="cost-section">
-      <span className="field-label">Cost</span>
-      <label className="cost-row">
-        <span className="note">Price (£, each)</span>
-        <CommitInput
-          label="Price in pounds"
-          inputMode="decimal"
-          placeholder="not set"
-          value={item.price !== undefined ? String(item.price) : ''}
-          onCommit={(t) => {
-            if (!t.trim()) return set('Clear price', { price: undefined });
-            const n = parsePrice(t);
-            if (n === undefined) return useStore.getState().toast('Type the price in pounds, like 250 or 79.99.', 'warn');
-            set('Set price', { price: n });
-          }}
-        />
-      </label>
-      <label className="cost-row">
-        <span className="note">Shop or supplier</span>
-        <CommitInput label="Supplier" value={item.supplier ?? ''} placeholder="e.g. John Lewis" onCommit={(t) => set('Set supplier', { supplier: t.trim() || undefined })} />
-      </label>
-      <label className="cost-row">
-        <span className="note">Link</span>
-        <CommitInput label="Link" inputMode="url" value={item.link ?? ''} placeholder="https://…" onCommit={(t) => set('Set link', { link: normaliseLink(t) || undefined })} />
-      </label>
-      {isWebLink(item.link) && (
-        <a href={item.link} target="_blank" rel="noopener noreferrer" className="source-link">
-          Open the link in a new tab
-        </a>
-      )}
-      <div className="segmented" role="radiogroup" aria-label="Status">
-        {STATUSES.map((st) => (
-          <button
-            key={st}
-            type="button"
-            role="radio"
-            aria-checked={status === st}
-            className={status === st ? 'on' : ''}
-            onClick={() => status !== st && set('Mark as ' + STATUS_LABEL[st].toLowerCase(), { status: st })}
-          >
-            {STATUS_LABEL[st]}
-          </button>
-        ))}
-      </div>
-      <button type="button" className="btn" onClick={() => useBudgetUi.getState().setOpen(true)}>
-        £ Budget and shopping list…
-      </button>
+      <ItemActions item={item} cat={cat} />
     </div>
   );
 }

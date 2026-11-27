@@ -1,6 +1,7 @@
 # Handover
 
-The one document to read before working on Flat Planner. It is kept short on
+The one document to read before working on Flat Planner. The folder map and
+file-size conventions are in [`docs/architecture.md`](docs/architecture.md). It is kept short on
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
@@ -47,13 +48,13 @@ beats feature count.
 | --- | --- | --- |
 | `src/model` | Types, store (zustand + immer patches), undo history, units, autosave and file save/open, seed project (private; loaded via `firstRun.ts`), encrypted-seed unlock, schemes ("Options"), paint palette, wall faces, saved colour schemes (`finishSchemes.ts`) | `types.ts`, `store.ts` |
 | `src/geometry` | Wall graph, mitred joints, room detection, dimensions, snapping, openings rules and edits, calibration | `wallGraph.ts`, `rooms.ts`, `openings.ts` |
-| `src/catalogue` | 84 items as data, shape helpers, state sizes, footprints, `obstacleRects`, parametric builders (bookcase surround), colours | `items.ts`, `catalogue.ts` |
+| `src/catalogue` | 84 items as data, shape helpers, state sizes, footprints, `obstacleRects`, parametric builders (bookcase surround), colours | `items.ts`, `data/*`, `catalogue.ts` |
 | `src/editor2d` | Konva canvas, layers, tools for each mode, hit testing, `canvasApi` bridge (also used by tests) | `PlanCanvas.tsx`, `tools/*` |
-| `src/rules` | 23 layout rules (one registry file), engine, fixers | `registry.ts`, `engine.ts` |
+| `src/rules` | 23 layout rules (one file per group in `groups/`), engine, fixers | `registry.ts`, `engine.ts` |
 | `src/view3d` | 3D scene, wall profiles with holes, walk physics, materials and finishes | `View3D.tsx`, `sceneBuild.ts` |
 | `src/advice` | Optional Claude API client (`claude-opus-5-5`, key kept in the browser): advice and describe-a-piece | `claudeAdvice.ts`, `describeItem.ts` |
 | `src/report` | Report a problem: address priority, console ring buffer, details, mailto builder | `report.ts`, `address.ts` |
-| `src/ui` | Panels, mode bar, inspector, dialogs, tour, shortcuts, options | `App.tsx`, `Inspector.tsx` |
+| `src/ui` | Panels, mode bar, inspector, dialogs, tour, shortcuts, options | `App.tsx`, `Inspector.tsx`, `inspector/*` |
 | `e2e` | One Playwright spec per phase or feature | Load the app with `?notour` |
 | `assets` | Agent's floorplan, brochure, listing photos (**private**, see §5) | |
 
@@ -267,6 +268,7 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-27 · refactor · No behaviour change. Split the big files: rules registry into `rules/groups/*`, Inspector into `ui/inspector/*`, ItemPanel into `ui/itempanel/*`, PlanCanvas into hooks and parts in `editor2d/canvas/*`, PrintPack into `print/pages/*` plus `usePackState.ts`, TopBar into `ui/topbar/*`, Budget tabs into `ui/budget/*`, catalogue data into `catalogue/data/*`, persistence into `savedProject`/`autosave`/`projectFile`, versions into `versionImages`/`versionJobs`, seed builders into `seedBuild`. Removed unused functions. Version jobs (`runJob`, `autoSnapshot`...) now import from `model/versionJobs`. Map: `docs/architecture.md`.
 - 2026-11-27 · ux-context · Floating toolbar by the selection (`editor2d/SelectionToolbar.tsx`, `selectionAnchor.ts`), "Removed x · Undo" toast for every Remove/Delete step (`store.ts` `deletedWording`, `Toast.action`), mode-aware empty floor with a Draw walls button (`EmptyPlan.tsx`), one-line hint that follows the tool and selection (`toolHint.ts`, `ToolHint.tsx`), two-row top bar up to 1600 px. Findings: `docs/ux-review.md`; tests `selectionAnchor.test.ts`, `toolHint.test.ts`, `e2e/contextual-ui.spec.ts`.
 - 2026-11-27 · render · 3D look: environment-map lighting, textured PBR materials, sky haze, Fast/Beautiful quality (`quality.ts`; Beautiful adds GTAO ambient occlusion in `postfx.tsx`, 4096 soft shadows, rounded furniture), *Save a photo* (`Photo.tsx`, `QualityPanel.tsx`). Review and screenshots in `docs/render-review.md`.
 - 2026-11-26 · ipad-ux · Details panel on selection under 1000 px, window focus trap and Esc fix, typeable note length and image rotation, two-row top chrome with a More menu at 1100 px and under; `e2e/ipad-ux.spec.ts`.

@@ -247,6 +247,9 @@ and every "measure me" pin.
 
 ## Code layout
 
+A fuller map of folders, modules and the house rules (file size, where new
+rules, panels and catalogue items go) is in [`docs/architecture.md`](docs/architecture.md).
+
 ```
 assets/            agent floorplan, brochure, listing photos
 src/model          types, zustand store, undo history, units, seed, autosave
@@ -264,7 +267,8 @@ e2e/               Playwright smoke tests
 
 ## How to add a catalogue item
 
-Items are plain data in `src/catalogue/items.ts` (the `CATALOGUE` array),
+Items are plain data in `src/catalogue/data/<category>.ts` (collected into the
+`CATALOGUE` array by `src/catalogue/items.ts`),
 built from boxes and cylinders with the helpers in `src/catalogue/parts.ts`.
 
 **Item frame** (millimetres): x runs across the width (−w/2…w/2), y is up
@@ -358,9 +362,10 @@ measurements as facts and is told not to contradict them.
 
 ## How to add a rule
 
-Rules live in one file, `src/rules/registry.ts`, as entries in the `RULES`
-array. A rule applies to an item when the catalogue item lists the rule's id
-in its `rules` array (in `src/catalogue/items.ts`), so turning a rule on for
+Rules live in `src/rules/groups/<group>.ts` (bedroom, circulation, kitchen,
+living, bathroom, structure); `src/rules/registry.ts` joins the groups into the
+`RULES` array. A rule applies to an item when the catalogue item lists the rule's id
+in its `rules` array (in `src/catalogue/data/`), so turning a rule on for
 more furniture is a data change.
 
 Each rule has an `id`, a plain-English `title`, a `severity` (`error` blocks
@@ -395,7 +400,7 @@ Worked example: keep 1 m clear in front of a piano.
 },
 ```
 
-Then add `'piano-stool'` to the upright piano's `rules` in `items.ts`, and add
+Then add `'piano-stool'` to the upright piano's `rules` in `src/catalogue/data/`, and add
 a passing and a failing fixture to `src/rules/rules.test.ts` (build a room
 with `room()` and place items with `put()` or `againstTop()`). The new number
 appears in Settings automatically.

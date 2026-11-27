@@ -118,11 +118,3 @@ export function startTabLock(): Promise<Role> {
   });
 }
 
-/** Test hook. */
-export function resetTabLockForTests(): void {
-  channel?.close();
-  channel = undefined;
-  state = newTabState(uid('tab'));
-  afterTakeOver = [];
-  useTabRole.setState({ role: 'editor', note: '' });
-}

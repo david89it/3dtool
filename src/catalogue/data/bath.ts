@@ -1,0 +1,125 @@
+// Catalogue items: bath.
+import type { CatalogueItem } from '../../model/types';
+import { slab } from '../parts';
+import { front, side } from './helpers';
+
+export const BATH_ITEMS: CatalogueItem[] = [
+  {
+    id: 'bath',
+    name: 'Bath',
+    aliases: ['bathtub', 'tub', 'shower bath'],
+    category: 'bath',
+    defaultDims: { w: 1700, d: 700, h: 560 },
+    resizable: { w: [1400, 1800], d: [700, 800] },
+    mount: 'floor',
+    geometry: [slab(0, 0, 0, 1700, 560, 700, 'ceramic'), slab(0, 300, 0, 1500, 270, 520, 'water')],
+    clearance: [front(700, 800, 'Room to get in and out and dry off')],
+    rules: ['basin-front', 'door-swing'],
+  },
+  {
+    id: 'bath-japanese',
+    name: 'Japanese soaking bath (square)',
+    aliases: ['ofuro', 'japanese bath', 'soaking tub', 'deep bath', 'hinoki bath', 'square bath', 'wooden bath'],
+    category: 'bath',
+    defaultDims: { w: 1100, d: 1100, h: 650 },
+    resizable: { w: [900, 1400], d: [900, 1400], h: [600, 800] },
+    mount: 'floor',
+    geometry: [
+      slab(0, 0, 0, 1100, 45, 1100, 'hinoki'), // floor of the tub
+      slab(0, 0, -527.5, 1100, 650, 45, 'hinoki'), // back wall
+      slab(0, 0, 527.5, 1100, 650, 45, 'hinoki'), // front wall
+      slab(-527.5, 0, 0, 45, 650, 1010, 'hinoki'), // left wall
+      slab(527.5, 0, 0, 45, 650, 1010, 'hinoki'), // right wall
+      slab(0, 45, 0, 1010, 505, 1010, 'water'), // water, about 100 mm below the rim
+      // Stool beside the tub, at the front left, and a slatted duckboard in front.
+      slab(-350, 0, 760, 400, 250, 300, 'hinoki'),
+      ...[0, 1, 2, 3, 4].map((i) => slab(150, 0, 600 + 25 + i * 60, 700, 25, 40, 'hinoki')),
+    ],
+    clearance: [front(700, 900, 'Room to step in, sit on the stool and dry off')],
+    rules: ['basin-front', 'door-swing'],
+  },
+  {
+    id: 'shower-tray',
+    name: 'Shower (tray and screen)',
+    aliases: ['shower', 'shower enclosure', 'shower cubicle', 'quadrant'],
+    category: 'bath',
+    defaultDims: { w: 900, d: 900, h: 2000 },
+    resizable: { w: [700, 1200], d: [700, 1200] },
+    mount: 'floor',
+    geometry: [slab(0, 0, 0, 900, 50, 900, 'ceramic'), slab(0, 50, 445, 900, 1950, 10, 'glass'), slab(445, 50, 0, 10, 1950, 900, 'glass')],
+    clearance: [front(700, 900, 'Room to step out and dry off')],
+    rules: ['basin-front', 'door-swing'],
+  },
+  {
+    id: 'shower-walkin',
+    name: 'Walk-in shower',
+    aliases: ['wet room', 'walk in shower', 'shower screen'],
+    category: 'bath',
+    defaultDims: { w: 1400, d: 900, h: 2000 },
+    resizable: { w: [1000, 1800], d: [800, 1200] },
+    mount: 'floor',
+    geometry: [slab(0, 0, 0, 1400, 40, 900, 'ceramic'), slab(-100, 40, 445, 900, 1960, 10, 'glass')],
+    clearance: [front(700, 900, 'Room to step out and dry off')],
+    rules: ['basin-front', 'door-swing'],
+  },
+  {
+    id: 'basin',
+    name: 'Basin (pedestal)',
+    aliases: ['sink', 'wash basin', 'hand basin', 'washbasin', 'bathroom sink'],
+    category: 'bath',
+    defaultDims: { w: 550, d: 450, h: 850 },
+    resizable: { w: [400, 700] },
+    mount: 'floor',
+    geometry: [slab(0, 700, 0, 550, 150, 450, 'ceramic'), slab(0, 0, -80, 180, 700, 180, 'ceramic')],
+    clearance: [front(700, 800, 'Room to stand and bend over the basin')],
+    rules: ['basin-front', 'door-swing'],
+  },
+  {
+    id: 'vanity',
+    name: 'Vanity unit with basin',
+    aliases: ['vanity', 'basin unit', 'bathroom cabinet', 'sink unit', 'washstand'],
+    category: 'bath',
+    defaultDims: { w: 800, d: 450, h: 850 },
+    resizable: { w: [500, 1500] },
+    mount: 'floor',
+    geometry: [slab(0, 0, 0, 800, 800, 450, 'white'), slab(0, 800, 0, 800, 50, 460, 'ceramic')],
+    clearance: [front(700, 800, 'Room to stand and bend over the basin')],
+    rules: ['basin-front', 'door-swing'],
+  },
+  {
+    id: 'wc',
+    name: 'WC',
+    aliases: ['toilet', 'loo', 'water closet', 'lavatory'],
+    category: 'bath',
+    defaultDims: { w: 400, d: 650, h: 800 },
+    resizable: {},
+    mount: 'floor',
+    geometry: [slab(0, 0, 60, 380, 400, 520, 'ceramic'), slab(0, 400, -230, 400, 400, 180, 'ceramic')],
+    clearance: [front(600, 750, 'Room in front of the toilet'), side('left', 200, 250, 'Elbow room'), side('right', 200, 250, 'Elbow room')],
+    rules: ['wc-front', 'door-swing'],
+  },
+  {
+    id: 'towel-rail',
+    name: 'Heated towel rail',
+    aliases: ['towel radiator', 'ladder radiator', 'towel warmer'],
+    category: 'bath',
+    defaultDims: { w: 500, d: 100, h: 1200 },
+    resizable: { w: [400, 800], h: [700, 1800] },
+    mount: 'wall',
+    geometry: [slab(-230, 200, 0, 30, 1000, 30, 'metal'), slab(230, 200, 0, 30, 1000, 30, 'metal'), ...[0, 1, 2, 3, 4, 5, 6].map((i) => slab(0, 260 + i * 140, 0, 460, 20, 20, 'metal'))],
+    clearance: [],
+    rules: [],
+  },
+  {
+    id: 'mirror-cabinet',
+    name: 'Mirror cabinet',
+    aliases: ['bathroom cabinet', 'medicine cabinet', 'mirror'],
+    category: 'bath',
+    defaultDims: { w: 600, d: 150, h: 2000 },
+    resizable: { w: [400, 1200] },
+    mount: 'wall',
+    geometry: [slab(0, 1300, 0, 600, 700, 150, 'mirror')],
+    clearance: [],
+    rules: [],
+  },
+];

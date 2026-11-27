@@ -11,10 +11,10 @@ import {
   nextVersionName,
   relativeTime,
   renameVersion,
-  runJob,
   saveVersion,
   type VersionMeta,
 } from '../model/versions';
+import { runJob } from '../model/versionJobs';
 import type { Project } from '../model/types';
 import { useVersionsUi } from './versionsUi';
 import { useDialogEsc } from './useDialogEsc';
