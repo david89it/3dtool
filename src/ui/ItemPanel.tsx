@@ -181,7 +181,7 @@ export function ItemPanel({ level, itemId }: { level: Level; itemId: string }) {
           />
         )}
       </div>
-      <div className="actions">
+      <div className="actions turn-actions">
         <button title="Turn 15° left (Alt Shift R)" className="btn" disabled={item.locked} onClick={() => turnSelected(-15)} aria-label="Turn 15° anticlockwise">
           ↺ 15°
         </button>

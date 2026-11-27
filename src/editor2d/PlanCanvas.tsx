@@ -32,6 +32,9 @@ import { renderLevelImage } from './renderLevel';
 import { furnishSelectTool, placeItemTool, computeItemGhost, placeItemFromGhost } from './tools/itemTools';
 import { ItemOverlay, ItemShapes } from './layers/ItemLayer';
 import { HighlightShapes } from './layers/HighlightLayer';
+import { SelectionToolbar } from './SelectionToolbar';
+import { EmptyPlan } from './EmptyPlan';
+import { ToolHint } from './ToolHint';
 import { GuideShapes, guideLabelScreen, GUIDE_COLORS } from './layers/GuideLayer';
 import { guidesForItem, moveToGap, type DistanceGuide, type GuideSet } from './guides';
 import { findCatalogueItem } from '../catalogue/catalogue';
@@ -740,13 +743,7 @@ export function PlanCanvas() {
           <GuideLabel key={g.side} g={g} view={view} itemId={guideItem.id} itemName={guideCat.name.toLowerCase()} />
         ))}
 
-      {level.walls.length === 0 && !level.underlay && tool !== 'draw' && (
-        <div className="canvas-empty">
-          <p className="canvas-empty-title">This floor is empty</p>
-          {(level.markers ?? []).length > 0 && <p>{level.markers![0].text}</p>}
-          <p>Import a plan image on the left and set its scale, or choose “Draw walls” and click to place corners.</p>
-        </div>
-      )}
+      {level.walls.length === 0 && !level.underlay && tool !== 'draw' && <EmptyPlan level={level} />}
 
       {labelEdit && (
         <div
@@ -816,6 +813,8 @@ export function PlanCanvas() {
         </div>
       )}
 
+      <SelectionToolbar view={view} size={size} hidden={!!overlay.dragging || !!labelEdit || !!menu || !!calib || !!overlay.marquee} />
+
       {menu && <ContextMenu hit={menu.hit} at={menu.at} bounds={size} touch={menu.touch} onClose={closeMenu} />}
 
       <div className="zoom-controls" onPointerDown={(e) => e.stopPropagation()}>
@@ -829,39 +828,9 @@ export function PlanCanvas() {
           Fit
         </button>
       </div>
-      <ToolHint />
+      <ToolHint drawing={!!overlay.draw} emptyFloor={level.walls.length === 0 && !level.underlay} />
     </div>
   );
-}
-
-function ToolHint() {
-  const tool = useStore((s) => s.tool);
-  const mode = useStore((s) => s.mode);
-  const text =
-    tool === 'placeItem'
-      ? 'Click to place it. Near a wall it turns to back onto the wall. Alt: no snapping. Esc to cancel.'
-      : mode === 'furnish'
-        ? 'Click an item to edit it. Drag to move, drag the dots to resize, the round handle to turn (Alt: any angle). R turns 90°, Ctrl/⌘ D duplicates. Shift-click or Shift-drag selects several.'
-        : mode === 'advice' && tool === 'select'
-        ? 'Click a problem in the list on the right to see where it is on the plan. The plan is checked as you change it.'
-        : tool === 'placeOpening'
-      ? 'Move over a wall and click to place it. Esc to cancel.'
-      : mode === 'openings'
-        ? 'Drag a door, window or opening from the left onto a wall. Click one to edit it, drag it to move it, click its measurements to type them.'
-        : tool === 'draw'
-      ? 'Click to place corners. Double-click, Enter or Esc to finish. Hold Alt to turn off snapping.'
-      : tool === 'calibrate'
-        ? 'Click two points on the plan image whose real distance you know.'
-        : tool === 'placeNote'
-          ? 'Click where the note should go. Esc to cancel.'
-          : tool === 'placeMeasure'
-            ? 'Click the start, then the end. Its length shows as you move. Esc to cancel.'
-            : tool === 'placeArrow'
-              ? 'Click the start of the arrow, then the point it should show. Esc to cancel.'
-        : tool === 'moveImage'
-          ? 'Drag the plan image to line it up. Lock it when you are done.'
-          : 'Click a wall to edit it. Drag to move it. Click a measurement to type a length. Double-click a wall to split it.';
-  return <div className="tool-hint">{text}</div>;
 }
 
 const SIDE_WORDS = { front: 'in front', back: 'behind', left: 'to the left', right: 'to the right' } as const;

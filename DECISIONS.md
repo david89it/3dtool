@@ -1103,3 +1103,14 @@ no guides while resizing or turning; rays do not see through gaps made by openin
   rule under every size box while typing and in *Add custom item*.
 - Budget leaves out pieces of the building (chimney breast, pillar). Esc from a field with no
   unsaved edit closes the window it is in.
+
+## Contextual UI: toolbar by the selection, Undo on every delete (2026-11-27)
+
+- The floating toolbar reuses the right-click menu's actions (`runContextAction`), so keyboard, menu and
+  toolbar do the same thing. It hides during a drag, a typed measurement, the menu and non-select tools.
+  Buttons are 44 px; text labels for words she needs ("Copy", "Delete"), arrows for turning.
+- The Undo toast is raised in the store `commit`, for any step labelled "Remove ..." or "Delete ...", so no
+  delete path can forget it. Its button undoes only while that step is still the latest; otherwise it points
+  to the Undo list.
+- Toolbar labels avoid the names the side panels use ("Duplicate", "Open up this wall") so each button has
+  one accessible name on the page.

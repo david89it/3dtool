@@ -67,6 +67,8 @@ export interface Toast {
   id: number;
   text: string;
   tone: 'info' | 'warn';
+  /** A button on the message, e.g. "Undo" after a delete. */
+  action?: { label: string; run: () => void };
 }
 
 interface Gesture {
@@ -139,7 +141,7 @@ export interface AppState {
    * ("deleting a wall"). Runs in the background and never blocks the edit.
    */
   snapshotBefore: (reason: string) => void;
-  toast: (text: string, tone?: Toast['tone']) => void;
+  toast: (text: string, tone?: Toast['tone'], action?: Toast['action']) => void;
   dismissToast: (id: number) => void;
 }
 
@@ -177,6 +179,12 @@ function selectionStillValid(p: Project, levelId: Id, s: Selection): Selection {
 }
 
 let toastSeq = 0;
+
+/** "Remove x" and "Delete x" steps are announced as "Removed x" / "Deleted x" with an Undo button. */
+export function deletedWording(label: string): string | null {
+  const m = /^(Remove|Delete) (.+)$/.exec(label);
+  return m ? `${m[1]}d ${m[2]}` : null;
+}
 
 /** A floor id that exists in `p`: the preferred one, else the one she is on, else the first floor showing. */
 function validLevelId(p: Project, preferred: Id, current: Id): Id {
@@ -251,12 +259,25 @@ export const useStore = create<AppState>()((set, get) => ({
     const [next, patches, inverse] = produceWithPatches(project, recipe);
     if (patches.length === 0) return;
     noteChange(project);
+    const entry: HistoryEntry = { label, levelId, patches, inverse };
     set({
       project: next,
-      past: pushEntry(past, { label, levelId, patches, inverse }),
+      past: pushEntry(past, entry),
       future: [],
       selection: selectionStillValid(next, levelId, get().selection),
     });
+    const said = deletedWording(label);
+    if (said) {
+      // "Removed 3-seat sofa · Undo". Undo only acts while that delete is still the latest step.
+      get().toast(said, 'info', {
+        label: 'Undo',
+        run: () => {
+          const last = get().past[get().past.length - 1];
+          if (last === entry) get().undo();
+          else get().toast('You have made other changes since. Use the Undo list (the arrow beside Undo) to go back further.');
+        },
+      });
+    }
   },
 
   editLevel: (label, recipe) => {
@@ -377,10 +398,10 @@ export const useStore = create<AppState>()((set, get) => ({
       ...(v.keySaved !== undefined ? { adviceKeySaved: v.keySaved } : {}),
     }),
   snapshotBefore: (reason) => autoSnapshot(get().project, reason),
-  toast: (text, tone = 'info') => {
+  toast: (text, tone = 'info', action) => {
     const id = ++toastSeq;
-    set({ toasts: [...get().toasts, { id, text, tone }] });
-    setTimeout(() => get().dismissToast(id), 5000);
+    set({ toasts: [...get().toasts, { id, text, tone, action }] });
+    setTimeout(() => get().dismissToast(id), action ? 8000 : 5000);
   },
   dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
 }));

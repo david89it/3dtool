@@ -110,7 +110,7 @@ test('phase 2: open up the kitchen wall, add and move a door', async ({ page }) 
   // Delete key removes it; undo brings it back.
   await page.keyboard.press('Delete');
   expect(await selectedOpening(page)).toBeNull();
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.locator('.undo-group').getByRole('button', { name: /Undo/ }).first().click();
   const count = await page.evaluate((id) => {
     const s = (window as any).__flatplan.store.getState();
     const L = s.project.levels.find((l: any) => l.id === s.levelId);

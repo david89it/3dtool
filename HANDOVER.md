@@ -267,6 +267,7 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-27 · ux-context · Floating toolbar by the selection (`editor2d/SelectionToolbar.tsx`, `selectionAnchor.ts`), "Removed x · Undo" toast for every Remove/Delete step (`store.ts` `deletedWording`, `Toast.action`), mode-aware empty floor with a Draw walls button (`EmptyPlan.tsx`), one-line hint that follows the tool and selection (`toolHint.ts`, `ToolHint.tsx`), two-row top bar up to 1600 px. Findings: `docs/ux-review.md`; tests `selectionAnchor.test.ts`, `toolHint.test.ts`, `e2e/contextual-ui.spec.ts`.
 - 2026-11-26 · ipad-ux · Details panel on selection under 1000 px, window focus trap and Esc fix, typeable note length and image rotation, two-row top chrome with a More menu at 1100 px and under; `e2e/ipad-ux.spec.ts`.
 - 2026-11-26 · loft · Sloped ceilings (`Room.slopes`, `geometry/roof.ts`, `RoofLayer`, room panel *Sloped ceiling*,
   3D ceiling planes and cut walls in `sceneBuild.ts`, walk eye clamp in `walkPhysics.ts`/`WalkRig.tsx`,

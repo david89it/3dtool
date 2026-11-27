@@ -79,7 +79,7 @@ function UnderlayPanel() {
     <section className="panel-section" aria-label="Plan image">
       <h2>Plan image</h2>
       {!u && <p className="note">Trace over a floorplan: import a picture or PDF, then set its scale.</p>}
-      <button className="btn wide" disabled={busy} onClick={() => fileRef.current?.click()}>
+      <button className="btn wide" data-action="import-plan" disabled={busy} onClick={() => fileRef.current?.click()}>
         {busy ? 'Opening…' : u ? 'Replace image…' : 'Import PNG, JPG or PDF…'}
       </button>
       <input

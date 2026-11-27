@@ -73,7 +73,7 @@ test('sloped ceiling: add in the room panel, see the 1.5 m line, build 3D', asyn
   await expect.poll(async () => (await slope()).kneeHeight).toBe(1600);
   expect((await slope()).estimated).toEqual(['pitch']); // the pitch is still a guess
   await expect.poll(async () => (await marks(page)).lines).toBe(0);
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.locator('.undo-group').getByRole('button', { name: /Undo/ }).first().click();
   await expect.poll(async () => (await marks(page)).lines).toBe(1);
 
   // Pitch is typed in degrees.
