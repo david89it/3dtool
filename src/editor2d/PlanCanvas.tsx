@@ -1,107 +1,37 @@
+// The 2D plan. This component owns the state (view, overlay, editors, menu) and
+// wires it to the pieces in ./canvas: pointer handling, viewport, canvasApi,
+// the Konva stage and the small editors that float over it.
 import { countRender } from '../perf';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Group, Layer, Rect, Stage } from 'react-konva';
-import type Konva from 'konva';
-import type { Level, Vec2 } from '../model/types';
-import { useLevel, useStore, type Mode, type Tool } from '../model/store';
+import type { Vec2 } from '../model/types';
+import { useLevel, useStore } from '../model/store';
 import { selectionIds } from '../model/groups';
-import { hitItem } from './itemHit';
-import { selectInBox } from './tools/itemTools';
 import { computeJoints } from '../geometry/joints';
 import { detectRooms } from '../geometry/rooms';
-import { measureWallFace, setInternalLength, wallDimensions, type WallDimension } from '../geometry/dimensions';
-import { calibrate } from '../geometry/calibration';
-import { dist } from '../geometry/vec';
-import { formatLength, formatScale, parseLength } from '../model/units';
-import { fitView, MAX_SCALE, MIN_SCALE, toScreen, toWorld, zoomAt, type View } from './view';
+import { wallDimensions, type WallDimension } from '../geometry/dimensions';
+import { formatLength } from '../model/units';
 import { dimLabelScreenPos } from './hitTest';
-import { structuralPins } from './pins';
-import { UnderlayImage, VectorUnderlayShape } from './layers/UnderlayLayer';
-import { RoomFills } from './layers/RoomLayer';
-import { RoofShapes, ROOF_HATCH, ROOF_LINE } from './layers/RoofLayer';
-import { WallShapes } from './layers/WallLayer';
-import { StairShapes } from './layers/StairLayer';
-import { OverlayLayer } from './layers/OverlayLayer';
-import { selectTool } from './tools/selectTool';
-import { traceTool, finishTrace } from './tools/traceTool';
-import { calibrateTool } from './tools/calibrateTool';
-import { moveImageTool } from './tools/moveImageTool';
-import { openingSelectTool, placeOpeningTool, computeGhost, placeFromGhost } from './tools/openingTools';
-import { placeArrowTool, placeMeasureTool, placeNoteTool } from './tools/noteTools';
-import { renderLevelImage } from './renderLevel';
-import { furnishSelectTool, placeItemTool, computeItemGhost, placeItemFromGhost } from './tools/itemTools';
-import { ItemOverlay, ItemShapes } from './layers/ItemLayer';
-import { HighlightShapes } from './layers/HighlightLayer';
 import { SelectionToolbar } from './SelectionToolbar';
 import { EmptyPlan } from './EmptyPlan';
 import { ToolHint } from './ToolHint';
-import { GuideShapes, guideLabelScreen, GUIDE_COLORS } from './layers/GuideLayer';
-import { guidesForItem, moveToGap, type DistanceGuide, type GuideSet } from './guides';
+import { guidesForItem, type DistanceGuide, type GuideSet } from './guides';
 import { findCatalogueItem } from '../catalogue/catalogue';
-import { EditableLength } from '../ui/EditableLength';
-import type { Overlay, PointerInfo, ToolCtx, ToolHandler } from './tools/types';
-import { openingLabels, type OpeningLabel } from './openingLabels';
-import { editOpening } from '../geometry/openingEdits';
-import { COLORS } from './theme';
+import type { ToolCtx } from './tools/types';
+import { openingLabels } from './openingLabels';
 import { canvasApi } from './canvasApi';
 import { ContextMenu } from './ContextMenu';
-import { ErrorBoundary } from '../ui/ErrorBoundary';
-import { hitForContext, type ContextHit } from './contextMenu';
-import { selectHit } from './contextActions';
-
-const TOOLS: Record<string, ToolHandler> = {
-  select: selectTool,
-  draw: traceTool,
-  calibrate: calibrateTool,
-  moveImage: moveImageTool,
-  placeOpening: placeOpeningTool,
-  placeItem: placeItemTool,
-  placeNote: placeNoteTool,
-  placeMeasure: placeMeasureTool,
-  placeArrow: placeArrowTool,
-};
-
-/** Tools where a click places something: on touch, a drag pans instead. */
-const TAP_TOOLS = new Set<Tool>(['draw', 'calibrate', 'placeOpening', 'placeItem', 'placeNote', 'placeMeasure', 'placeArrow']);
-
-/** Press and hold this long, without moving, to open the menu on touch and pen. */
-const LONG_PRESS_MS = 500;
-const LONG_PRESS_SLOP_PX = 8;
-
-const ALL_TOOLS = [...Object.values(TOOLS), openingSelectTool, furnishSelectTool];
-
-/** Each mode has its own "select" behaviour; other tools are shared. */
-function toolFor(mode: Mode, tool: Tool): ToolHandler {
-  if (mode === 'openings' && tool === 'select') return openingSelectTool;
-  if (mode === 'furnish' && tool === 'select') return furnishSelectTool;
-  return TOOLS[tool] ?? selectTool;
-}
-/** Two overlays that draw the same thing (undefined fields count as missing; points compare by value). */
-export function sameOverlay(a: unknown, b: unknown, depth = 0): boolean {
-  if (a === b) return true;
-  if (depth > 4 || typeof a !== 'object' || typeof b !== 'object' || !a || !b) return false;
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-  const ka = Object.keys(a).filter((k) => (a as Record<string, unknown>)[k] !== undefined);
-  const kb = Object.keys(b).filter((k) => (b as Record<string, unknown>)[k] !== undefined);
-  if (ka.length !== kb.length) return false;
-  return ka.every((k) => sameOverlay((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], depth + 1));
-}
-
-function currentTool(): ToolHandler {
-  const s = useStore.getState();
-  return toolFor(s.mode, s.tool);
-}
-
-interface LabelEdit {
-  /** Set when editing an opening's measurement instead of a wall length. */
-  opening?: { id: string; field: OpeningLabel['field'] };
-  wallId: string;
-  screen: Vec2;
-  angle: number;
-  current: number;
-  text: string;
-  error?: string;
-}
+import { ALL_TOOLS } from './canvas/tools';
+import type { CalibState, LabelEdit, MenuState } from './canvas/types';
+import { useOverlay } from './canvas/useOverlay';
+import { useViewport } from './canvas/useViewport';
+import { useCanvasApi } from './canvas/useCanvasApi';
+import { usePointerHandlers } from './canvas/usePointerHandlers';
+import { cursorFor } from './canvas/cursor';
+import { PlanStage } from './canvas/PlanStage';
+import { GuideLabel } from './canvas/GuideLabel';
+import { LabelEditor, commitLabelEdit } from './canvas/LabelEditor';
+import { CalibrationDialog, commitCalibration } from './canvas/CalibrationDialog';
+import type Konva from 'konva';
 
 export function PlanCanvas() {
   countRender('PlanCanvas');
@@ -121,54 +51,12 @@ export function PlanCanvas() {
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  const [view, setView] = useState<View>({ scale: 0.1, x: 0, y: 0 });
-  const viewRef = useRef(view);
-  viewRef.current = view;
-  const [overlay, setOverlayRaw] = useState<Overlay>({});
-  // Hovering produces a new overlay on every pointer move even when nothing under the pointer
-  // changed; keep the old one then, so the whole plan is not redrawn for nothing.
-  const setOverlay = useCallback((v: Overlay | ((o: Overlay) => Overlay)) => {
-    setOverlayRaw((prev) => {
-      const next = typeof v === 'function' ? v(prev) : v;
-      return sameOverlay(prev, next) ? prev : next;
-    });
-  }, []);
+  const { size, view, setView, viewRef } = useViewport(wrapRef, level);
+  const [overlay, setOverlay] = useOverlay();
   const [labelEdit, setLabelEdit] = useState<LabelEdit | null>(null);
-  const [calib, setCalib] = useState<{ p1: Vec2; p2: Vec2; text: string; error?: string } | null>(null);
-  const fittedFor = useRef<string>('');
-  const [menu, setMenu] = useState<{ hit: ContextHit; at: Vec2; touch: boolean } | null>(null);
+  const [calib, setCalib] = useState<CalibState | null>(null);
+  const [menu, setMenu] = useState<MenuState | null>(null);
   const closeMenu = useCallback(() => setMenu(null), []);
-
-  // Size of the drawing area.
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    let prev = { w: 0, h: 0 };
-    const ro = new ResizeObserver(() => {
-      const next = { w: el.clientWidth, h: el.clientHeight };
-      // The area grew or shrank (a side panel opened or closed): keep what is in the middle in the middle.
-      if (prev.w > 0 && prev.h > 0 && (next.w !== prev.w || next.h !== prev.h)) {
-        const dx = (next.w - prev.w) / 2;
-        const dy = (next.h - prev.h) / 2;
-        setView((v) => ({ ...v, x: v.x + dx, y: v.y + dy }));
-      }
-      prev = next;
-      setSize(next);
-    });
-    ro.observe(el);
-    prev = { w: el.clientWidth, h: el.clientHeight };
-    setSize({ w: el.clientWidth, h: el.clientHeight });
-    return () => ro.disconnect();
-  }, []);
-
-  // Fit the plan when the floor changes.
-  useEffect(() => {
-    if (!level || size.w === 0) return;
-    if (fittedFor.current === level.id) return;
-    fittedFor.current = level.id;
-    setView(fitView(level, size.w, size.h));
-  }, [level, size.w, size.h]);
 
   // Tools forget half-finished actions when the tool or floor changes.
   useEffect(() => {
@@ -188,19 +76,15 @@ export function PlanCanvas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level?.nodes, level?.walls, level?.id]);
 
-  const openLabelEditor = useCallback(
-    (d: WallDimension) => {
-      const v = viewRef.current;
-      setLabelEdit({
-        wallId: d.wallId,
-        screen: dimLabelScreenPos(v, d),
-        angle: d.angleDeg,
-        current: d.length,
-        text: formatLength(d.length, useStore.getState().units),
-      });
-    },
-    [],
-  );
+  const openLabelEditor = useCallback((d: WallDimension) => {
+    setLabelEdit({
+      wallId: d.wallId,
+      screen: dimLabelScreenPos(viewRef.current, d),
+      angle: d.angleDeg,
+      current: d.length,
+      text: formatLength(d.length, useStore.getState().units),
+    });
+  }, []);
 
   const derivedRef = useRef(derived);
   derivedRef.current = derived;
@@ -228,420 +112,14 @@ export function PlanCanvas() {
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
 
-  // Public hooks for the rest of the UI (and tests).
-  useEffect(() => {
-    canvasApi.escape = () => {
-      const c = ctxRef.current;
-      if (c) currentTool().escape?.(c);
-      setLabelEdit(null);
-      setCalib(null);
-    };
-    canvasApi.finishTrace = () => {
-      const c = ctxRef.current;
-      if (c) finishTrace(c);
-    };
-    canvasApi.fit = () => {
-      const L = useStore.getState().project.levels.find((l) => l.id === useStore.getState().levelId);
-      setView(fitView(L, wrapRef.current?.clientWidth ?? 800, wrapRef.current?.clientHeight ?? 600));
-    };
-    canvasApi.fitPoints = (pts, padMm) => {
-      const el = wrapRef.current;
-      if (!el || pts.length === 0) return;
-      const xs = pts.map((p) => p.x);
-      const ys = pts.map((p) => p.y);
-      const pad = padMm ?? 1200; // mm of context around the problem
-      const min = { x: Math.min(...xs) - pad, y: Math.min(...ys) - pad };
-      const max = { x: Math.max(...xs) + pad, y: Math.max(...ys) + pad };
-      const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.min(el.clientWidth / (max.x - min.x), el.clientHeight / (max.y - min.y))));
-      setView({
-        scale,
-        x: el.clientWidth / 2 - ((min.x + max.x) / 2) * scale,
-        y: el.clientHeight / 2 - ((min.y + max.y) / 2) * scale,
-      });
-    };
-    canvasApi.zoom = (factor) => {
-      const el = wrapRef.current;
-      if (!el) return;
-      setView((v) => zoomAt(v, { x: el.clientWidth / 2, y: el.clientHeight / 2 }, factor));
-    };
-    canvasApi.renderLevelImage = renderLevelImage;
-    canvasApi.roofMarks = () => ({
-      lines: stageRef.current?.find(`.${ROOF_LINE}`).length ?? 0,
-      hatches: stageRef.current?.find(`.${ROOF_HATCH}`).length ?? 0,
-    });
-    canvasApi.exportPng = () => stageRef.current?.toDataURL({ pixelRatio: 2 }) ?? null;
-    canvasApi.worldToScreen = (p) => {
-      const r = wrapRef.current?.getBoundingClientRect();
-      const s = toScreen(viewRef.current, p);
-      return { x: s.x + (r?.left ?? 0), y: s.y + (r?.top ?? 0) };
-    };
-    canvasApi.getView = () => viewRef.current;
-    canvasApi.clientToWorld = (client) => {
-      const r = wrapRef.current?.getBoundingClientRect();
-      if (!r) return null;
-      if (client.x < r.left || client.x > r.right || client.y < r.top || client.y > r.bottom) return null;
-      return toWorld(viewRef.current, { x: client.x - r.left, y: client.y - r.top });
-    };
-    canvasApi.ghostAt = (client) => {
-      const w = canvasApi.clientToWorld(client);
-      const s = useStore.getState();
-      const L = s.project.levels.find((l) => l.id === s.levelId);
-      s.setGhost(w && L ? computeGhost(L as Level, w, viewRef.current.scale) : null);
-    };
-    canvasApi.dropGhost = () => placeFromGhost();
-    canvasApi.itemGhostAt = (client, catalogueId, alt) => {
-      const w = canvasApi.clientToWorld(client);
-      const s = useStore.getState();
-      const L = s.project.levels.find((l) => l.id === s.levelId);
-      s.setItemGhost(w && L ? computeItemGhost(L as Level, catalogueId, w, viewRef.current.scale, !!alt) : null);
-    };
-    canvasApi.dropItemGhost = () => placeItemFromGhost();
-  }, []);
-  useEffect(() => {
-    canvasApi.dimLabelPos = (wallId) => {
-      const d = derivedRef.current?.dims.find((x) => x.wallId === wallId);
-      if (!d) return null;
-      const r = wrapRef.current?.getBoundingClientRect();
-      const s = dimLabelScreenPos(viewRef.current, d);
-      return { x: s.x + (r?.left ?? 0), y: s.y + (r?.top ?? 0) };
-    };
-    canvasApi.structuralPinPos = (wallId) => {
-      const dr = derivedRef.current;
-      const L = useStore.getState().project.levels.find((l) => l.id === useStore.getState().levelId);
-      if (!dr || !L) return null;
-      const pin = structuralPins(L, dr.dims, viewRef.current).find((x) => x.wallId === wallId);
-      const r = wrapRef.current?.getBoundingClientRect();
-      return pin ? { x: pin.screen.x + (r?.left ?? 0), y: pin.screen.y + (r?.top ?? 0) } : null;
-    };
-    canvasApi.openingLabelPos = (openingId, field) => {
-      const dr = derivedRef.current;
-      const L = useStore.getState().project.levels.find((l) => l.id === useStore.getState().levelId);
-      if (!dr || !L) return null;
-      const lab = openingLabels(L, dr.joints, dr.dims, viewRef.current, openingId).find((x) => x.field === field);
-      const r = wrapRef.current?.getBoundingClientRect();
-      return lab ? { x: lab.screen.x + (r?.left ?? 0), y: lab.screen.y + (r?.top ?? 0) } : null;
-    };
-  }, []);
-
-  // ---- pointer handling -------------------------------------------------
-  const pointers = useRef(new Map<number, Vec2>());
-  const pinch = useRef<{ d: number; mid: Vec2 } | null>(null);
-  const pan = useRef<{ last: Vec2 } | null>(null);
-  const spaceDown = useRef(false);
-  const fingerTap = useRef<{ start: Vec2; last: Vec2; panning: boolean } | null>(null);
-  const afterPinch = useRef(false);
-  const longPress = useRef<{ id: number; start: Vec2; timer: ReturnType<typeof setTimeout>; fired: boolean; marquee?: boolean } | null>(null);
-  // Touch, Furnish mode: a long press on empty floor then a drag draws a selection box (plan points).
-  const touchBox = useRef<{ from: Vec2; to: Vec2; moved: boolean } | null>(null);
-  const lastPointerType = useRef('mouse');
-
-  const cancelLongPress = () => {
-    if (longPress.current) clearTimeout(longPress.current.timer);
-    longPress.current = null;
-    if (touchBox.current) {
-      touchBox.current = null;
-      setOverlay({});
-    }
-  };
-
-  /** Open the menu for whatever is at this point of the plan area, and select it. */
-  const openMenu = (screen: Vec2, touch: boolean) => {
-    const c = ctxRef.current;
-    if (!c) return;
-    const world = toWorld(viewRef.current, screen);
-    const hit = hitForContext(c.level, useStore.getState().project, c.derived, viewRef.current, screen, world);
-    selectHit(hit);
-    setOverlay({});
-    setMenu({ hit, at: screen, touch });
-  };
-
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
-        spaceDown.current = true;
-        if (wrapRef.current) wrapRef.current.style.cursor = 'grab';
-        e.preventDefault();
-      }
-    };
-    const up = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        spaceDown.current = false;
-        if (wrapRef.current) wrapRef.current.style.cursor = '';
-      }
-    };
-    window.addEventListener('keydown', down);
-    window.addEventListener('keyup', up);
-    return () => {
-      window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup', up);
-    };
-  }, []);
-
-  const info = (e: React.PointerEvent | React.MouseEvent): PointerInfo => {
-    const r = wrapRef.current!.getBoundingClientRect();
-    const screen = { x: e.clientX - r.left, y: e.clientY - r.top };
-    return { screen, world: toWorld(viewRef.current, screen), alt: e.altKey, shift: e.shiftKey, button: e.button };
-  };
-
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!ctx || labelEdit || calib) return;
-    lastPointerType.current = e.pointerType;
-    // Right button: the menu opens on the contextmenu event; the tools never see it.
-    if (e.button === 2) return;
-    wrapRef.current?.setPointerCapture(e.pointerId);
-    const p = info(e);
-    pointers.current.set(e.pointerId, p.screen);
-    cancelLongPress();
-    if (pointers.current.size === 1 && (e.pointerType === 'touch' || e.pointerType === 'pen') && e.button === 0) {
-      const id = e.pointerId;
-      const start = p.screen;
-      const timer = setTimeout(() => {
-        const lp = longPress.current;
-        if (!lp || lp.id !== id) return;
-        lp.fired = true;
-        // Stop the press from also being a drag, a pan or a tap.
-        fingerTap.current = null;
-        pan.current = null;
-        const st = useStore.getState();
-        currentTool().reset?.();
-        if (st.gesture) st.cancelGesture();
-        // Furnish mode, empty floor: hold, then drag to draw a selection box. Lifting without
-        // dragging opens the menu as usual.
-        const c = ctxRef.current;
-        if (c && st.mode === 'furnish' && st.tool === 'select' && !hitItem(c.level, st.project, toWorld(viewRef.current, start))) {
-          lp.marquee = true;
-          const w = toWorld(viewRef.current, start);
-          touchBox.current = { from: w, to: w, moved: false };
-          return;
-        }
-        openMenu(start, true);
-      }, LONG_PRESS_MS);
-      longPress.current = { id, start, timer, fired: false };
-    }
-    if (pointers.current.size === 2) {
-      // Two fingers: pinch to zoom and pan; abandon whatever the tool started.
-      toolFor(mode, tool).escape?.(ctx);
-      fingerTap.current = null;
-      afterPinch.current = true;
-      const [a, b] = [...pointers.current.values()];
-      pinch.current = { d: dist(a, b), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
-      return;
-    }
-    if (e.button === 1 || spaceDown.current) {
-      pan.current = { last: p.screen };
-      return;
-    }
-    // A finger on a click-to-place tool: a tap places, a drag moves the plan.
-    if (e.pointerType === 'touch' && TAP_TOOLS.has(tool)) {
-      fingerTap.current = { start: p.screen, last: p.screen, panning: false };
-      return;
-    }
-    toolFor(mode, tool).down(ctx, p);
-  };
-
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!ctx || labelEdit || calib) return;
-    const p = info(e);
-    const lp = longPress.current;
-    if (lp && lp.id === e.pointerId) {
-      if (lp.fired) {
-        const tb = touchBox.current;
-        if (lp.marquee && tb) {
-          touchBox.current = { from: tb.from, to: p.world, moved: tb.moved || dist(lp.start, p.screen) > LONG_PRESS_SLOP_PX };
-          setOverlay({ marquee: { from: tb.from, to: p.world } });
-        }
-        return;
-      }
-      if (dist(lp.start, p.screen) > LONG_PRESS_SLOP_PX) cancelLongPress();
-    }
-    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, p.screen);
-    if (pinch.current && pointers.current.size >= 2) {
-      const [a, b] = [...pointers.current.values()];
-      const d = dist(a, b);
-      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      const prev = pinch.current;
-      setView((v) => {
-        const z = zoomAt(v, mid, d / Math.max(prev.d, 1));
-        return { ...z, x: z.x + mid.x - prev.mid.x, y: z.y + mid.y - prev.mid.y };
-      });
-      pinch.current = { d, mid };
-      return;
-    }
-    if (pan.current) {
-      const last = pan.current.last;
-      setView((v) => ({ ...v, x: v.x + p.screen.x - last.x, y: v.y + p.screen.y - last.y }));
-      pan.current = { last: p.screen };
-      return;
-    }
-    if (afterPinch.current) return;
-    const ft = fingerTap.current;
-    if (ft) {
-      if (!ft.panning && dist(ft.start, p.screen) > 10) ft.panning = true;
-      if (ft.panning) {
-        const last = ft.last;
-        setView((v) => ({ ...v, x: v.x + p.screen.x - last.x, y: v.y + p.screen.y - last.y }));
-      }
-      ft.last = p.screen;
-      return;
-    }
-    toolFor(mode, tool).move(ctx, p);
-  };
-
-  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    pointers.current.delete(e.pointerId);
-    const lp = longPress.current;
-    if (lp && lp.id === e.pointerId) {
-      const { fired, marquee, start } = lp;
-      const box = touchBox.current;
-      cancelLongPress();
-      // The press became the menu or a selection box: lifting the finger is not a click on the plan.
-      if (fired) {
-        if (marquee && box && ctx) {
-          if (box.moved) selectInBox(ctx.level, useStore.getState().project, box.from, box.to, false);
-          else openMenu(start, true);
-        }
-        return;
-      }
-    }
-    if (e.button === 2) return;
-    if (!ctx) return;
-    if (pinch.current) {
-      if (pointers.current.size < 2) pinch.current = null;
-      return;
-    }
-    if (afterPinch.current) {
-      // Ignore the last finger lifting after a pinch.
-      if (pointers.current.size === 0) afterPinch.current = false;
-      return;
-    }
-    if (pan.current) {
-      pan.current = null;
-      return;
-    }
-    if (labelEdit || calib) return;
-    const ft = fingerTap.current;
-    fingerTap.current = null;
-    if (ft) {
-      if (ft.panning) return;
-      // A tap: no hover on a finger, so show where it lands, then place.
-      const p = info(e);
-      toolFor(mode, tool).move(ctx, p);
-      toolFor(mode, tool).up(ctx, { ...p, button: 0 });
-      return;
-    }
-    toolFor(mode, tool).up(ctx, info(e));
-  };
-
-  const onDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ctx || labelEdit || calib) return;
-    toolFor(mode, tool).dbl?.(ctx, info(e));
-  };
-
-  // Wheel: pinch on a trackpad (ctrl) or ctrl/cmd + wheel zooms; scrolling pans (like Figma).
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const r = el.getBoundingClientRect();
-      const at = { x: e.clientX - r.left, y: e.clientY - r.top };
-      if (e.ctrlKey || e.metaKey) {
-        setView((v) => zoomAt(v, at, Math.exp(-e.deltaY * 0.01)));
-      } else if (e.deltaMode === 1) {
-        setView((v) => zoomAt(v, at, Math.exp(-e.deltaY * 0.05)));
-      } else {
-        setView((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }));
-      }
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
-
-  // ---- label editing ----------------------------------------------------
-  const commitLabel = () => {
-    if (!labelEdit) return;
-    if (labelEdit.opening) {
-      const mm = parseLength(labelEdit.text, units, 'length');
-      if (mm === null || mm < 0 || mm > 50000) {
-        setLabelEdit({ ...labelEdit, error: 'Try 80 cm, 0.8 m or 2′ 7″' });
-        return;
-      }
-      const { id, field } = labelEdit.opening;
-      let error: string | null = null;
-      const fmt = (x: number) => formatLength(x, units);
-      // Check on a scratch copy first so a refused edit leaves no undo step.
-      const probe = structuredClone(level) as Level;
-      error = editOpening(probe, id, field, mm, fmt);
-      if (error) {
-        setLabelEdit({ ...labelEdit, error });
-        return;
-      }
-      useStore.getState().editLevel(field === 'width' ? 'Change opening width' : 'Move opening', (L) => {
-        editOpening(L as Level, id, field, mm, fmt);
-      });
-      setLabelEdit(null);
-      return;
-    }
-    const mm = parseLength(labelEdit.text, units, 'length');
-    if (mm === null || mm < 50 || mm > 50000) {
-      setLabelEdit({ ...labelEdit, error: 'Try 3.32 m, 332 cm or 10′ 11″' });
-      return;
-    }
-    const wallId = labelEdit.wallId;
-    useStore.getState().editLevel('Set wall length', (L) => {
-      setInternalLength(L, wallId, mm, (lv) => measureWallFace(lv, wallId));
-    });
-    setLabelEdit(null);
-  };
-
-  const commitCalib = () => {
-    if (!calib || !level?.underlay) {
-      setCalib(null);
-      return;
-    }
-    const mm = parseLength(calib.text, units, 'length');
-    if (mm === null || mm <= 0) {
-      setCalib({ ...calib, error: 'Type the real distance, for example 4.52 m' });
-      return;
-    }
-    const next = calibrate(level.underlay, calib.p1, calib.p2, mm);
-    useStore.getState().editLevel('Set plan scale', (L) => {
-      if (L.underlay) {
-        L.underlay.scaleMmPerPx = next.scaleMmPerPx;
-        L.underlay.offset = next.offset;
-      }
-    });
-    setCalib(null);
-    useStore.getState().setTool('select');
-    useStore.getState().toast(`Scale set: ${formatScale(next.scaleMmPerPx)}.`);
-  };
+  useCanvasApi({ wrapRef, stageRef, viewRef, ctxRef, derivedRef, setView, setLabelEdit, setCalib });
+  const pointer = usePointerHandlers({ wrapRef, viewRef, ctxRef, ctx, mode, tool, labelEdit, calib, setView, setOverlay, setMenu });
 
   if (!level || !derived) return <div className="canvas-wrap" ref={wrapRef} />;
 
-  const cursor =
-    tool === 'draw' || tool === 'calibrate' || tool === 'placeNote' || tool === 'placeMeasure' || tool === 'placeArrow'
-      ? 'crosshair'
-      : tool === 'placeItem'
-        ? itemGhost && !itemGhost.ok
-          ? 'not-allowed'
-          : 'copy'
-      : tool === 'placeOpening'
-        ? ghost?.ok
-          ? 'copy'
-          : 'not-allowed'
-        : tool === 'moveImage'
-          ? 'move'
-          : overlay.hoverNode || overlay.hoverOpening || overlay.hoverItem || overlay.hoverNote
-            ? 'grab'
-            : overlay.hoverWall || overlay.hoverPin
-              ? 'pointer'
-              : 'default';
+  const cursor = cursorFor(tool, overlay, itemGhost?.ok, ghost?.ok);
   const selectedOpeningId = selection?.kind === 'opening' ? selection.id : undefined;
-  const openingLabelList =
-    selectedOpeningId && !labelEdit ? openingLabels(level, derived.joints, derived.dims, view, selectedOpeningId) : [];
-
-  const selectedWallId = selection?.kind === 'wall' ? selection.id : undefined;
-  const selectedRoomId = selection?.kind === 'room' ? selection.id : undefined;
+  const openingLabelList = selectedOpeningId && !labelEdit ? openingLabels(level, derived.joints, derived.dims, view, selectedOpeningId) : [];
 
   // Distances to the nearest wall or piece, kept while the selected piece sits still in Furnish mode.
   const guideItem = mode === 'furnish' && tool === 'select' && !overlay.dragging && !labelEdit && selection?.kind === 'item' ? level.items.find((i) => i.id === selection.id) : undefined;
@@ -656,86 +134,46 @@ export function PlanCanvas() {
       ref={wrapRef}
       style={{ cursor }}
       data-testid="plan-canvas"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerDown={pointer.onPointerDown}
+      onPointerMove={pointer.onPointerMove}
+      onPointerUp={pointer.onPointerUp}
+      onPointerCancel={pointer.onPointerUp}
       onPointerLeave={() => {
         setOverlay((o) => ({ ...o, hoverWall: undefined, hoverNode: undefined, hoverMarker: undefined, hoverOpening: undefined, hoverItem: undefined, hoverPin: undefined, hoverNote: undefined }));
         if (useStore.getState().tool === 'placeOpening') useStore.getState().setGhost(null);
         if (useStore.getState().tool === 'placeItem') useStore.getState().setItemGhost(null);
       }}
-      onDoubleClick={onDoubleClick}
+      onDoubleClick={pointer.onDoubleClick}
       onContextMenu={(e) => {
         e.preventDefault();
         // On touch and pen the long press has already opened it (or will).
-        if (lastPointerType.current !== 'mouse' || !ctx || labelEdit || calib) return;
+        if (pointer.lastPointerType.current !== 'mouse' || !ctx || labelEdit || calib) return;
         const r = wrapRef.current!.getBoundingClientRect();
-        openMenu({ x: e.clientX - r.left, y: e.clientY - r.top }, false);
+        pointer.openMenu({ x: e.clientX - r.left, y: e.clientY - r.top } as Vec2, false);
       }}
     >
       {size.w > 0 && (
-        <Stage width={size.w} height={size.h} ref={stageRef} listening={false}>
-          <Layer listening={false}>
-            <ErrorBoundary scope="canvas">
-            <Rect x={0} y={0} width={size.w} height={size.h} fill={COLORS.paper} />
-            <Group x={view.x} y={view.y} scaleX={view.scale} scaleY={view.scale}>
-              {level.underlay && <UnderlayImage underlay={level.underlay} />}
-              {level.vectorUnderlay && <VectorUnderlayShape underlay={level.vectorUnderlay} />}
-              <RoomFills level={level} rooms={derived.rooms} selectedRoomId={selectedRoomId} translucent={!!level.underlay} />
-              <RoofShapes level={level} rooms={derived.rooms} scale={view.scale} />
-              <ItemShapes
-                level={level}
-                project={project}
-                selectedIds={selIds}
-                hoverId={mode === 'furnish' ? overlay.hoverItem : undefined}
-                showClearances={mode === 'furnish'}
-                showAllClearances={showAllClearances}
-                ghost={itemGhost}
-              />
-              <WallShapes
-                level={level}
-                joints={derived.joints}
-                selectedWallId={selectedWallId}
-                hoverWallId={overlay.hoverWall}
-                selectedOpeningId={selectedOpeningId}
-                hoverOpeningId={overlay.hoverOpening}
-                ghost={ghost}
-              />
-              <StairShapes stairs={level.stairs} project={project} />
-              <HighlightShapes level={level} project={project} joints={derived.joints} highlight={highlight} />
-            </Group>
-            </ErrorBoundary>
-          </Layer>
-          <Layer listening={false}>
-            <ErrorBoundary scope="canvas">
-            <OverlayLayer
-              level={level}
-              view={view}
-              rooms={derived.rooms}
-              dims={derived.dims}
-              units={units}
-              selection={selection}
-              overlay={overlay}
-              showMarkers={showMarkers}
-              editingWallId={labelEdit?.wallId}
-              showDims={mode !== 'openings' || !selectedOpeningId}
-              openingLabels={openingLabelList}
-              ghost={ghost}
-            />
-            <ItemOverlay
-              level={level}
-              project={project}
-              view={view}
-              selectedIds={selIds}
-              hoverId={mode === 'furnish' ? overlay.hoverItem : undefined}
-              ghost={itemGhost}
-              marquee={overlay.marquee}
-            />
-            {shownGuides && <GuideShapes guides={shownGuides} view={view} units={units} labels={!!overlay.dragging} />}
-            </ErrorBoundary>
-          </Layer>
-        </Stage>
+        <PlanStage
+          stageRef={stageRef}
+          size={size}
+          view={view}
+          level={level}
+          project={project}
+          derived={derived}
+          overlay={overlay}
+          selection={selection}
+          selIds={selIds}
+          mode={mode}
+          units={units}
+          showMarkers={showMarkers}
+          showAllClearances={showAllClearances}
+          ghost={ghost}
+          itemGhost={itemGhost}
+          highlight={highlight}
+          editingWallId={labelEdit?.wallId}
+          openingLabelList={openingLabelList}
+          shownGuides={shownGuides}
+        />
       )}
 
       {guideItem && guideCat && !guideItem.locked && restGuides.length > 0 &&
@@ -745,73 +183,9 @@ export function PlanCanvas() {
 
       {level.walls.length === 0 && !level.underlay && tool !== 'draw' && <EmptyPlan level={level} />}
 
-      {labelEdit && (
-        <div
-          className="label-editor"
-          style={{ left: labelEdit.screen.x, top: labelEdit.screen.y }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <input
-            autoFocus
-            aria-label={labelEdit.opening ? 'Opening measurement on plan' : 'Wall length on plan'}
-            value={labelEdit.text}
-            onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => setLabelEdit({ ...labelEdit, text: e.target.value, error: undefined })}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === 'Enter') commitLabel();
-              if (e.key === 'Escape') setLabelEdit(null);
-            }}
-            onBlur={() => setLabelEdit(null)}
-          />
-          <div className={labelEdit.error ? 'label-editor-hint error' : 'label-editor-hint'}>
-            {labelEdit.error ??
-              (labelEdit.opening
-                ? labelEdit.opening.field === 'width'
-                  ? 'Opening width. Enter to apply'
-                  : 'Wall left at this side. Enter to apply'
-                : 'Inside length. Enter to apply, Esc to cancel')}
-          </div>
-        </div>
-      )}
+      {labelEdit && <LabelEditor edit={labelEdit} setEdit={setLabelEdit} onCommit={() => commitLabelEdit(labelEdit, level, units, setLabelEdit)} />}
 
-      {calib && (
-        <div className="modal-backdrop" onPointerDown={(e) => e.stopPropagation()}>
-          <form
-            className="modal"
-            onSubmit={(e) => {
-              e.preventDefault();
-              commitCalib();
-            }}
-          >
-            <h2>How far apart are those two points?</h2>
-            <p>
-              Type the real distance. A room size printed on the plan works well: for example the reception is
-              4.52 m wide.
-            </p>
-            <input
-              autoFocus
-              aria-label="Real distance"
-              placeholder="e.g. 4.52 m"
-              value={calib.text}
-              onChange={(e) => setCalib({ ...calib, text: e.target.value, error: undefined })}
-              onKeyDown={(e) => {
-                e.stopPropagation();
-                if (e.key === 'Escape') setCalib(null);
-              }}
-            />
-            {calib.error && <p className="error">{calib.error}</p>}
-            <div className="modal-actions">
-              <button title="Cancel setting the scale (Esc)" type="button" className="btn" onClick={() => setCalib(null)}>
-                Cancel
-              </button>
-              <button title="Use this distance to set the scale" type="submit" className="btn primary">
-                Set scale
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {calib && <CalibrationDialog calib={calib} setCalib={setCalib} onCommit={() => commitCalibration(calib, level, units, setCalib)} />}
 
       <SelectionToolbar view={view} size={size} hidden={!!overlay.dragging || !!labelEdit || !!menu || !!calib || !!overlay.marquee} />
 
@@ -829,39 +203,6 @@ export function PlanCanvas() {
         </button>
       </div>
       <ToolHint drawing={!!overlay.draw} emptyFloor={level.walls.length === 0 && !level.underlay} />
-    </div>
-  );
-}
-
-const SIDE_WORDS = { front: 'in front', back: 'behind', left: 'to the left', right: 'to the right' } as const;
-
-/** A distance label you can tap to type a new gap; the piece moves along that direction. */
-function GuideLabel({ g, view, itemId, itemName }: { g: DistanceGuide; view: View; itemId: string; itemName: string }) {
-  const units = useStore((s) => s.units);
-  const p = guideLabelScreen(g, view);
-  const color = GUIDE_COLORS[g.status];
-  const apply = (mm: number) => {
-    const st = useStore.getState();
-    const lvl = st.project.levels.find((l) => l.id === st.levelId);
-    const it = lvl?.items.find((i) => i.id === itemId);
-    if (!it) return;
-    const to = moveToGap(it, g.side, g.gap, mm);
-    st.editLevel(`Move ${itemName} ${formatLength(mm, units)} from ${g.kind === 'wall' ? 'wall' : 'other item'}`, (L) => {
-      const i = L.items.find((x) => x.id === itemId);
-      if (i) i.pos = to;
-    });
-  };
-  return (
-    <div
-      className="guide-label"
-      data-testid={`guide-${g.side}`}
-      data-gap={Math.round(g.gap)}
-      style={{ left: p.x, top: p.y, borderColor: color, color }}
-      onPointerDown={(e) => e.stopPropagation()}
-      onPointerUp={(e) => e.stopPropagation()}
-      onDoubleClick={(e) => e.stopPropagation()}
-    >
-      <EditableLength value={g.gap} onChange={apply} label={`Space ${SIDE_WORDS[g.side]} the ${itemName}`} min={0} max={20000} />
     </div>
   );
 }
