@@ -6,7 +6,7 @@ import { pushEntry, type HistoryEntry } from './history';
 import { syncRooms } from '../geometry/rooms';
 import { clampOpenings } from '../geometry/wallGraph';
 import { activeLevels, withActive } from './schemes';
-import { autoSnapshot, noteChange, setVersionWarn } from './versions';
+import { autoSnapshot, noteChange, setVersionWarn } from './versionJobs';
 import { pruneGroups } from './groups';
 import { followMountedItems } from './mounted';
 

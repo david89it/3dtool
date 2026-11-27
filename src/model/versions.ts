@@ -6,13 +6,15 @@
 // and the stored copy of a plan holds `img:<hash>` instead.
 //
 // The core functions take a small key-value store (`KV`) so tests can use a
-// plain Map. The app-level functions at the bottom use IndexedDB, run one at
-// a time, and never throw: a failure becomes a plain-language message.
+// plain Map. The app-level functions (IndexedDB, one job at a time, never
+// throwing) are in versionJobs.ts; image storage is in versionImages.ts.
 
-import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval';
 import type { Project } from './types';
 import { uid } from './ids';
 import { repairProject } from './repair';
+import { externalizeImages, restoreImages, IMG_PREFIX } from './versionImages';
+
+export { hashString, externalizeImages, restoreImages } from './versionImages';
 
 export interface Version {
   id: string;
@@ -55,90 +57,11 @@ export const AUTO_KEEP_DAYS = 14;
 const INDEX_KEY = 'flatplan:versions:index';
 const versionKey = (id: string) => `flatplan:version:${id}`;
 const imageKey = (hash: string) => `flatplan:image:${hash}`;
-const IMG_PREFIX = 'img:';
 const DAY_MS = 86_400_000;
-
-/* ---- images ------------------------------------------------------- */
-
-/** SHA-256 of a string as hex. Falls back to a plain hash where WebCrypto is missing (http pages). */
-export async function hashString(s: string): Promise<string> {
-  const subtle = globalThis.crypto?.subtle;
-  if (subtle) {
-    const buf = await subtle.digest('SHA-256', new TextEncoder().encode(s));
-    return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
-  }
-  let h1 = 0xdeadbeef;
-  let h2 = 0x41c6ce57;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 2654435761);
-    h2 = Math.imul(h2 ^ c, 1597334677);
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return `f${(h2 >>> 0).toString(16).padStart(8, '0')}${(h1 >>> 0).toString(16).padStart(8, '0')}${s.length.toString(16)}`;
-}
-
-/**
- * Copy of the plan with each underlay image replaced by `img:<hash>`.
- * `put` is called once for each distinct image so the caller can store it.
- */
-export async function externalizeImages(
-  project: Project,
-  put: (hash: string, dataUrl: string) => Promise<void> | void,
-): Promise<{ project: Project; images: string[] }> {
-  const seen = new Map<string, string>(); // data url -> hash
-  const images: string[] = [];
-  const levels = [];
-  for (const l of project.levels) {
-    const url = l.underlay?.imageDataUrl;
-    if (!l.underlay || !url || url.startsWith(IMG_PREFIX)) {
-      levels.push(l);
-      continue;
-    }
-    let hash = seen.get(url);
-    if (!hash) {
-      hash = await hashString(url);
-      seen.set(url, hash);
-      images.push(hash);
-      await put(hash, url);
-    }
-    levels.push({ ...l, underlay: { ...l.underlay, imageDataUrl: IMG_PREFIX + hash } });
-  }
-  return { project: { ...project, levels }, images };
-}
-
-/** Swap `img:<hash>` references back for the images. An image that is gone drops that floor's picture. */
-export async function restoreImages(
-  project: Project,
-  fetchImage: (hash: string) => Promise<string | undefined>,
-): Promise<{ project: Project; missing: number }> {
-  let missing = 0;
-  const cache = new Map<string, string | undefined>();
-  const levels = [];
-  for (const l of project.levels) {
-    const ref = l.underlay?.imageDataUrl;
-    if (!l.underlay || !ref || !ref.startsWith(IMG_PREFIX)) {
-      levels.push(l);
-      continue;
-    }
-    const hash = ref.slice(IMG_PREFIX.length);
-    if (!cache.has(hash)) cache.set(hash, await fetchImage(hash));
-    const url = cache.get(hash);
-    if (url) levels.push({ ...l, underlay: { ...l.underlay, imageDataUrl: url } });
-    else {
-      missing++;
-      const { underlay: _gone, ...rest } = l;
-      void _gone;
-      levels.push(rest);
-    }
-  }
-  return { project: { ...project, levels }, missing };
-}
 
 /* ---- keeping and pruning ------------------------------------------ */
 
-function dayKey(t: number): string {
+export function dayKey(t: number): string {
   const d = new Date(t);
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
@@ -347,81 +270,4 @@ export async function importHistory(kv: KV, history: HistoryFile, now = Date.now
   await writeIndex(kv, metas);
   await removeVersions(kv, metas, pruneIds(metas, now));
   return added;
-}
-
-/* ---- app level: IndexedDB, one at a time, never throws ------------- */
-
-export const idbKV: KV = {
-  get: async (k) => idbGet(k),
-  set: async (k, v) => idbSet(k, v),
-  del: async (k) => idbDel(k),
-};
-
-let warn: (text: string) => void = () => {};
-/** The store hooks this up so failures show as a toast. */
-export function setVersionWarn(fn: (text: string) => void): void {
-  warn = fn;
-}
-
-export const storageAvailable = () => typeof indexedDB !== 'undefined';
-
-let chain: Promise<unknown> = Promise.resolve();
-let warnedAuto = false;
-
-/** Run one storage job after the ones before it. Returns undefined (and warns) if it fails. */
-export function runJob<T>(failure: string, job: (kv: KV) => Promise<T>, opts: { quiet?: boolean } = {}): Promise<T | undefined> {
-  const next = chain.then(async () => {
-    if (!storageAvailable()) {
-      if (!opts.quiet) warn(`${failure} This browser is not letting Flat Planner keep versions.`);
-      return undefined;
-    }
-    try {
-      return await job(idbKV);
-    } catch {
-      if (opts.quiet) {
-        if (!warnedAuto) {
-          warnedAuto = true;
-          warn('Could not save an automatic version in this browser. Your plan is still saved as usual.');
-        }
-      } else warn(`${failure} This browser is not letting Flat Planner keep versions.`);
-      return undefined;
-    }
-  });
-  chain = next.catch(() => undefined);
-  return next;
-}
-
-let lastSnapshotOf: Project | undefined;
-let dailyDone = '';
-
-/** Save the plan as it is now, before a big change. Fire and forget: never blocks the edit. */
-export function autoSnapshot(project: Project, reason: string, name?: string): void {
-  if (lastSnapshotOf === project) return;
-  lastSnapshotOf = project;
-  dailyDone = dayKey(Date.now());
-  void runJob('Could not save a version.', (kv) => saveVersion(kv, project, { kind: 'auto', reason, name }), { quiet: true });
-}
-
-/** The first change of each day also gets a snapshot of the plan as it was. */
-export function noteChange(before: Project): void {
-  const today = dayKey(Date.now());
-  if (dailyDone === today || !storageAvailable()) return;
-  dailyDone = today;
-  void runJob(
-    'Could not save a version.',
-    async (kv) => {
-      const metas = await readIndex(kv);
-      if (metas.some((m) => dayKey(Date.parse(m.createdAt)) === today)) return;
-      lastSnapshotOf = before;
-      await saveVersion(kv, before, { kind: 'auto', reason: 'the first change today' });
-    },
-    { quiet: true },
-  );
-}
-
-/** Test hook: forget what the helpers remember between calls. */
-export function resetVersionMemory(): void {
-  lastSnapshotOf = undefined;
-  dailyDone = '';
-  warnedAuto = false;
 }

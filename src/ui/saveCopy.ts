@@ -1,6 +1,7 @@
 import { useStore } from '../model/store';
 import { exportProjectFile } from '../model/persistence';
-import { exportHistory, runJob } from '../model/versions';
+import { exportHistory } from '../model/versions';
+import { runJob } from '../model/versionJobs';
 import { noteCopySaved } from '../model/copyReminder';
 import { useVersionsUi } from './versionsUi';
 
