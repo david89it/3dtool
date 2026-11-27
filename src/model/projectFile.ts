@@ -6,14 +6,18 @@ import { PROJECT_KEY, validateProject } from './savedProject';
 
 /* ---- files -------------------------------------------------------------- */
 
-function download(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
+function clickLink(href: string, filename: string): void {
   const a = document.createElement('a');
-  a.href = url;
+  a.href = href;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+function download(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  clickLink(url, filename);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
@@ -88,10 +92,5 @@ export function downloadJsonText(text: string, filename: string): void {
 }
 
 export function downloadDataUrl(dataUrl: string, filename: string): void {
-  const a = document.createElement('a');
-  a.href = dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  clickLink(dataUrl, filename);
 }
