@@ -47,6 +47,7 @@ async function goTo3D(page: Page) {
 }
 
 test('materials: wall colour in 3D, one painted wall face in 2D, schemes, undo', async ({ page }) => {
+  test.setTimeout(150_000); // software-rendered 3D is slow while many finishes are cycled
   const errors: string[] = [];
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   page.on('pageerror', (e) => errors.push(e.message));

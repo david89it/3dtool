@@ -267,6 +267,7 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 
 ## 8. Log (newest first, one line each)
 
+- 2026-11-27 · render · 3D look: environment-map lighting, textured PBR materials, sky haze, Fast/Beautiful quality (`quality.ts`; Beautiful adds GTAO ambient occlusion in `postfx.tsx`, 4096 soft shadows, rounded furniture), *Save a photo* (`Photo.tsx`, `QualityPanel.tsx`). Review and screenshots in `docs/render-review.md`.
 - 2026-11-26 · ipad-ux · Details panel on selection under 1000 px, window focus trap and Esc fix, typeable note length and image rotation, two-row top chrome with a More menu at 1100 px and under; `e2e/ipad-ux.spec.ts`.
 - 2026-11-26 · loft · Sloped ceilings (`Room.slopes`, `geometry/roof.ts`, `RoofLayer`, room panel *Sloped ceiling*,
   3D ceiling planes and cut walls in `sceneBuild.ts`, walk eye clamp in `walkPhysics.ts`/`WalkRig.tsx`,

@@ -9,19 +9,21 @@ interface Props {
   lightsOn: boolean;
   /** Overview cut-away: walls stop at this height (mm). */
   cutHeight?: number;
+  /** Furniture edge rounding in mm; part of the quality setting. */
+  bevelMm?: number;
   onPickRoom?: (levelId: string, roomId: string) => void;
   /** A click on one face of a wall (L or R of the wall from its first corner to its second). */
   onPickFace?: (levelId: string, wallId: string, side: 'L' | 'R') => void;
 }
 
 /** One floor of the flat. Geometry is rebuilt only when this level (or a stair target height) changes. */
-export function LevelMesh({ level, project, lightsOn, cutHeight, onPickRoom, onPickFace }: Props) {
+export function LevelMesh({ level, project, lightsOn, cutHeight, bevelMm = 0, onPickRoom, onPickFace }: Props) {
   const elevations = project.levels.map((l) => `${l.id}:${l.elevation}`).join('|');
   const overrides = project.catalogueOverrides;
   const scene = useMemo(
-    () => buildLevel(level, { ...project, catalogueOverrides: overrides }, { cutHeight }),
+    () => buildLevel(level, { ...project, catalogueOverrides: overrides }, { cutHeight, bevelMm }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [level, overrides, elevations, cutHeight],
+    [level, overrides, elevations, cutHeight, bevelMm],
   );
   useEffect(() => () => scene.dispose(), [scene]);
 
