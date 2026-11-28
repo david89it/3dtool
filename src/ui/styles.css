@@ -2507,6 +2507,7 @@ p.field-hint {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
   }
+}
 /* Floor pattern picker (wood floors only) */
 .pattern-picker {
   align-items: stretch;
