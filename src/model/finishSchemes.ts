@@ -7,9 +7,11 @@
 import type { FinishScheme, Level, Room, RoomFinishes } from './types';
 import { uid } from './ids';
 
-export function roomFinishes(room: Pick<Room, 'floorFinish' | 'wallFinish' | 'ceilingFinish' | 'woodworkColor'>): RoomFinishes {
+export function roomFinishes(room: Pick<Room, 'floorFinish' | 'floorPattern' | 'floorAngle' | 'wallFinish' | 'ceilingFinish' | 'woodworkColor'>): RoomFinishes {
   const out: RoomFinishes = {};
   if (room.floorFinish) out.floor = room.floorFinish;
+  if (room.floorPattern) out.pattern = room.floorPattern;
+  if (room.floorAngle) out.angle = room.floorAngle;
   if (room.wallFinish) out.walls = room.wallFinish;
   if (room.ceilingFinish) out.ceiling = room.ceilingFinish;
   if (room.woodworkColor) out.woodwork = room.woodworkColor;
@@ -36,6 +38,8 @@ export function applyScheme(level: Pick<Level, 'rooms'>, scheme: Pick<FinishSche
     if (!f) continue;
     matched++;
     set(r, 'floorFinish', f.floor);
+    set(r, 'floorPattern', f.pattern);
+    set(r, 'floorAngle', f.angle);
     set(r, 'wallFinish', f.walls);
     set(r, 'ceilingFinish', f.ceiling);
     set(r, 'woodworkColor', f.woodwork);
@@ -43,7 +47,11 @@ export function applyScheme(level: Pick<Level, 'rooms'>, scheme: Pick<FinishSche
   return matched;
 }
 
-function set(r: Room, key: 'floorFinish' | 'wallFinish' | 'ceilingFinish' | 'woodworkColor', v: string | undefined) {
+function set<K extends 'floorFinish' | 'floorPattern' | 'floorAngle' | 'wallFinish' | 'ceilingFinish' | 'woodworkColor'>(
+  r: Room,
+  key: K,
+  v: Room[K] | undefined,
+) {
   if (v) r[key] = v;
   else delete r[key];
 }

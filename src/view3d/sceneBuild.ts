@@ -17,7 +17,7 @@ import { roomForLoop, wallSideRooms, type WallSides } from '../model/faces';
 import { add, dot, mul, perpL, perpR, signedArea, sub } from '../geometry/vec';
 import { findCatalogueItem, itemParts, localToPlan } from '../catalogue/catalogue';
 import { wallDir, wallEndExtensions, wallProfile, type WallProfile } from './wallProfile';
-import { ceilingMaterialFor, finishMaterial, tintedMaterial, tokenMaterial, woodworkMaterial } from './materials';
+import { ceilingMaterialFor, finishMaterial, floorSurface, tintedMaterial, tokenMaterial, woodworkMaterial } from './materials';
 import { overrideColor } from '../catalogue/colors';
 import { defaultFloorId, wallFaceFinishId, woodworkHex } from './finishes';
 import { flatRegion, heightAt, lowestBetween, planeAt, slopedRegions, slopeZones, wallTop, type SlopeZone } from '../geometry/roof';
@@ -392,7 +392,7 @@ export function buildLevel(level: Level, project: Project, opts: BuildOptions = 
       meshes.push({
         key: `floor:${room?.id ?? r.key}`,
         geometry: floor,
-        material: finishMaterial(fid, 'floor-pale-oak'),
+        material: floorSurface(room, fid),
         castShadow: false,
         receiveShadow: true,
         roomId: room?.id,

@@ -2413,3 +2413,14 @@ p.field-hint {
   padding-left: 4px;
   padding-right: 4px;
 }
+
+/* Floor pattern picker (wood floors only) */
+.pattern-picker {
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pattern-picker .segmented button {
+  font-size: 12px;
+  padding: 0 4px;
+}

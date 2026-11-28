@@ -6,6 +6,8 @@ import { applyScheme, makeScheme, schemeRoomNames } from '../model/finishSchemes
 import { faceRoomName, setWallFace, wallSideRooms } from '../model/faces';
 import { WHITE_PAINT_ID } from '../model/palette';
 import { defaultFloorId, defaultWallId, findFinish, FLOOR_FINISHES, leaseHint, wallFaceFinishId, WALL_FINISHES, type Finish } from './finishes';
+import { FloorPatternPicker } from './FloorPatternPicker';
+import { FLOOR_ANGLES, isWoodKind, patternInfo } from '../model/floorPatterns';
 import { finishName, finishThumb, PaintGrid } from '../ui/PaintGrid';
 
 /** A wall face picked by clicking it in the 3D view. L and R are the left and right of the wall from its first corner to its second. */
@@ -130,6 +132,14 @@ export function FinishPanel({
             value={floorId}
             onPick={(id) => editRoom(`Floor: ${findFinish(id, FLOOR_FINISHES)?.name ?? id}`, (r) => void (r.floorFinish = id))}
           />
+          {floor && isWoodKind(floor.kind) && (
+            <FloorPatternPicker
+              room={room}
+              floor={floor}
+              onPattern={(p) => editRoom(`Floor pattern: ${patternInfo(p).name}`, (r) => void (r.floorPattern = p))}
+              onAngle={(a) => editRoom(`Floor direction: ${FLOOR_ANGLES.find((x) => x.id === a)?.name ?? a}`, (r) => void (r.floorAngle = a))}
+            />
+          )}
           {hint && (
             <p className="badge-amber" data-testid="lease-hint">
               {hint}
