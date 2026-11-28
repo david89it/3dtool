@@ -1,6 +1,8 @@
 // The 2D plan. This component owns the state (view, overlay, editors, menu) and
 // wires it to the pieces in ./canvas: pointer handling, viewport, canvasApi,
 // the Konva stage and the small editors that float over it.
+import { LayoutPill } from '../ui/layouts/LayoutPill';
+import { CompareView } from '../ui/layouts/CompareView';
 import { countRender } from '../perf';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Vec2 } from '../model/types';
@@ -202,6 +204,8 @@ export function PlanCanvas() {
           Fit
         </button>
       </div>
+      <LayoutPill />
+      <CompareView />
       <ToolHint drawing={!!overlay.draw} emptyFloor={level.walls.length === 0 && !level.underlay} />
     </div>
   );

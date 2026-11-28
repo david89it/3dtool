@@ -1,3 +1,4 @@
+import { cycleLayout } from './layouts/layoutActions';
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useStore } from '../model/store';
 import { openDetailsOnSelect, useLayout, watchWidth } from './layoutState';
@@ -161,6 +162,11 @@ function useShortcuts() {
       if (e.key === 'Tab' && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         toggleThreeD();
+        return;
+      }
+      if ((e.key === 'l' || e.key === 'L') && !e.altKey) {
+        e.preventDefault();
+        cycleLayout(e.shiftKey ? -1 : 1);
         return;
       }
       if (s.mode === '3d') return;

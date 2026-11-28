@@ -2413,3 +2413,98 @@ p.field-hint {
   padding-left: 4px;
   padding-right: 4px;
 }
+
+/* ---- layouts: pill on the plan and side-by-side compare ---------------- */
+.layout-pill {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 6;
+}
+.layout-btn {
+  white-space: nowrap;
+  border-radius: 999px;
+  min-height: 44px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+}
+.layout-label {
+  opacity: 0.65;
+  font-size: 12px;
+  margin-right: 2px;
+}
+.layout-menu {
+  left: 0;
+  right: auto;
+  min-width: 280px;
+  max-width: min(340px, 86vw);
+}
+.layout-menu button.on {
+  font-weight: 600;
+}
+.layout-title {
+  margin: 0;
+  padding: 6px 12px 2px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+.layout-main {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.compare-view {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.compare-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.compare-panes {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+}
+.compare-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.compare-pane header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.compare-pane header select {
+  min-height: 44px;
+  flex: 1;
+  min-width: 0;
+}
+.compare-plan {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+@media (max-width: 700px) {
+  .compare-panes {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}

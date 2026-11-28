@@ -27,11 +27,11 @@ describe('compare options', () => {
     expect(c.rooms.map((r) => r.name).sort()).toEqual(first.rooms.map((r) => r.name).sort());
   });
 
-  it('duplicates as Option B, keeps one tab per floor, and resolves stairs to the active option', () => {
+  it('duplicates as Layout B, keeps one tab per floor, and resolves stairs to the active option', () => {
     const p = buildSeedProject();
     const nb = duplicateAsOption(p, LEVEL_IDS.first)!;
     const opts = optionsOf(p, LEVEL_IDS.first);
-    expect(opts.map((o) => o.scheme!.name)).toEqual(['Option A', 'Option B']);
+    expect(opts.map((o) => o.scheme!.name)).toEqual(['Layout A', 'Layout B']);
     expect(activeLevels(p).map((l) => l.name)).toEqual(['Ground floor', 'First floor', 'Half-landing', 'Second floor', 'Loft']);
     expect(activeLevels(p)[1].id).toBe(nb);
     // The ground floor stair leads to the first floor group: now Option B.

@@ -1,7 +1,6 @@
 import type { Project } from '../../model/types';
 import { useStore } from '../../model/store';
 import { activeLevels, groupOf } from '../../model/schemes';
-import { OptionSwitcher } from '../OptionSwitcher';
 
 export function FloorTabs({ project }: { project: Project }) {
   const levelId = useStore((s) => s.levelId);
@@ -27,7 +26,6 @@ export function FloorTabs({ project }: { project: Project }) {
         );
       })}
     </nav>
-    <OptionSwitcher />
     </div>
   );
 }

@@ -113,8 +113,8 @@ test('materials: wall colour in 3D, one painted wall face in 2D, schemes, undo',
 
   await toggle3D(page);
   await page.getByTestId('option-switcher').click();
-  await page.getByRole('menuitem', { name: 'Duplicate as a new option' }).click();
-  await expect(page.getByTestId('option-switcher')).toHaveText('Option B ▾');
+  await page.getByRole('menuitem', { name: '＋ Try an alternative' }).click();
+  await expect(page.getByTestId('option-switcher')).toContainText('Layout B');
   await goTo3D(page);
   // The copy starts as a copy of the finishes. Change them, then bring the scheme back.
   await page.getByRole('radio', { name: 'Reception' }).click();
@@ -136,7 +136,7 @@ test('materials: wall colour in 3D, one painted wall face in 2D, schemes, undo',
   // Option A kept its own finishes.
   await toggle3D(page);
   await page.getByTestId('option-switcher').click();
-  await page.getByRole('menuitemradio', { name: /Option A/ }).click();
+  await page.getByRole('menuitemradio', { name: /Layout A/ }).click();
   expect(await reception(page)).toMatchObject({ wallFinish: 'paint-sage' });
 
   expect(errors).toEqual([]);

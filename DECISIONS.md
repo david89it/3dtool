@@ -1123,3 +1123,30 @@ no guides while resizing or turning; rays do not see through gaps made by openin
 - Furniture is merged boxes, so UVs are box-projected in metres (uvProject.ts); textures are generated greyscale canvases (proceduralTextures.ts) used as colour multiplier and bump map.
 - Default quality: Beautiful on a mouse device, Fast on touch or under automation; remembered in localStorage only, never in the project. Photo width 1920 (Fast) or 3840 (Beautiful).
 - Not done: per-room default camera angles beyond frame-room, glass transmission, light shafts.
+
+## Layouts: try an alternative arrangement of a floor
+
+- **Same feature as "options", renamed for her.** A floor's layouts are the old compare-mode options
+  (`Level.scheme`, `Project.activeSchemes`, `model/schemes.ts`), so persistence, project files, versions,
+  backups, tab ownership and autosave needed no change: a layout is just another `Level` in the project.
+  New ones are named "Layout A", "Layout B"; plans saved earlier keep "Option A". Old plans load with one
+  layout per floor.
+- **What differs per layout: everything on the floor.** Walls, openings, furniture, notes, room names,
+  finishes and stairs are all copied into the new layout (`cloneLevel`), so she can also try moving a wall
+  or opening up a room. This was already how options worked, and it is the clean choice: the rules, fire
+  escape, 3D, budget and print all read the active layout of each floor (`activeLevelsResolved`) and need no
+  special case. The UI says so: "Walls, doors, furniture and notes are saved separately in each layout".
+  Shared by all layouts: the catalogue, her own items, prices and settings, colour schemes and the project
+  name.
+- **Main layout** = the first layout in the list (shown with a star). "Make this the main layout" swaps
+  its place with the current main layout in `Project.levels`, so floor order is unchanged. It is also what a
+  floor falls back to if the remembered choice is lost. No new saved field.
+- **Where it lives:** a pill on the plan (top left, `ui/layouts/LayoutPill.tsx`), not in the top bar, with
+  "Try an alternative", rename, make main, delete (asks twice, never the last one) and compare.
+  Key **L** (Shift L backwards) flips layouts of the current floor, in 2D and 3D.
+- **Compare** is a read-only split view of two layouts of the floor (`ui/layouts/CompareView.tsx`: two
+  Konva stages with rooms, furniture, walls and stairs; each side has a layout picker and "Use this one").
+  It is screen state (`compareState.ts`), not saved. It stacks top and bottom under 700 px.
+- **Undo and redo are not segmented.** Switching layouts is not a history step. Every edit remembers the
+  layout it was made on, so undoing from another layout jumps back to the one that changed. Rename, make
+  main, try-an-alternative and delete are ordinary undoable steps.

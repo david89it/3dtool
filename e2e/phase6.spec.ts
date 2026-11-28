@@ -72,10 +72,10 @@ test('phase 6: compare options keep each layout separate', async ({ page }) => {
   await freshStart(page);
   const before = await wallCount(page);
   await page.getByTestId('option-switcher').click();
-  await page.getByRole('menuitem', { name: 'Duplicate as a new option' }).click();
-  await expect(page.getByTestId('option-switcher')).toHaveText('Option B ▾');
+  await page.getByRole('menuitem', { name: '＋ Try an alternative' }).click();
+  await expect(page.getByTestId('option-switcher')).toContainText('Layout B');
   // One tab for the first floor, showing which option is on.
-  await expect(page.getByRole('button', { name: /First floor · Option B/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /First floor · Layout B/ })).toBeVisible();
 
   // Delete the kitchen/reception wall in Option B.
   const k = await screen(page, { x: 1300, y: 3370 });
@@ -86,8 +86,8 @@ test('phase 6: compare options keep each layout separate', async ({ page }) => {
 
   // Back to Option A: the wall is still there.
   await page.getByTestId('option-switcher').click();
-  await page.getByRole('menuitemradio', { name: /Option A/ }).click();
-  await expect(page.getByTestId('option-switcher')).toHaveText('Option A ▾');
+  await page.getByRole('menuitemradio', { name: /Layout A/ }).click();
+  await expect(page.getByTestId('option-switcher')).toContainText('Layout A');
   expect(await wallCount(page)).toBe(before);
 
   // The 3D view builds only the active option.

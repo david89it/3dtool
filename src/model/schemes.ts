@@ -1,4 +1,5 @@
-// Compare mode: a floor can have several options ("Option A", "Option B").
+// Layouts (called "options" in the code): a floor can have several layouts
+// ("Layout A", "Layout B"). Older plans saved them as "Option A"; those names stay.
 // Each option is a full Level with `scheme.group` = the id of the original
 // floor. Exactly one option per group is active: it is what the floor tabs,
 // the 3D view, stairs and walking use. Levels without `scheme` are their
@@ -63,7 +64,7 @@ export function activeLevelsResolved(project: Pick<Project, 'levels' | 'activeSc
 }
 
 export function optionName(i: number): string {
-  return `Option ${String.fromCharCode(65 + (i % 26))}${i >= 26 ? Math.floor(i / 26) + 1 : ''}`;
+  return `Layout ${String.fromCharCode(65 + (i % 26))}${i >= 26 ? Math.floor(i / 26) + 1 : ''}`;
 }
 
 function nextOptionName(opts: Level[]): string {
@@ -114,7 +115,7 @@ export function cloneLevel(src: Level): Level {
 
 /**
  * Duplicate a floor as a new option (mutates the project, e.g. inside an
- * immer recipe). The first duplicate names the original "Option A".
+ * immer recipe). The first duplicate names the original "Layout A".
  * Returns the new level's id; it becomes the active option.
  */
 export function duplicateAsOption(project: Project, levelId: Id): Id | null {

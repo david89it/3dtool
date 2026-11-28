@@ -78,8 +78,11 @@ export interface Level {
   // EXTENSION: true while elevation/ceilingHeight are seed guesses (§6).
   // Cleared as soon as she types a value.
   estimated?: boolean;
-  // EXTENSION (phase 6, compare mode): set when this floor has several
-  // options. `group` is the id of the original floor; `name` is "Option A"...
+  // EXTENSION (phase 6, compare mode, shown to her as "layouts"): set when
+  // this floor has several layouts. `group` is the id of the original floor;
+  // `name` is "Layout A"... (older plans: "Option A"). A layout is a whole copy
+  // of the floor: walls, openings, items, notes, finishes. The first one in
+  // project order is the floor's main layout.
   scheme?: { group: Id; name: string };
   // EXTENSION (scan import): line drawing from a DXF export (a LiDAR scan
   // app's floor plan, or a surveyor's CAD file), in plan mm. Drawn faintly

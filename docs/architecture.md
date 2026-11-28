@@ -57,6 +57,7 @@ A short map of the code and the habits that keep it easy to change. Start with
   table in `canvas/tools.ts`. Pointer, wheel or keyboard handling goes in a
   hook in `src/editor2d/canvas/`, not back into `PlanCanvas.tsx`.
 - **A top-bar button.** `src/ui/topbar/`.
+- **Layouts (alternatives of a floor).** Pure helpers in `src/model/layouts.ts` (on top of `schemes.ts`); the pill, compare view and their actions in `src/ui/layouts/`.
 - **A saved-data change.** Types in `model/types.ts` (mark new fields
   `EXTENSION:`), repair in `model/repair.ts`, and a test.
 

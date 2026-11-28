@@ -7,6 +7,7 @@ const ROWS: { title: string; keys: [string, string][] }[] = [
       ['Ctrl/⌘ Z', 'Undo'],
       ['Ctrl/⌘ Shift Z or Ctrl Y', 'Redo'],
       ['Tab', 'Switch between the plan and 3D'],
+      ['L / Shift L', 'Flip to the next / previous layout of this floor'],
       ['Ctrl/⌘ K', 'Search rooms, furniture and actions'],
       ['?', 'Show or hide this list'],
       ['[', 'Hide or show the tools panel on the left'],
