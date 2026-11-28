@@ -52,8 +52,16 @@ export interface FinishScheme {
   rooms: Record<string, RoomFinishes>;
 }
 
+/** How wooden boards are laid. */
+export type FloorPattern = 'straight' | 'wide' | 'herringbone' | 'chevron' | 'parquet';
+/** Direction the boards run, in degrees from along the room's x axis. */
+export type FloorAngle = 0 | 45 | 90;
+
 export interface RoomFinishes {
   floor?: string;
+  // EXTENSION (floor patterns): kept with the floor, so a colour scheme brings the laying back too.
+  pattern?: FloorPattern;
+  angle?: FloorAngle;
   walls?: string;
   ceiling?: string;
   woodwork?: string;
@@ -212,6 +220,12 @@ export interface Room {
   // EXTENSION: colour (paint id or hex) for the skirting, door leaves and
   // frames and window frames in this room; the standard white when missing.
   woodworkColor?: string;
+  // EXTENSION (floor patterns): how a wood floor is laid, and the direction it runs. Only
+  // wood floors use them (src/model/floorPatterns.ts). Missing = the pattern the chosen
+  // floor finish has by itself (straight boards, or herringbone for the herringbone floor),
+  // so projects saved before this field existed look the same.
+  floorPattern?: FloorPattern;
+  floorAngle?: FloorAngle;
   // EXTENSION (sloped ceilings, loft): up to two roof slopes. Each rises from one of
   // the room's walls (the low side) at its pitch, starting at the knee-wall height
   // there, until it meets the flat ceiling (`ceilingHeight`). See src/geometry/roof.ts.

@@ -5,6 +5,7 @@ import { currentSun, useSunUi } from './sunState';
 import { sunPlanDirection } from './sun';
 import { buildHeatGeometry } from './sunHours';
 import { useProfile } from './quality';
+import { biasForTexel, texelSize } from './shadowBias';
 
 const smooth = (a: number, b: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
@@ -67,6 +68,10 @@ export function SunRig({ box }: { box: THREE.Box3 }) {
     sc.near = Math.max(0.1, -Math.max(...corners.map((c) => c.z)) - 1);
     sc.far = -Math.min(...corners.map((c) => c.z)) + 1;
     sc.updateProjectionMatrix();
+    // Keep the bias in step with the texel size, or coarse texels show as blocky acne on walls.
+    const b = biasForTexel(texelSize(sc.left, sc.right, sc.bottom, sc.top, profile.shadowMap));
+    light.shadow.bias = b.bias;
+    light.shadow.normalBias = b.normalBias;
 
     // The environment map carries most of the soft fill light, so the flat hemisphere and
     // ambient lights are kept low: that leaves the sun's shadows and the occlusion readable.

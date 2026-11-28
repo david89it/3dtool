@@ -145,6 +145,7 @@ function diffRooms(a: Level, b: Level, out: string[]) {
     if (x.name !== y.name) out.push(`Room '${x.name}' renamed to '${y.name}'`);
     if (x.ceilingHeight !== y.ceilingHeight) out.push(`Room '${y.name}': ceiling height changed`);
     if (x.floorFinish !== y.floorFinish) out.push(`Room '${y.name}': floor finish changed`);
+    else if (x.floorPattern !== y.floorPattern || x.floorAngle !== y.floorAngle) out.push(`Room '${y.name}': floor pattern changed`);
     if (x.wallFinish !== y.wallFinish) out.push(`Room '${y.name}': wall finish changed`);
     if (x.ceilingFinish !== y.ceilingFinish) out.push(`Room '${y.name}': ceiling colour changed`);
     if (x.woodworkColor !== y.woodworkColor) out.push(`Room '${y.name}': woodwork colour changed`);

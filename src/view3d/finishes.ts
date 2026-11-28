@@ -2,7 +2,10 @@
 // procedural canvas texture (no image files to ship). Paint colours live in
 // src/model/palette.ts; findSurface() resolves any finish value.
 
-import type { Room, Wall } from '../model/types';
+import type { FloorPattern, Room, Wall } from '../model/types';
+import { finishPattern } from '../model/floorPatterns';
+import { drawWoodPattern } from './floorTextures';
+import { rng, shade } from './drawUtil';
 import { findPaint, isHex, paintHex, paintName, WHITE_PAINT_ID } from '../model/palette';
 
 export type FinishKind =
@@ -121,54 +124,17 @@ export function leaseHint(roomName: string, floor: Finish): string | null {
   return 'The lease asks for carpet in this room (to stop noise reaching the flat below). Check with the landlord before laying a hard floor.';
 }
 
-/** Deterministic noise so textures look the same every time. */
-function rng(seed: string) {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    return ((h ^= h >>> 16) >>> 0) / 4294967296;
-  };
-}
-
-function shade(hex: string, k: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v * k)));
-  return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`;
-}
-
-/** Paint one tile of a finish onto a square canvas. */
-export function drawFinish(ctx: CanvasRenderingContext2D, f: Finish, size: number): void {
+/** Paint one tile of a finish onto a square canvas. `pattern` overrides how a wood floor is laid. */
+export function drawFinish(ctx: CanvasRenderingContext2D, f: Finish, size: number, pattern?: FloorPattern): void {
   const r = rng(f.id);
   ctx.fillStyle = f.color;
   ctx.fillRect(0, 0, size, size);
   switch (f.kind) {
-    case 'timber': {
-      const boards = 6;
-      const bh = size / boards;
-      for (let i = 0; i < boards; i++) {
-        const offset = r() * size;
-        for (const x0 of [offset - size, offset]) {
-          ctx.fillStyle = shade(f.color, 0.9 + r() * 0.2);
-          ctx.fillRect(x0, i * bh, size, bh);
-          for (let g = 0; g < 7; g++) {
-            ctx.strokeStyle = shade(f.color, 0.82 + r() * 0.1);
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            const y = i * bh + r() * bh;
-            ctx.moveTo(x0, y);
-            ctx.bezierCurveTo(x0 + size * 0.3, y + (r() - 0.5) * 6, x0 + size * 0.6, y + (r() - 0.5) * 6, x0 + size, y);
-            ctx.stroke();
-          }
-          ctx.fillStyle = shade(f.color, 0.6);
-          ctx.fillRect(x0 + size - 1, i * bh, 2, bh);
-        }
-        ctx.fillStyle = shade(f.color, 0.65);
-        ctx.fillRect(0, i * bh, size, 1.5);
-      }
+    case 'timber':
+    case 'herringbone':
+    case 'chevron':
+      drawWoodPattern(ctx, pattern ?? finishPattern(f.kind), f.color, size, f.id);
       break;
-    }
     case 'carpet':
     case 'cork':
     case 'concrete': {
@@ -212,79 +178,6 @@ export function drawFinish(ctx: CanvasRenderingContext2D, f: Finish, size: numbe
         ctx.fillRect(i * w, 0, w, size);
         ctx.fillStyle = shade(f.color, 0.65);
         ctx.fillRect(i * w, 0, 2, size);
-      }
-      break;
-    }
-    case 'herringbone': {
-      // Planks 4 wide by 1 across, laid square. The texture is turned 45 degrees
-      // when it is laid (Finish.rotation). The pattern repeats every 4 plank
-      // widths, so the canvas shows it twice and tiles without a seam.
-      const u = size / 8;
-      const plank = (x: number, y: number, w: number, h: number) => {
-        // Seeded by where the plank sits in the repeat, so the wrap-around matches.
-        const pr = rng(`${f.id}|${((x % 8) + 8) % 8}|${((y % 8) + 8) % 8}|${w}`);
-        const sh = 0.86 + pr() * 0.26;
-        ctx.fillStyle = shade(f.color, sh);
-        ctx.fillRect(x * u, y * u, w * u, h * u);
-        ctx.strokeStyle = shade(f.color, 0.8 * sh);
-        ctx.lineWidth = 1;
-        for (let g = 0; g < 3; g++) {
-          ctx.beginPath();
-          if (w > h) {
-            const gy = (y + (g + 0.5) / 3 * h) * u;
-            ctx.moveTo(x * u, gy);
-            ctx.lineTo((x + w) * u, gy + (pr() - 0.5) * 3);
-          } else {
-            const gx = (x + (g + 0.5) / 3 * w) * u;
-            ctx.moveTo(gx, y * u);
-            ctx.lineTo(gx + (pr() - 0.5) * 3, (y + h) * u);
-          }
-          ctx.stroke();
-        }
-        ctx.strokeStyle = shade(f.color, 0.55);
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(x * u + 0.75, y * u + 0.75, w * u - 1.5, h * u - 1.5);
-      };
-      for (let m = -3; m <= 3; m++)
-        for (let k = -10; k <= 14; k++) {
-          plank(m * 4 + k, k, 4, 1);
-          plank(m * 4 + k + 4, k - 3, 1, 4);
-        }
-      break;
-    }
-    case 'chevron': {
-      // Diagonal planks meeting in a V down the middle of the tile.
-      const bands = 8;
-      const bh = size / bands;
-      const mid = size / 2;
-      for (let b = -4; b < bands + 8; b++) {
-        const rr = rng(`${f.id}${((b % bands) + bands) % bands}`);
-        for (const side of [-1, 1]) {
-          ctx.fillStyle = shade(f.color, 0.88 + rr() * 0.24);
-          // Band between g = b*bh and (b+1)*bh, where g = y + |x - mid|.
-          const x0 = side < 0 ? 0 : mid;
-          const x1 = side < 0 ? mid : size;
-          const y = (x: number, g: number) => g - Math.abs(x - mid);
-          ctx.beginPath();
-          ctx.moveTo(x0, y(x0, b * bh));
-          ctx.lineTo(x1, y(x1, b * bh));
-          ctx.lineTo(x1, y(x1, (b + 1) * bh));
-          ctx.lineTo(x0, y(x0, (b + 1) * bh));
-          ctx.closePath();
-          ctx.fill();
-          ctx.strokeStyle = shade(f.color, 0.58);
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          ctx.strokeStyle = shade(f.color, 0.8);
-          ctx.lineWidth = 1;
-          for (let g = 1; g <= 3; g++) {
-            const gg = b * bh + (g / 4) * bh;
-            ctx.beginPath();
-            ctx.moveTo(x0, y(x0, gg));
-            ctx.lineTo(x1, y(x1, gg));
-            ctx.stroke();
-          }
-        }
       }
       break;
     }

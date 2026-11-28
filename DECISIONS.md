@@ -1150,3 +1150,10 @@ no guides while resizing or turning; rays do not see through gaps made by openin
 - **Undo and redo are not segmented.** Switching layouts is not a history step. Every edit remembers the
   layout it was made on, so undoing from another layout jumps back to the one that changed. Rename, make
   main, try-an-alternative and delete are ordinary undoable steps.
+## 3D wall speckle and floor patterns (2026-11-28)
+
+- The blocky grey patches on walls were z-fighting, not shadow acne. The seed draws each chimney breast twice: a box of walls and a full-height catalogue piece whose faces sit exactly on the walls' faces. Two coplanar faces flicker against each other, worst on the 1.2 m cut-away walls under a tall piece. Fix: piece materials use polygon offset, so a piece wins every depth tie against a wall or floor it sits flush with (`materials.ts`). Nothing in the plan data changed, so room areas and the rules are as before.
+- The sun's shadow bias now follows the shadow map's texel size (`shadowBias.ts`, set each frame in `SunRig`): the normal bias is about two texels, clamped to 1 to 12 cm. A fixed bias suited one flat size only. It did not cause the patches, but it removed faint banding on floors at low sun. PCFSoft was not needed.
+- Floor patterns are a per-room choice (`Room.floorPattern`, `Room.floorAngle`, EXTENSION). A pattern applies to wood finishes only (oak, pale oak, walnut, and the two existing herringbone and chevron floors). A room without the field gets the pattern its finish has by itself, so old projects look the same. The colour still comes from the finish.
+- Patterns: straight, wide plank, herringbone, chevron, basket weave. Direction: along, across, diagonal. Versailles was left out: its panels need borders and inlays that do not repeat as one small tile.
+- Budget: a laid pattern adds extra wood to buy (herringbone 10%, chevron 15%, basket weave 5%, on top of the cutting allowance) and a plain note that fitters usually charge more. The price per m² is still hers to set per finish. The 2D plan does not draw floor finishes, so there is no pattern hint there. Colour schemes keep the pattern and direction.

@@ -2507,4 +2507,13 @@ p.field-hint {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
   }
+/* Floor pattern picker (wood floors only) */
+.pattern-picker {
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pattern-picker .segmented button {
+  font-size: 12px;
+  padding: 0 4px;
 }

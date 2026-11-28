@@ -5,7 +5,7 @@ file-size conventions are in [`docs/architecture.md`](docs/architecture.md). It 
 purpose: read this, then only the files your task names. Update the
 "State" and "Log" sections at the end of every piece of work.
 
-Last updated: 2026-11-26, after loft slopes and chimney breasts.
+Last updated: 2026-11-28, after the 3D wall speckle fix and floor patterns.
 
 ## 1. What this is
 
@@ -268,6 +268,7 @@ Report in under 300 words: commit hash, what works, model/store changes, known g
 ## 8. Log (newest first, one line each)
 
 - 2026-11-28 · layouts · Per-floor layouts she can try: pill on the plan (`ui/layouts/LayoutPill.tsx`) with Try an alternative, rename, make main (`model/layouts.ts`), delete, and key L to flip; side-by-side Compare (`CompareView.tsx`). Built on the old options (`schemes.ts`, names now "Layout A"). Tests `layouts.test.ts`, `e2e/layouts.spec.ts`. See DECISIONS.
+- 2026-11-28 · floors · Fixed blocky patches on walls in 3D: z-fighting between the seed's chimney walls and the chimney piece (piece materials now use polygon offset), plus shadow bias that follows the texel size (`view3d/shadowBias.ts`). Floor patterns for wood: straight, wide plank, herringbone, chevron, basket weave, with direction (`Room.floorPattern/floorAngle`, `model/floorPatterns.ts`, `view3d/floorTextures.ts`, `FloorPatternPicker.tsx`, Floor tab in Finishes); budget adds extra wood and a laying note. Tests `floorPatterns.test.ts`, `shadowBias.test.ts`, `e2e/floorpattern.spec.ts`; pictures in `docs/render/`.
 - 2026-11-27 · refactor · No behaviour change. Split the big files: rules registry into `rules/groups/*`, Inspector into `ui/inspector/*`, ItemPanel into `ui/itempanel/*`, PlanCanvas into hooks and parts in `editor2d/canvas/*`, PrintPack into `print/pages/*` plus `usePackState.ts`, TopBar into `ui/topbar/*`, Budget tabs into `ui/budget/*`, catalogue data into `catalogue/data/*`, persistence into `savedProject`/`autosave`/`projectFile`, versions into `versionImages`/`versionJobs`, seed builders into `seedBuild`. Removed unused functions. Version jobs (`runJob`, `autoSnapshot`...) now import from `model/versionJobs`. Map: `docs/architecture.md`.
 - 2026-11-27 · ux-context · Floating toolbar by the selection (`editor2d/SelectionToolbar.tsx`, `selectionAnchor.ts`), "Removed x · Undo" toast for every Remove/Delete step (`store.ts` `deletedWording`, `Toast.action`), mode-aware empty floor with a Draw walls button (`EmptyPlan.tsx`), one-line hint that follows the tool and selection (`toolHint.ts`, `ToolHint.tsx`), two-row top bar up to 1600 px. Findings: `docs/ux-review.md`; tests `selectionAnchor.test.ts`, `toolHint.test.ts`, `e2e/contextual-ui.spec.ts`.
 - 2026-11-27 · render · 3D look: environment-map lighting, textured PBR materials, sky haze, Fast/Beautiful quality (`quality.ts`; Beautiful adds GTAO ambient occlusion in `postfx.tsx`, 4096 soft shadows, rounded furniture), *Save a photo* (`Photo.tsx`, `QualityPanel.tsx`). Review and screenshots in `docs/render-review.md`.

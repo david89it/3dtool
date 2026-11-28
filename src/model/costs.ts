@@ -5,7 +5,7 @@
 // them can be changed in the Budget panel (they are saved in
 // Project.costSettings), so nothing here is a quote.
 
-import type { CostSettings, Id, ItemStatus, Level, Opening, Project } from './types';
+import type { CostSettings, FloorPattern, Id, ItemStatus, Level, Opening, Project } from './types';
 import { activeLevels } from './schemes';
 import { computeJoints } from '../geometry/joints';
 import { detectRooms, type DetectedRoom } from '../geometry/rooms';
@@ -15,6 +15,7 @@ import { findCatalogueItem } from '../catalogue/catalogue';
 /** Catalogue pieces that are part of the building, left out of the budget. */
 const BUILDING_PARTS = new Set(['chimney-breast', 'column']);
 import { defaultFloorId, FLOOR_FINISHES } from '../view3d/finishes';
+import { effectivePattern, floorLabel, patternInfo, patternWastePct } from './floorPatterns';
 import { formatLength, type UnitSystem } from './units';
 
 export const STATUSES: ItemStatus[] = ['idea', 'shortlisted', 'bought'];
@@ -122,6 +123,10 @@ export interface DecoratingRow {
   ceilingCost: number;
   floorFinishId: string;
   floorFinishName: string;
+  /** How a wood floor is laid, when it is not plain boards. */
+  floorPattern?: FloorPattern;
+  /** Plain note when the pattern costs more to lay. */
+  floorNote?: string;
   floorM2: number;
   floorBuyM2: number;
   floorPricePerM2: number;
@@ -199,7 +204,9 @@ export function decoratingForLevel(level: Level, s: CostSettings): DecoratingRow
     const name = room?.name ?? 'Room';
     const finishId = room?.floorFinish ?? defaultFloorId(name);
     const floorM2 = d.area / M2;
-    const buy = flooringBuyM2(floorM2, s.flooringWastagePct);
+    const finish = FLOOR_FINISHES.find((f) => f.id === finishId);
+    const pattern = effectivePattern(room, finish?.kind);
+    const buy = flooringBuyM2(floorM2, s.flooringWastagePct + patternWastePct(pattern));
     const pricePer = s.floorPerM2[finishId] ?? 0;
     const wallLitres = paintLitres(wallM2, s);
     const ceilingLitres = paintLitres(floorM2, s);
@@ -217,7 +224,9 @@ export function decoratingForLevel(level: Level, s: CostSettings): DecoratingRow
       ceilingLitres,
       ceilingCost,
       floorFinishId: finishId,
-      floorFinishName: FLOOR_FINISHES.find((f) => f.id === finishId)?.name ?? finishId,
+      floorFinishName: floorLabel(finish?.name ?? finishId, pattern),
+      floorPattern: pattern && pattern !== 'straight' ? pattern : undefined,
+      floorNote: pattern ? patternInfo(pattern).labourNote : undefined,
       floorM2,
       floorBuyM2: buy,
       floorPricePerM2: pricePer,
@@ -374,7 +383,7 @@ export function budgetCsv(b: Budget, units: UnitSystem = 'metric'): string {
   for (const d of b.decorating) {
     lines.push(csvRow(['Decorating', d.floor, d.room, 'Wall paint', '', '', '', '', `${formatM2(d.wallM2)}, ${formatLitres(d.wallLitres)}`, d.wallCost]));
     lines.push(csvRow(['Decorating', d.floor, d.room, 'Ceiling paint', '', '', '', '', `${formatM2(d.ceilingM2)}, ${formatLitres(d.ceilingLitres)}`, d.ceilingCost]));
-    lines.push(csvRow(['Decorating', d.floor, d.room, `Flooring: ${d.floorFinishName}`, '', '', '', '', `${formatM2(d.floorBuyM2)} to buy`, d.floorCost]));
+    lines.push(csvRow(['Decorating', d.floor, d.room, `Flooring: ${d.floorFinishName}`, '', '', '', '', `${formatM2(d.floorBuyM2)} to buy${d.floorNote ? `. ${d.floorNote}` : ''}`, d.floorCost]));
   }
   const s = b.summary;
   lines.push(csvRow(['Total', '', '', `Contingency (${s.contingencyPct}%)`, '', '', '', '', '', s.contingency]));
@@ -406,6 +415,7 @@ export function budgetText(b: Budget, projectName: string, units: UnitSystem = '
       `    - Wall paint: ${formatM2(d.wallM2)}, ${formatLitres(d.wallLitres)}, ${formatGBP(d.wallCost)}`,
       `    - Ceiling paint: ${formatM2(d.ceilingM2)}, ${formatLitres(d.ceilingLitres)}, ${formatGBP(d.ceilingCost)}`,
       `    - Flooring, ${d.floorFinishName}: ${formatM2(d.floorBuyM2)} to buy, ${formatGBP(d.floorCost)}`,
+      ...(d.floorNote ? [`      (${d.floorNote})`] : []),
     );
   }
   const s = b.summary;

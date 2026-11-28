@@ -2,7 +2,10 @@
 // switching floors or editing a wall never piles up GPU objects.
 
 import * as THREE from 'three';
-import { drawFinish, findSurface, surfaceColor, type Finish } from './finishes';
+import { drawFinish, findFinish, FLOOR_FINISHES, findSurface, surfaceColor, type Finish } from './finishes';
+import type { FloorPattern, Room } from '../model/types';
+import { effectiveAngle, effectivePattern } from '../model/floorPatterns';
+import { PATTERN_ROTATION, PATTERN_TILE_M } from './floorTextures';
 import { proceduralTexture, type TextureKind } from './proceduralTextures';
 
 interface Token {
@@ -60,6 +63,11 @@ function buildMaterial(t: Token, hex?: string): THREE.MeshStandardMaterial {
     opacity: t.opacity ?? 1,
     emissive: t.emissive ?? '#000000',
     depthWrite: !glassy,
+    // Pieces win depth ties against walls and floors they sit flush with (a chimney breast drawn
+    // over the walls that outline it, a cupboard against a wall): no z-fighting speckle.
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -2,
   };
   const m = t.clearcoat ? new THREE.MeshPhysicalMaterial({ ...params, clearcoat: t.clearcoat, clearcoatRoughness: 0.08 }) : new THREE.MeshStandardMaterial(params);
   const tex = t.tex ? proceduralTexture(t.tex) : null;
@@ -95,7 +103,13 @@ const finishCache = new Map<string, THREE.MeshStandardMaterial>();
 const woodCache = new Map<string, THREE.MeshStandardMaterial>();
 const ceilingCache = new Map<string, THREE.MeshStandardMaterial>();
 
-function finishTexture(f: Finish): THREE.Texture | null {
+/** How a texture is laid: metres per copy and the turn. Wood floors take both from their pattern. */
+function laying(f: Finish, pattern?: FloorPattern, angleDeg = 0): { tileM: number; rotation: number } {
+  if (!pattern) return { tileM: f.tileM, rotation: f.rotation ?? 0 };
+  return { tileM: PATTERN_TILE_M[pattern], rotation: PATTERN_ROTATION[pattern] + (angleDeg * Math.PI) / 180 };
+}
+
+function finishTexture(f: Finish, pattern?: FloorPattern, angleDeg = 0): THREE.Texture | null {
   if (f.kind === 'paint' || typeof document === 'undefined') return null;
   const size = 512;
   const c = document.createElement('canvas');
@@ -103,15 +117,16 @@ function finishTexture(f: Finish): THREE.Texture | null {
   c.height = size;
   const ctx = c.getContext('2d');
   if (!ctx) return null;
-  drawFinish(ctx, f, size);
+  drawFinish(ctx, f, size, pattern);
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   // Geometry UVs are in metres; one texture covers tileM metres.
-  tex.repeat.set(1 / f.tileM, 1 / f.tileM);
-  if (f.rotation) {
+  const { tileM, rotation } = laying(f, pattern, angleDeg);
+  tex.repeat.set(1 / tileM, 1 / tileM);
+  if (rotation) {
     tex.center.set(0.5, 0.5);
-    tex.rotation = f.rotation;
+    tex.rotation = rotation;
   }
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
@@ -132,6 +147,27 @@ export function finishMaterial(id: string, fallback: string): THREE.MeshStandard
   });
   finishCache.set(key, m);
   return m;
+}
+
+const floorCache = new Map<string, THREE.MeshStandardMaterial>();
+
+/** A wood floor laid in a pattern and direction: one material per finish, pattern and direction. */
+export function floorMaterial(id: string, fallback: string, pattern: FloorPattern, angleDeg: number): THREE.MeshStandardMaterial {
+  const key = `${id || fallback}|${pattern}|${angleDeg}`;
+  const hit = floorCache.get(key);
+  if (hit) return hit;
+  const f = findSurface(id) ?? findSurface(fallback)!;
+  const map = finishTexture(f, pattern, angleDeg);
+  const m = new THREE.MeshStandardMaterial({ color: map ? '#ffffff' : f.color, map, roughness: f.roughness });
+  floorCache.set(key, m);
+  return m;
+}
+
+/** The floor's material: wood is laid in the room's pattern and direction, everything else as chosen. */
+export function floorSurface(room: Pick<Room, 'floorPattern' | 'floorAngle'> | undefined, finishId: string): THREE.Material {
+  const kind = findFinish(finishId, FLOOR_FINISHES)?.kind;
+  const pattern = effectivePattern(room, kind);
+  return pattern ? floorMaterial(finishId, 'floor-pale-oak', pattern, effectiveAngle(room)) : finishMaterial(finishId, 'floor-pale-oak');
 }
 
 /** Ceilings: plain white, seen only from below. */

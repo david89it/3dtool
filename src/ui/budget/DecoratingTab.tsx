@@ -3,6 +3,7 @@ import { useStore } from '../../model/store';
 import { formatGBP, formatLitres, formatM2, parsePrice, type Budget } from '../../model/costs';
 import { editCostSetting, editFloorPrice } from '../../model/costEdits';
 import type { CostSettings } from '../../model/types';
+import { FLOOR_FINISHES } from '../../view3d/finishes';
 import { CommitInput } from '../budgetFields';
 
 type NumKey = Exclude<keyof CostSettings, 'floorPerM2'>;
@@ -33,7 +34,7 @@ export function DecoratingTab({ budget }: { budget: Budget }) {
   const s = budget.settings;
   const finishes = useMemo(() => {
     const seen = new Map<string, string>();
-    for (const d of budget.decorating) seen.set(d.floorFinishId, d.floorFinishName);
+    for (const d of budget.decorating) seen.set(d.floorFinishId, FLOOR_FINISHES.find((f) => f.id === d.floorFinishId)?.name ?? d.floorFinishName);
     return [...seen.entries()];
   }, [budget.decorating]);
   return (
@@ -95,6 +96,11 @@ export function DecoratingTab({ budget }: { budget: Budget }) {
                   <td>
                     {d.floorFinishName}: {formatM2(d.floorBuyM2)} to buy
                     <div className="note">{formatGBP(d.floorCost)}</div>
+                    {d.floorNote && (
+                      <div className="note" data-testid="floor-note">
+                        {d.floorNote}
+                      </div>
+                    )}
                   </td>
                   <td data-testid="deco-total">
                     <strong>{formatGBP(d.total)}</strong>
